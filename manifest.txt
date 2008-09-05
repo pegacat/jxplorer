@@ -1,0 +1,2 @@
+Class-Path: jars/jxplorer.jar jars/help.jar jars/jhall.jar jars/junit.jar 
+Main-Class: com.ca.directory.jxplorer.JXplorer
