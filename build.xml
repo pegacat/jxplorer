@@ -8,6 +8,7 @@
     <property name="version" value="JXv3.2.1rc1"/>
 
     <property name="classes" value="classes"/>
+    <property name="images" value="images"/>
     <property name="report" value="build_reports/"/>
     <property name="release" value="release${version}"/> <!-- modify exclusions in package task manually if this changes -->
 
@@ -22,6 +23,7 @@
 
     <property name="jars" value="jars"/>
     <property name="src" value="src"/>
+    <property name="keytool" value="keytool"/>
     <property name="dist" value="dist"/>
     <property name="package" value="package"/>
     <property name="compile.debug" value="on"/>
@@ -79,6 +81,7 @@
         <delete dir="${classes}"/>
         <delete dir="${dist}"/>
         <delete dir="${release}"/>
+        <delete dir="${keytool}"/>
         <delete file="jxplorer.jar"/>
     </target>
 
@@ -126,7 +129,28 @@
         <mkdir dir="${dist}"/>
         <mkdir dir="${dist}/jxplorer"/>
         <copy todir="${dist}/jxplorer">
-            <fileset dir="." includes="build.xml"/>
+            <fileset dir="." >
+                <include name="build.xml"/>
+                <include name="example.ldif"/>
+                <include name="gssapi.conf"/>
+                <include name="icons*/**/"/>
+                <include name="images*/**/"/>
+                <include name="JXplorer_Administrator_Guide.pdf"/>
+                <include name="jxplorer.bat"/>
+                <include name="jxplorer.sh"/>
+                <include name="language*/**/"/>
+                <include name="licence.txt"/>
+                <include name="log4j.xml"/>
+                <include name="plugins*/**/"/>
+                <include name="RELEASE.TXT"/>
+                <include name="security*/**/"/>
+                <include name="tcpmon.sh"/>
+                <include name="templates*/**/"/>
+                <include name=""/>
+                <include name=""/>
+                <include name=""/>
+                <include name=""/>
+            </fileset>
         </copy>
         <mkdir dir="${dist}/jxplorer/jars"/>
         <copy todir="${dist}/jxplorer/jars">
@@ -138,6 +162,8 @@
             eof="remove"
             includes="**/*.sh"
             />
+        <chmod file="${dist}/jxplorer/*.sh" perm="ugo+rx"/>
+
     </target>
 
     <target name="package"
@@ -237,6 +263,34 @@
             <bottom><![CDATA[<i>This is Open Source Code under the CA Open Source Licence ( == Apache Licence)</i>]]></bottom>
             <link href="http://java.sun.com/products/jdk/1.4/docs/api/"/>
         </javadoc>
+    </target>
+
+    <target name="keytool" depends="build" description="generate stand alone 'keytool' executable jar file">
+
+    <delete dir="${keytool}"/>
+
+    <copy toDir="${keytool}/classes" failonerror="false">
+    	<fileset dir="${images}">
+	        <include name="logo_16.gif"/>
+            <include name="ssl*.gif"/>
+	    </fileset>
+	</copy>
+    <copy toDir="${keytool}/classes/com/ca/commons" failonerror="false">
+    	<fileset dir="${classes}/com/ca/commons">
+	        <include name="cbutil/**/"/>
+            <include name="security/**/"/>
+	    </fileset>
+	</copy>
+
+    <jar destfile="${keytool}/SmartKeytool.jar" basedir="${keytool}/classes">
+	    <fileset excludes="**/Test.class" dir="${keytool}/classes"/>
+          <manifest>
+                <attribute name="Created-By" value="${user.name}"/>
+                <attribute name="Build-Version" value="${version}"/>
+            	<attribute name="Main-Class" value="com.ca.commons.security.KeystoreGUI"/>
+            </manifest>
+    </jar>
+
     </target>
 
 </project>
