@@ -7,8 +7,11 @@ JXplorer Version 3.2.1 Release Notes
 * Support for displaying raw password strings in table editor using 'mask.raw.passwords=false' in jxconfig.txt
 * Some fixes for MAC look and feel; added GTK look and feel
 * Added beginnings of Taiwanese chinese language file - only partial.  Reformated chinese to be traditional chinese file.
-*
+* Added stand alone 'smart keystore editor' as a sub-project of JXplorer (separate target in ant build, creates an executable jar file)
+* Work on ant build file; making sure that shell script permissions are maintained
+* Moved source to subversion repository, restructured to allow 'single check out, single build'; more modifications to build file.
 
 Thanks to evereasy@gmail.com for the tiwanese language file
 Thanks to Pawel Zuzelski for the LDIF code
-GTK L&F suggested by Alfonsas Stonis  
+GTK L&F suggested by Alfonsas Stonis
+Executable jar file version of smart keystore editor from Santthosh Babu Selvadurai
