@@ -120,7 +120,7 @@
     </target>
 
     <target name="dist"
-        description="Build complete JXplorer distribution package (from cvs image only!)"
+        description="Build complete JXplorer distribution package"
         depends="jar">
         <delete dir="${dist}"/>
         <mkdir dir="${dist}"/>
@@ -142,7 +142,7 @@
 
     <target name="package"
         description="Create buildable JXplorer package with source and resources"
-        depends="jar, dist">
+        depends="jar, dist, javadoc">
         <delete dir="${package}"/>
         <mkdir dir="${package}"/>
         <mkdir dir="${package}/jxplorer"/>
@@ -169,7 +169,7 @@
             includes="**/*.sh"
         />
         <chmod file="${package}/jxplorer/*.sh" perm="ugo+rx"/>
-        
+
     </target>
     <target name="release"
         description="Create package and deploy release zips/tar.bz2 files (from cvs image only!)"
