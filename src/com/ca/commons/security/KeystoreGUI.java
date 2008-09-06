@@ -11,7 +11,7 @@ import javax.swing.*;
 import java.security.*;
 import java.security.cert.*;
 import java.security.spec.*;
-
+import java.net.URL;
 
 //use Van Bui's Certificate Viewer
 import com.ca.commons.cbutil.*;
@@ -112,18 +112,12 @@ public class KeystoreGUI extends CBDialog implements ActionListener
 
         if (smallCert == null)
         {
-            if(standAlone)
-                smallCert = new ImageIcon("./images/sslcert.gif");
-            else
-                smallCert = getImageIcon("sslcert.gif");
+            smallCert = getImageIcon("sslcert.gif");
         }
 
         if (smallKeyCert == null)
         {
-            if(standAlone)
-                smallKeyCert = new ImageIcon("./images/sslkeycert.gif");
-            else
-                smallKeyCert = getImageIcon("sslkeycert.gif");
+            smallKeyCert = getImageIcon("sslkeycert.gif");
         }
 
         keystoreFile =  keyStoreLocation;
@@ -169,40 +163,21 @@ public class KeystoreGUI extends CBDialog implements ActionListener
 
         display.makeLight();
 
-        if(standAlone)
-        {
-            display.add(viewCert = new CBButton("  " + CBIntText.get("View Certificate"), CBIntText.get("View a certificate in detail."), new ImageIcon("./images/sslview.gif")), 3, 1);
+        display.add(viewCert = new CBButton("  " + CBIntText.get("View Certificate"), CBIntText.get("View a certificate in detail."), getImageIcon("sslview.gif")), 3, 1);
 
-            display.add(addCert = new CBButton("  " + CBIntText.get("Add Certificate"), CBIntText.get("Add a new trusted server certificate"), new ImageIcon("./images/ssladd.gif")), 3, 2);
-            if (crippled)
-            //addCert.disable();
-            addCert.setEnabled(false);
+        display.add(addCert = new CBButton("  " + CBIntText.get("Add Certificate"), CBIntText.get("Add a new trusted server certificate"), getImageIcon("ssladd.gif")), 3, 2);
+        if (crippled)
+        //addCert.disable();
+        addCert.setEnabled(false);
 
-            display.add(deleteCert = new CBButton("  " + CBIntText.get("Delete Certificate"), CBIntText.get("Delete an unwanted or out of date server certificate"), new ImageIcon("./images/ssldelete.gif")), 3, 3);
+        display.add(deleteCert = new CBButton("  " + CBIntText.get("Delete Certificate"), CBIntText.get("Delete an unwanted or out of date server certificate"), getImageIcon("ssldelete.gif")), 3, 3);
 
-            display.add(passwordButton = new CBButton("  " + CBIntText.get("Set Password"), CBIntText.get("Change the certificate keystore password."), new ImageIcon("./images/sslpassword.gif")), 3, 4);
+        display.add(passwordButton = new CBButton("  " + CBIntText.get("Set Password"), CBIntText.get("Change the certificate keystore password."), getImageIcon("sslpassword.gif")), 3, 4);
 
-            importKeyButton = new CBButton("  " + CBIntText.get("Set Private Key"), CBIntText.get("Match a PKCS-8 private key with a certificate"), new ImageIcon("./images/sslprivatekey.gif"));
+        importKeyButton = new CBButton("  " + CBIntText.get("Set Private Key"), CBIntText.get("Match a PKCS-8 private key with a certificate"), getImageIcon("sslprivatekey.gif"));
 
-            exportKeyButton = new CBButton("  " + CBIntText.get("Export Private Key"), CBIntText.get("Export the PKCS-8 private key matching a certificate"), new ImageIcon("./images/sslexprivatekey.gif"));
-        }
-        else
-        {
-            display.add(viewCert = new CBButton("  " + CBIntText.get("View Certificate"), CBIntText.get("View a certificate in detail."), getImageIcon("sslview.gif")), 3, 1);
+        exportKeyButton = new CBButton("  " + CBIntText.get("Export Private Key"), CBIntText.get("Export the PKCS-8 private key matching a certificate"), getImageIcon("sslexprivatekey.gif"));
 
-            display.add(addCert = new CBButton("  " + CBIntText.get("Add Certificate"), CBIntText.get("Add a new trusted server certificate"), getImageIcon("ssladd.gif")), 3, 2);
-            if (crippled)
-            //addCert.disable();
-            addCert.setEnabled(false);
-
-            display.add(deleteCert = new CBButton("  " + CBIntText.get("Delete Certificate"), CBIntText.get("Delete an unwanted or out of date server certificate"), getImageIcon("ssldelete.gif")), 3, 3);
-
-            display.add(passwordButton = new CBButton("  " + CBIntText.get("Set Password"), CBIntText.get("Change the certificate keystore password."), getImageIcon("sslpassword.gif")), 3, 4);
-
-            importKeyButton = new CBButton("  " + CBIntText.get("Set Private Key"), CBIntText.get("Match a PKCS-8 private key with a certificate"), getImageIcon("sslprivatekey.gif"));
-
-            exportKeyButton = new CBButton("  " + CBIntText.get("Export Private Key"), CBIntText.get("Export the PKCS-8 private key matching a certificate"), getImageIcon("sslexprivatekey.gif"));
-        }
 
         if (handlePrivateKeys)
         {
@@ -264,6 +239,7 @@ public class KeystoreGUI extends CBDialog implements ActionListener
 
         display.add(new JLabel("    "), 3, ((handlePrivateKeys)?7:5)); // padding...
     }
+
 
     /**
      *    checks actions on the various keystore affecting buttons.
@@ -574,7 +550,7 @@ public class KeystoreGUI extends CBDialog implements ActionListener
         {
             try
             {
-                this.owner.setIconImage(new ImageIcon("./images/logo_16.gif").getImage());
+                this.owner.setIconImage(getImageIcon("logo_16.gif").getImage());
             }
             catch (Exception e) {} // we don't care if this stuff up - it's just a nice to have...
         }
@@ -1276,12 +1252,30 @@ public class KeystoreGUI extends CBDialog implements ActionListener
 
     public ImageIcon getImageIcon(String name)
     {
-        ImageIcon newIcon = new ImageIcon(properties.getProperty("dir.images") + name);
-        return newIcon;
+        try
+        {
+            String path = properties.getProperty("dir.images") + name;
+            File imageFile = new File(path);
+            if (imageFile.exists())
+            {
+                ImageIcon newIcon = new ImageIcon(path);
+                    return newIcon;
+            }
+         }
+         catch (Exception e) {} // ignore; try load via class loader mechanism
+
+        System.out.println("debug: trying to load jar image " + name + " from: " + this.getClass().getResource(name));
+
+        try
+        {
+            return new ImageIcon(this.getClass().getResource("/" + name));
+        }
+        catch (Exception e)
+        {
+            System.out.println("Error loading images; " + name + " not found: " + e.getMessage());
+        }
+        return null;
     }
-
-
-
 
 
     private static void printUsageAndExit()
@@ -1309,10 +1303,7 @@ public class KeystoreGUI extends CBDialog implements ActionListener
 
         // stand alone demo...
 
-        System.out.println("running KeystoreGUI 1.0 stand alone demo - Chris Betts 2002\n");
-
-
-
+        System.out.println("running KeystoreGUI 1.0 stand alone - Chris Betts 2002 / Santthosh Babu Selvadurai 2007\n");
 
         String localDir = System.getProperty("user.dir") + File.separator;
 
