@@ -1100,7 +1100,7 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
                                                      null,
                                                      JXplorer.getProperty(JXplorer.CA_TYPE_PROPERTY),
                                                      CBIntText.get("Manage Your Trusted Server Certificates."),
-                                                     false, HelpIDs.SSL_CERTS);
+                                                     false, HelpIDs.SSL_CERTS, false);
                     win.setSize(450,320);
                     CBUtility.center(win, jxplorer);
                     win.setVisible(true);  // may modify jxplorer properties
@@ -1112,7 +1112,7 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
                                                      null,
                                                      JXplorer.getProperty(JXplorer.CLIENT_TYPE_PROPERTY),
                                                      CBIntText.get("Manage Your Own Private Keys and Certificates."),
-                                                     true, HelpIDs.SSL_CERTS);
+                                                     true, HelpIDs.SSL_CERTS, false);
                     win.setSize(450,440);
                     CBUtility.center(win, jxplorer);
                     win.setVisible(true);  // may modify jxplorer properties
