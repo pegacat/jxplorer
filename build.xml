@@ -200,16 +200,38 @@
     <target name="release"
         description="Create package and deploy release zips/tar.bz2 files (from cvs image only!)"
         depends="clean, test, dist, javadoc, package">
+
+        <delete dir="${release}"/>
+
         <mkdir dir="${release}"/>
-        <zip destfile="${release}/${version}deploy.zip" basedir="${dist}"/>
-        <zip destfile="${release}/${version}package.zip" basedir="${package}"/>
-        <tar tarfile="${release}/${version}deploy.tar.bz2" basedir="${dist}" compression="bzip2"/>
-        <tar tarfile="${release}/${version}package.tar.bz2" basedir="${package}" compression="bzip2"/>
+
+        <zip destfile="${release}/${version}deploy.zip">
+            <zipfileset dir="${dist}" includes="jxplorer/**/"/>
+            <zipfileset dir="${dist}" filemode="755" includes="jxplorer/**/*.sh"/>
+        </zip>
+
+        <zip destfile="${release}/${version}package.zip">
+            <zipfileset dir="${package}" includes="jxplorer/**"/>
+            <zipfileset dir="${package}" filemode="755" includes="jxplorer/**/*.sh"/>
+        </zip>
+
+        <tar destfile="${release}/${version}deploy.tar.bz2" compression="bzip2">
+            <tarfileset dir="${dist}" includes="jxplorer/**"/>
+            <tarfileset dir="${dist}" mode="755" includes="jxplorer/**/*.sh"/>
+        </tar>
+
+        <tar destfile="${release}/${version}package.tar.bz2" compression="bzip2">
+            <tarfileset dir="${package}" includes="jxplorer/**"/>
+            <tarfileset dir="${package}" mode="755" includes="jxplorer/**/*.sh"/>
+        </tar>
+
         <delete dir="temp"/>
+
         <move todir="${docs}">
             <fileset dir="${package}/jxplorer/docs"/>
         </move>
-</target>
+
+    </target>
 
     <!-- ==================================================================	-->
     <!-- JUnit test targets							                        -->
