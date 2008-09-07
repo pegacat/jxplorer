@@ -133,10 +133,12 @@
                 <include name="build.xml"/>
                 <include name="example.ldif"/>
                 <include name="gssapi.conf"/>
+                <include name="htmldocs"/>
                 <include name="icons*/**/"/>
                 <include name="images*/**/"/>
                 <include name="JXplorer_Administrator_Guide.pdf"/>
                 <include name="jxplorer.bat"/>
+                <include name="jxplorer.ico"/>
                 <include name="jxplorer.sh"/>
                 <include name="language*/**/"/>
                 <include name="licence.txt"/>
@@ -146,10 +148,6 @@
                 <include name="security*/**/"/>
                 <include name="tcpmon.sh"/>
                 <include name="templates*/**/"/>
-                <include name=""/>
-                <include name=""/>
-                <include name=""/>
-                <include name=""/>
             </fileset>
         </copy>
         <mkdir dir="${dist}/jxplorer/jars"/>
@@ -174,18 +172,28 @@
         <mkdir dir="${package}/jxplorer"/>
         <copy todir="${package}/jxplorer">
             <fileset dir=".">
-                <include name="**/*"/>
-                <exclude name="${dist}"/>
-                <exclude name="${report}"/>
-                <exclude name="${classes}"/>
-                <exclude name="${package}"/>
-                <exclude name="release*/**/"/>
-                <exclude name="?xconfig.txt"/>
-                <exclude name="*.log"/>
-                <exclude name="*.pdf"/>
-                <exclude name="*.iml"/> <!-- intellij idea project file -->
-                <exclude name="*.ipr"/> <!-- intellij idea project file -->
-                <exclude name="*.iws"/> <!-- intellij idea project file -->
+                <include name="build.xml"/>
+                <include name="docs/**/"/>
+                <include name="example.ldif"/>
+                <include name="gssapi.conf"/>
+                <include name="htmldocs/**/"/>
+                <include name="icons/**/"/>
+                <include name="images/**/"/>
+                <include name="jars/**/"/>
+                <include name="JXplorer_Administrator_Guide.doc"/>
+                <include name="jxplorer.bat"/>
+                <include name="jxplorer.ico"/>
+                <include name="jxplorer.sh"/>
+                <include name="language/**/"/>
+                <include name="licence.txt"/>
+                <include name="log4j.xml"/>
+                <include name="plugins/**/"/>
+                <include name="RELEASE.TXT"/>
+                <include name="security/**/"/>
+                <include name="src/**/"/>
+                <include name="tcpmon.bat"/>
+                <include name="tcpmon.sh"/>
+                <include name="templates/**/"/>
             </fileset>
         </copy>
 
