@@ -214,22 +214,22 @@
         <mkdir dir="${release}"/>
 
         <zip destfile="${release}/${version}deploy.zip">
-            <zipfileset dir="${dist}" includes="jxplorer/**/"/>
+            <zipfileset dir="${dist}" includes="jxplorer/**/" excludes="jxplorer/**/*.sh"/>
             <zipfileset dir="${dist}" filemode="755" includes="jxplorer/**/*.sh"/>
         </zip>
 
         <zip destfile="${release}/${version}package.zip">
-            <zipfileset dir="${package}" includes="jxplorer/**"/>
+            <zipfileset dir="${package}" includes="jxplorer/**" excludes="jxplorer/**/*.sh"/>
             <zipfileset dir="${package}" filemode="755" includes="jxplorer/**/*.sh"/>
         </zip>
 
         <tar destfile="${release}/${version}deploy.tar.bz2" compression="bzip2">
-            <tarfileset dir="${dist}" includes="jxplorer/**"/>
+            <tarfileset dir="${dist}" includes="jxplorer/**" excludes="jxplorer/**/*.sh"/>
             <tarfileset dir="${dist}" mode="755" includes="jxplorer/**/*.sh"/>
         </tar>
 
         <tar destfile="${release}/${version}package.tar.bz2" compression="bzip2">
-            <tarfileset dir="${package}" includes="jxplorer/**"/>
+            <tarfileset dir="${package}" includes="jxplorer/**" excludes="jxplorer/**/*.sh"/>
             <tarfileset dir="${package}" mode="755" includes="jxplorer/**/*.sh"/>
         </tar>
 
