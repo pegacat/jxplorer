@@ -37,13 +37,7 @@
                     <platforms>all</platforms>
                     <distributionFileList>
                         <distributionFile>
-                            <origin>dist/jxplorer/connections.txt</origin>
-                        </distributionFile>
-                        <distributionFile>
                             <origin>dist/jxplorer/example.ldif</origin>
-                        </distributionFile>
-                        <distributionFile>
-                            <origin>dist/jxplorer/jxmac.sh</origin>
                         </distributionFile>
                         <distributionFile>
                             <origin>dist/jxplorer/jxplorer.bat</origin>
@@ -62,9 +56,6 @@
                         </distributionFile>
                         <distributionFile>
                             <origin>dist/jxplorer/RELEASE.TXT</origin>
-                        </distributionFile>
-                        <distributionFile>
-                            <origin>dist/jxplorer/Thumbs.db</origin>
                         </distributionFile>
                         <distributionDirectory>
                             <origin>dist/jxplorer/htmldocs</origin>
