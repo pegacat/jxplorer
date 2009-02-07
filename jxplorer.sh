@@ -15,10 +15,18 @@ else
     JAVA_LOC=java
 fi
 
+
+
 # Find directory of JRE
 ${JAVA_LOC} -version  >/dev/null 2>&1
 if [ "$?" != "0" ] ; then
-	OPTJX=/opt/jxplorer
+    basename=`basename $0`
+    dirname=`dirname $0`
+    cd ${dirname}
+    dirname=`pwd`
+    echo "Using new directory finding code"
+    OPTJX=${dirname}
+	#OPTJX=/opt/jxplorer
 
 	# $OPTJX MUST be the JXplorer install directory, or a link to it, and contain the JRE
 
@@ -34,18 +42,26 @@ else
         JAVAV=${JAVA_LOC}
 fi
 
+JXOPTS=""
+case $(uname) in
+   Darwin*)  
+   JXOPTS="-Xdock:name=\"JXplorer\" -Dcom.apple.macos.useScreenMenuBar=true" 
+   echo "runing OSX verison";;
+esac
+
 echo "starting JXplorer..."
-echo
+
 FAIL=0
 if [ "$1" = "console" ] ; then
-    $JAVAV -Xdock:name="JXplorer" -Dcom.apple.macos.useScreenMenuBar=true -cp .:jars/jxplorer.jar:jars/help.jar:jars/jhall.jar:jars/junit.jar:jars/ldapsec.jar:jars/log4j.jar:jars/dsml/activation.jar:jars/dsml/commons-logging.jar:jars/dsml/dom4j.jar:jars/dsml/jxext.jar:jars/dsml/mail.jar:jars/dsml/providerutil.jar:jars/dsml/saaj-api.jar:jars/dsml/saaj-ri.jar com.ca.directory.jxplorer.JXplorer
+    echo  "$JAVAV $JXOPTS  -cp .:jars/jxplorer.jar:jars/help.jar:jars/jhall.jar:jars/junit.jar com.ca.directory.jxplorer.JXplorer"
+    $JAVAV $JXOPTS  -cp .:jars/jxplorer.jar:jars/help.jar:jars/jhall.jar:jars/junit.jar com.ca.directory.jxplorer.JXplorer
 
     if [ "$?" != "0" ]; then
         FAIL=1
     fi
 else
     echo "Use \"jxstart.sh console\" if you want logging to the console"
-    $JAVAV -Xdock:name="JXplorer" -Dcom.apple.macos.useScreenMenuBar=true -cp .:jars/jxplorer.jar:jars/help.jar:jars/jhall.jar:jars/junit.jar:jars/ldapsec.jar:jars/log4j.jar:jars/dsml/activation.jar:jars/dsml/commons-logging.jar:jars/dsml/dom4j.jar:jars/dsml/jxext.jar:jars/dsml/mail.jar:jars/dsml/providerutil.jar:jars/dsml/saaj-api.jar:jars/dsml/saaj-ri.jar com.ca.directory.jxplorer.JXplorer  >/dev/null 2>&1
+    $JAVAV $JXOPTS -cp .:jars/jxplorer.jar:jars/help.jar:jars/jhall.jar:jars/junit.jar com.ca.directory.jxplorer.JXplorer  >/dev/null 2>&1
 
     if [ "$?" != "0" ]; then
         FAIL=1
