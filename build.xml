@@ -6,7 +6,7 @@
     <!--
       Properties that may not be overriden by developers.
     -->
-    <property name="version_number" value="3.2rc2"/>
+    <property name="version_number" value="3.2.1"/> <!-- also update in BitRock jxplorer.xml file-->
     <property name="version" value="JXv${version_number}"/>
 
     <property name="classes" value="classes"/>
@@ -29,8 +29,6 @@
     <property name="compile.optimize" value="on"/>
     <property name="docs" value="docs"/>
     <property name="apidocs" value="${docs}/api"/>
-    <property name="installer_dir" value="C:/Program Files/BitRock InstallBuilder/bin"/>
-    <property name="installer_project_file" value="./jxplorer.xml"/>
 
 
     <path id="lib">
@@ -168,29 +166,33 @@
 
 
     <!-- note; this is specific to Chris's machine; you will need to install BitRock Install Builder
-	           and mess around with paths to get it to all work... -->
+	           and mess around with the paths in this target to get it to all work... -->
 
 	<target name="build_installers" description="build install packages">
+        <property name="installer_dir" value="C:/Program Files (x86)/BitRock InstallBuilder Enterprise 6.3.0/bin/"/>
+        <property name="installer_project_file" value="./jxplorer.xml"/>
 
-        <property name="builder_output" location="C:/Program Files/BitRock InstallBuilder/output"/>
+        <property name="builder_output" location="C:/Users/chris/projects/svn_jxplorer/installers"/>
 
-        <property name="builder" location="C:/Program Files/BitRock InstallBuilder/bin/builder.exe"/>
-
+        <property name="builder" location="C:/Program Files (x86)/BitRock InstallBuilder Enterprise 6.3.0/bin/builder.exe"/>
+        <delete dir="${builder_output}"/>
+        <mkdir dir="${builder_output}"/>
+        
         <exec executable="${builder}">
             <arg value="build"/>
-            <arg value="D:\svn_jxplorer\jxplorer.xml"/>
+            <arg value="C:\Users\chris\projects\svn_jxplorer\jxplorer.xml"/>
             <arg value="windows"/>
         </exec>
 
         <exec executable="${builder}">
             <arg value="build"/>
-            <arg value="D:\svn_jxplorer\jxplorer.xml"/>
+            <arg value="C:\Users\chris\projects\svn_jxplorer\jxplorer.xml"/>
             <arg value="linux"/>
         </exec>
 
         <exec executable="${builder}">
             <arg value="build"/>
-            <arg value="D:\svn_jxplorer\jxplorer.xml"/>
+            <arg value="C:\Users\chris\projects\svn_jxplorer\jxplorer.xml"/>
             <arg value="osx"/>
         </exec>
 

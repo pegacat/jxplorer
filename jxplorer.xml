@@ -1,13 +1,13 @@
 <project>
     <shortName>jxplorer</shortName>
     <fullName>JXplorer</fullName>
-    <version>3.2rc2</version>
+    <version>3.2.1</version>
     <installerFilename></installerFilename>
     <readmeFile>dist/jxplorer/RELEASE.TXT</readmeFile>
     <licenseFile>dist/jxplorer/licence.txt</licenseFile>
     <leftImage>dist/jxplorer/images/side.png</leftImage>
     <logoImage>dist/jxplorer/images/logo_48.gif</logoImage>
-    <splashImage>dist/jxplorer/templates/JXsplash.gif</splashImage>
+    <splashImage>dist/jxplorer/templates/JXsplash.png</splashImage>
     <preInstallationActionList>
         <autodetectJava>
             <promptUser>0</promptUser>
@@ -161,5 +161,6 @@
             <width>40</width>
         </directoryParameter>
     </parameterList>
+    <outputDirectory>installers/</outputDirectory>
 </project>
 

@@ -1776,12 +1776,12 @@ public class
 
     /**
      * Displays a splash screen with a thin black border in the center of the screen.
-     * Splash screen auto-sizes to be very slightly larger than the templates/JXsplash.gif image.
+     * Splash screen auto-sizes to be very slightly larger than the templates/JXsplash.png image.
      */
 
     public void showSplashScreen(JWindow splash)
     {
-        ImageIcon splashIcon = new ImageIcon("templates" + File.separator + "JXsplash.gif");
+        ImageIcon splashIcon = new ImageIcon("templates" + File.separator + "JXsplash.png");
         int width = splashIcon.getIconWidth();
         int height = splashIcon.getIconHeight();
         Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();

@@ -3,6 +3,8 @@ JXplorer Version 3.2.1 Release Notes
 
 ... This is just a minor release with some incremental improvements.
 
+* Dropped Install Anywhere, moved to BitRock installer for java 1.6 compatibility
+
 * Support for loading LDIF files as command line argument
 * Support for displaying raw password strings in table editor using 'mask.raw.passwords=false' in jxconfig.txt
 * Some fixes for MAC look and feel; added GTK look and feel
