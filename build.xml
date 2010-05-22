@@ -166,9 +166,11 @@
 
 
     <!-- note; this is specific to Chris's machine; you will need to install BitRock Install Builder
-	           and mess around with the paths in this target to get it to all work... -->
+	           and mess around with the paths in this target to get it to all work... explicit file list set in jxplorer.xml
+	   linux, windows, osx, solaris-sparc, solaris-intel, linux-x64, linux-ia64, linux-ppc, linux-s390, freebsd5, freebsd6, freebsd, freebsd4, openbsd3, hpux, aix, irix-n32, and cdrom
+	            -->
 
-	<target name="build_installers" description="build install packages">
+	<target name="build_installers" description="build install packages" depends="dist">
         <property name="installer_dir" value="C:/Program Files (x86)/BitRock InstallBuilder Enterprise 6.3.0/bin/"/>
         <property name="installer_project_file" value="./jxplorer.xml"/>
 
@@ -196,6 +198,33 @@
             <arg value="osx"/>
         </exec>
 
+
+        <exec executable="${builder}">
+            <arg value="build"/>
+            <arg value="C:\Users\chris\projects\svn_jxplorer\jxplorer.xml"/>
+            <arg value="solaris-intel"/>
+        </exec>
+
+        <exec executable="${builder}">
+            <arg value="build"/>
+            <arg value="C:\Users\chris\projects\svn_jxplorer\jxplorer.xml"/>
+            <arg value="solaris-sparc"/>
+        </exec>
+
+        <exec executable="${builder}">
+            <arg value="build"/>
+            <arg value="C:\Users\chris\projects\svn_jxplorer\jxplorer.xml"/>
+            <arg value="aix"/>
+        </exec>
+
+
+        <exec executable="${builder}">
+            <arg value="build"/>
+            <arg value="C:\Users\chris\projects\svn_jxplorer\jxplorer.xml"/>
+            <arg value="hpux"/>
+        </exec>
+
+        
         <zip destfile="${builder_output}/jxplorer-${version_number}-osx-installer.zip" basedir="${builder_output}/jxplorer-${version_number}-osx-installer.app"/>
 
         <delete dir="${builder_output}/jxplorer-${version_number}-osx-installer.app"/>
