@@ -198,6 +198,11 @@
             <arg value="osx"/>
         </exec>
 
+        <exec executable="${builder}">
+            <arg value="build"/>
+            <arg value="C:\Users\chris\projects\svn_jxplorer\jxplorer.xml"/>
+            <arg value="freebsd"/>
+        </exec>
 
         <exec executable="${builder}">
             <arg value="build"/>
