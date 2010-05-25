@@ -89,7 +89,7 @@ public class basicbinaryeditor extends JDialog
 			   		    load();
 	  	}});
 
-		btnSave = new CBButton(CBIntText.get("Save"), CBIntText.get("Click here to save the date to an external file."));
+		btnSave = new CBButton(CBIntText.get("Save"), CBIntText.get("Click here to save the data to an external file."));
 		btnSave.addActionListener(new ActionListener() {
         			public void actionPerformed(ActionEvent e) {
 			   		    save();
@@ -396,7 +396,7 @@ public class basicbinaryeditor extends JDialog
 
 	public boolean isValid()
 	{
-		String newvalue = field.getText();
+		String newvalue = ((field == null) ? "": field.getText());
 		return newvalue.length() != 0;
 	}
 

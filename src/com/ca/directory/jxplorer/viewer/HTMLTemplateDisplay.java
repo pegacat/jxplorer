@@ -670,8 +670,8 @@ public class HTMLTemplateDisplay extends JPanel
         String htmldocs = myProperties.getProperty("dir.htmldocs", JXplorer.localDir + "htmldocs" + File.separator);
         try
         {
-            final String language = Locale.getDefault().getLanguage();
-            File localeSpecificStartFile = new File(htmldocs + startFile + "_" + language + ".html");
+            final String locale = Locale.getDefault().toString();;
+            File localeSpecificStartFile = new File(htmldocs + startFile + "_" + locale + ".html");
             if (localeSpecificStartFile.exists() == false)
             {
                 log.warning("unable to find locale specific start file: " + localeSpecificStartFile);

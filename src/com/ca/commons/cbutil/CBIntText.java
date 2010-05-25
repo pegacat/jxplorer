@@ -164,7 +164,7 @@ public class CBIntText
 
         try
         {
-            String val = (String) translations.get(key);  // return the translated word!
+            String val = (String) translations.get(key.trim());  // return the translated word!
             if (val == null)  // this shouldn't happen, but can occur with an out-of-date (=incomplete) translation file.
             {
                 if (!english) log.fine("Can't find translation for (" + key + ") - returning unchanged.");
@@ -211,7 +211,7 @@ public class CBIntText
         {
             try
             {
-                val = (String) translations.get(key);  // return the translated word!
+                val = (String) translations.get(key.trim());  // return the translated word!
                 if (val == null)  // this shouldn't happen, but can occur with an out-of-date (=incomplete) translation file.
                 {
                     if (!english) log.fine("Can't find translation for (" + key + ") - returning unchanged.");
@@ -226,7 +226,7 @@ public class CBIntText
 
         //XXX it may be better to reuse MessageFormat objects, but this will require some thought...
 
-        return MessageFormat.format(key, args);        // try to keep on trucking using the (english) key phrase
+        return MessageFormat.format(val, args);        // try to keep on trucking using the (english) key phrase
 
     }
 }
