@@ -13,7 +13,7 @@ JXplorer Version 3.2.1 Release Notes
 * Work on ant build file; making sure that shell script permissions are maintained
 * Moved source to subversion repository, restructured to allow 'single check out, single build'; more modifications to build file.
 
-Thanks to evereasy@gmail.com for the Taiwanese language file
+Thanks to evereasy@gmail.com for the Traditional Chinese language file
 Thanks to Pawel Zuzelski for the LDIF code
 GTK L&F suggested by Alfonsas Stonis
 Executable jar file version of smart keystore editor from Santthosh Babu Selvadurai
