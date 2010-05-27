@@ -386,7 +386,7 @@ public class KeystoreGUI extends CBDialog implements ActionListener
                     buffer = pemData;
                 else
                 {
-                    CBUtility.error(CBIntText.get("Unable to load key: does not begin with {0} ", new String[] {new String(CBSecurity.PEM_KEY_HEADER)}));
+                    CBUtility.error(CBIntText.get("Unable to load key: does not begin with {0}", new String[] {new String(CBSecurity.PEM_KEY_HEADER)}));
                     return;
                 }
             }

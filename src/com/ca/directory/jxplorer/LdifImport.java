@@ -144,7 +144,7 @@ public class LdifImport //extends JDialog implements ActionListener
     protected void doFileRead(File readFile)
     {        
         if (readFile == null)
-            CBUtility.error(CBIntText.get("unable to read null ldif file"), null);
+            CBUtility.error(CBIntText.get("unable to read null LDIF file"), null);
 
         final File myFile = readFile;
 
@@ -155,11 +155,11 @@ public class LdifImport //extends JDialog implements ActionListener
                 try
                 {
                     FileInputStream rawBytes = new FileInputStream(myFile);
-                    pmonitor = new ProgressMonitorInputStream(owner, CBIntText.get("Reading ldif file"), rawBytes);
+                    pmonitor = new ProgressMonitorInputStream(owner, CBIntText.get("Reading LDIF file"), rawBytes);
                 }
                 catch (FileNotFoundException e)
                 {
-                    CBUtility.error(CBIntText.get("Unable to read the ldif file ''{0}''.", new String[] {myFile.toString()}), e);
+                    CBUtility.error(CBIntText.get("Unable to read the LDIF file ''{0}''.", new String[] {myFile.toString()}), e);
                     return;
                 }
 
@@ -167,7 +167,7 @@ public class LdifImport //extends JDialog implements ActionListener
 
                 if (b.getException() != null)
                 {
-                    CBUtility.error(CBIntText.get("There were one or more errors reading the ldif file\n(See the log for more details)"), b.getException());
+                    CBUtility.error(CBIntText.get("There were one or more errors reading the LDIF file\n(See the log for more details)"), b.getException());
                     b.clearException();
                 }
                 closeDown();
@@ -216,7 +216,7 @@ public class LdifImport //extends JDialog implements ActionListener
         }
         catch (UnsupportedEncodingException e)
         {
-            CBUtility.error(CBIntText.get("Unexpected problem - Unable to read the ldif file-not utf8 reader available  "), e);
+            CBUtility.error(CBIntText.get("Unexpected problem - Unable to read the LDIF file - no UTF-8 reader available") + ": ", e);
             return;
         }
 
@@ -264,7 +264,7 @@ public class LdifImport //extends JDialog implements ActionListener
                         log.warning("skipping ldif entry with no dn: ");
                     }
 
-                    pmonitor.getProgressMonitor().setNote(CBIntText.get("reading entry # ") + (++numEntriesRead));  // XXX I'm not translating this to the MessageFormat version of CBIntText.get because I'm worried about performance - CB
+                    pmonitor.getProgressMonitor().setNote(CBIntText.get("reading entry #") + " " + (++numEntriesRead));  // XXX I'm not translating this to the MessageFormat version of CBIntText.get because I'm worried about performance - CB
                 }
             }
             catch (InterruptedIOException e)    // almost certainly the user hitting 'cancel' on the progress bar
@@ -273,13 +273,13 @@ public class LdifImport //extends JDialog implements ActionListener
             }
             catch (IOException e2)    // some other file reading error
             {
-                CBUtility.error(CBIntText.get("unable to read ldif file"), e2);
+                CBUtility.error(CBIntText.get("unable to read LDIF file"), e2);
                 return;
             }
             catch (NamingException e)
             {
                 //TE: bug: 5153.  Not sure if this should be caught here and stop or should it try to process the rest of the LDIF file?
-                CBUtility.error(CBIntText.get("An error occured while processing the LDIF file: "), e);
+                CBUtility.error(CBIntText.get("An error occured while processing the LDIF file") + ": ", e);
                 return;
             }
 

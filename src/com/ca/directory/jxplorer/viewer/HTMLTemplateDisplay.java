@@ -878,7 +878,7 @@ public class HTMLTemplateDisplay extends JPanel
             //... if that fails, try to find it in the plugin directory...
             templateFile = new File(pluginTemplateDirectory, templateName);
             if (templateFile.exists() == false)
-                return CBUtility.error(display, CBIntText.get("Can't find html template! ") + templateName);
+                return CBUtility.error(display, CBIntText.get("Can't find html template!") + " " + templateName);
         }
 
         try
@@ -891,7 +891,7 @@ public class HTMLTemplateDisplay extends JPanel
         }
         catch (IOException e)
         {
-            return CBUtility.error(display, CBIntText.get("Can't read html template! ") + templateFile.getAbsolutePath());
+            return CBUtility.error(display, CBIntText.get("Can't read html template!") + " " + templateFile.getAbsolutePath());
         }
         return true;
 
@@ -1103,7 +1103,7 @@ public class HTMLTemplateDisplay extends JPanel
 
         if (entry == null)
         {
-            CBUtility.error(this, CBIntText.get("Error. No data for this node!"), null);
+            CBUtility.error(this, CBIntText.get("Error: No data for this node!"), null);
             setEditorText(NODATA);
             return;
         }
@@ -2421,7 +2421,7 @@ public class HTMLTemplateDisplay extends JPanel
         catch (IOException e)    // catch normal 'can't find this' exceptions
         {
             e.printStackTrace();
-            JOptionPane.showMessageDialog(this, CBIntText.get("Can't follow link ") + url.toString(),
+            JOptionPane.showMessageDialog(this, CBIntText.get("Can't follow link") + " " + url.toString(),
                     CBIntText.get("Invalid URL"), JOptionPane.ERROR_MESSAGE);
             log.warning("unable to follow url " + url.toString() + "\n" + e);
             try

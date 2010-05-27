@@ -258,7 +258,7 @@ public class ReturnAttributesDisplay
 		*/
 		public ReturnAttributesGUI(Object[][] tableData, String[] tableHeader, int num, HashMap map)
 		{
-			super(jx, CBIntText.get(String.valueOf(num)+ CBIntText.get(" Search Results")), false); 					
+			super(jx, CBIntText.get(String.valueOf(num) + " " + CBIntText.get("Search Results")), false);
 					
 			this.map = map;
 					
@@ -349,7 +349,7 @@ public class ReturnAttributesDisplay
 		public void setTableData(Object[][] tableData, String[] tableHeader, int num, HashMap map)
 		{	 
 			this.map = map;
-			setTitle(CBIntText.get(String.valueOf(num)+ CBIntText.get(" Search Results")));
+			setTitle(CBIntText.get(String.valueOf(num) + " " + CBIntText.get("Search Results")));
 
             // Get rid of the scroll pane that holds the table...
 			topPanel.remove(scrollPane);

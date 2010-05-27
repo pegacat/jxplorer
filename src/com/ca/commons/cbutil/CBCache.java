@@ -176,7 +176,7 @@ public class CBCache
         }
         catch (Exception e)
         {
-            CBUtility.error(CBIntText.get("Problem writing the temporary file: ") + file.toString() + "\n" + e);
+            CBUtility.error(CBIntText.get("Problem writing the temporary file") + ": " + file.toString() + "\n" + e);
         }
     }
 
@@ -267,7 +267,7 @@ public class CBCache
         }
         catch (IOException e)
         {
-            CBUtility.error(CBIntText.get("Problem writing the audio temporary file: ") + file.toString() + "\n" + e);
+            CBUtility.error(CBIntText.get("Problem writing the audio temporary file") +": " + file.toString() + "\n" + e);
         }
     }
 

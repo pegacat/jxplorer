@@ -811,7 +811,7 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
 			{
 				myJMenuItem bookmarkMenuItem = new myJMenuItem(bookmarkNams[i]);
 				bookmarkMenuItem.name = bookmarkVals[i];
-				setMenuItem(bookmarkMenu, bookmarkMenuItem, bookmarkListener, new String[] {"", "", CBIntText.get("Go to: ") + bookmarkVals[i]+".", "E", ""});
+				setMenuItem(bookmarkMenu, bookmarkMenuItem, bookmarkListener, new String[] {"", "", CBIntText.get("Go to") + ": " + bookmarkVals[i]+".", "E", ""});
 			}
 		}
 	}

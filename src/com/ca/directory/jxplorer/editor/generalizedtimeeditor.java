@@ -109,7 +109,7 @@ public class generalizedtimeeditor extends CBDialog
     /**
      * Year label.
      */
-    private JLabel yearLabel = new JLabel(CBIntText.get("Year:"));
+    private JLabel yearLabel = new JLabel(CBIntText.get("Year")+":");
 
     /**
      * Year field.
@@ -119,7 +119,7 @@ public class generalizedtimeeditor extends CBDialog
     /**
      * Month label.
      */
-    private JLabel monthLabel = new JLabel(CBIntText.get("Month:"));
+    private JLabel monthLabel = new JLabel(CBIntText.get("Month")+":");
 
     /**
      * Month combo box.
@@ -129,7 +129,7 @@ public class generalizedtimeeditor extends CBDialog
     /**
      * Day label.
      */
-    private JLabel dayLabel = new JLabel(CBIntText.get("Day:"));
+    private JLabel dayLabel = new JLabel(CBIntText.get("Day")+":");
 
     /**
      * Day combo box.
@@ -139,7 +139,7 @@ public class generalizedtimeeditor extends CBDialog
     /**
      * Hour label.
      */
-    private JLabel hourLabel = new JLabel(CBIntText.get("Hour:"));
+    private JLabel hourLabel = new JLabel(CBIntText.get("Hour")+":");
 
     /**
      * Hour combo box.
@@ -149,7 +149,7 @@ public class generalizedtimeeditor extends CBDialog
     /**
      * Minute label.
      */
-    private JLabel minuteLabel = new JLabel(CBIntText.get("Minute:"));
+    private JLabel minuteLabel = new JLabel(CBIntText.get("Minute")+":");
 
     /**
      * Minuet combo box.
@@ -159,7 +159,7 @@ public class generalizedtimeeditor extends CBDialog
     /**
      * Second label.
      */
-    private JLabel secondLabel = new JLabel(CBIntText.get("Second:"));
+    private JLabel secondLabel = new JLabel(CBIntText.get("Second")+":");
 
     /**
      * Second combo box.
@@ -169,7 +169,7 @@ public class generalizedtimeeditor extends CBDialog
     /**
      * Millisecond label.
      */
-    private JLabel milliSecondLabel = new JLabel(CBIntText.get("Millisecond:"));
+    private JLabel milliSecondLabel = new JLabel(CBIntText.get("Millisecond")+":");
 
     /**
      * Millisecond combo box.
@@ -346,7 +346,7 @@ public class generalizedtimeeditor extends CBDialog
         dateTimePanel.add(milliSecondCombo);
 
         // Add border...
-        dateTimePanel.setBorder(new TitledBorder(CBIntText.get(" Date/Time ")));
+        dateTimePanel.setBorder(new TitledBorder(CBIntText.get("Date/Time")));
 
         // Add 'Now' button and a check box to a new panel...
         CBPanel btnPanel = new CBPanel();

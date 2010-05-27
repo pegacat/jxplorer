@@ -441,7 +441,7 @@ public class NewEntryWin extends CBDialog implements ActionListener, DataListene
                 checkSuggestedList();
             }
         } 
-        catch (NamingException e) {CBUtility.error(CBIntText.get("threaded broker error: "), e); } // XXXTHREAD
+        catch (NamingException e) {CBUtility.error(CBIntText.get("threaded broker error") + ": ", e); } // XXXTHREAD
     }        
 
     /**
@@ -549,7 +549,7 @@ public class NewEntryWin extends CBDialog implements ActionListener, DataListene
             {
 //        if (RDN==null || "".equals(RDN)) return;
                 if (rdnText==null || "".equals(rdnText))	//TE: empty RDN.
-                    throw new InvalidNameException(CBIntText.get("Empty RDN, please enter a valid RDN. ") + ((rdnText==null)?"<null>":CBIntText.get("The RDN value entered was: '")+rdnText) + "'");
+                    throw new InvalidNameException(CBIntText.get("Empty RDN, please enter a valid RDN.") + " " + ((rdnText==null)?"<null>":CBIntText.get("The RDN value entered was: '")+rdnText) + "'");
 
                 if (NameUtility.next(rdnText,0,'=')<0)	//TE: no '='.
                     throw new InvalidNameException(CBIntText.get("Invalid RDN, please enter a naming attribute followed by '=' followed by a name in the RDN field (for example, 'cn=Trudi). '") + ((rdnText==null)?"<null>":CBIntText.get("The RDN value entered was: '")+rdnText) + "'");
@@ -587,7 +587,7 @@ public class NewEntryWin extends CBDialog implements ActionListener, DataListene
             obclasses.add(oc);
         }
         if (obclasses.size()==0) 
-            {CBUtility.warning(this, CBIntText.get("At least one object class must be selected."), CBIntText.get(" Need ObjectClass(s)")); return;}// error: force user to use cancel to exit
+            {CBUtility.warning(this, CBIntText.get("At least one object class must be selected.")+ " ", CBIntText.get("Need ObjectClass(s)")); return;}// error: force user to use cancel to exit
             
 		if (virtualEntry)	
 		{			  
@@ -722,7 +722,7 @@ public class NewEntryWin extends CBDialog implements ActionListener, DataListene
         
         if (dataSource == null)  // rare error (should be never)
         {
-            CBUtility.error(CBIntText.get("unusual error:") + "\nno Data Source registered in NewEntryWin.", null);     
+            CBUtility.error(CBIntText.get("unusual error") + ":\nno Data Source registered in NewEntryWin.", null);
             return false;
         }
         

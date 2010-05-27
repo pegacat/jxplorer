@@ -313,7 +313,7 @@ public class BookMarks
             }
 
             CBPanel namePanel = new CBPanel();
-            namePanel.add(new JLabel(CBIntText.get("Bookmark Name: ")));
+            namePanel.add(new JLabel(CBIntText.get("Bookmark Name") + ": "));
             namePanel.makeWide();
             namePanel.add(nameField);
 
@@ -325,17 +325,17 @@ public class BookMarks
             // NOTE: the Help button tooltip is set elsewhere (b/c it will be null here).
 
             CBPanel detailsPanel = new CBPanel();
-            detailsPanel.add(new JLabel(CBIntText.get("DN: ")));
+            detailsPanel.add(new JLabel(CBIntText.get("DN") + ": "));
             detailsPanel.makeWide();
             detailsPanel.addln(dnField);
 
             detailsPanel.makeLight();
 
-            detailsPanel.add(new JLabel(CBIntText.get("Description: " )));
+            detailsPanel.add(new JLabel(CBIntText.get("Description") + ": "));
             detailsPanel.makeWide();
 
             detailsPanel.addln(descField);
-            detailsPanel.setBorder(new TitledBorder(CBIntText.get(" Bookmark Properties ")));
+            detailsPanel.setBorder(new TitledBorder(CBIntText.get("Bookmark Properties")));
 
             display.makeWide();
             display.addln(namePanel);

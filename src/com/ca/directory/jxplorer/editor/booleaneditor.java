@@ -40,7 +40,7 @@ public class booleaneditor extends JDialog
 
         panel = new CBPanel();
 
-        btnOk = new CBButton(CBIntText.get("Ok"), CBIntText.get("Click here to make the changes (remember to click Submit in the table editor)."));
+        btnOk = new CBButton(CBIntText.get("OK"), CBIntText.get("Click here to make the changes (remember to click Submit in the table editor)."));
         btnOk.addActionListener(new ActionListener() {
                     public void actionPerformed(ActionEvent e) {
                        save();

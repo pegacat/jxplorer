@@ -56,9 +56,9 @@ public class KeystorePrompt extends CBDialog implements ActionListener
      private void initComponents()
      {
         rootPanel = new javax.swing.JPanel();
-        keystorePathLabel = new javax.swing.JLabel(CBIntText.get("Keystore File:"));
+        keystorePathLabel = new javax.swing.JLabel(CBIntText.get("Keystore File")+":");
         keystorePathField = new javax.swing.JTextField();
-        keystorePasswordLabel = new javax.swing.JLabel(CBIntText.get("Password:"));
+        keystorePasswordLabel = new javax.swing.JLabel(CBIntText.get("Password")+":");
         passwordField = new javax.swing.JPasswordField();
         browseButton = new javax.swing.JButton();
         //okButton = new javax.swing.JButton();

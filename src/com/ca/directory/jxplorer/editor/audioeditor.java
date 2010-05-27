@@ -135,11 +135,11 @@ public class audioeditor extends basicbinaryeditor
         } 
         catch (IOException e) 
         {
-            CBUtility.error(CBIntText.get("Error with audio file: ") + e);    
+            CBUtility.error(CBIntText.get("Error with audio file") + ": " + e);
         }
         catch (NullPointerException  ee)
         {
-            log.log(Level.WARNING, CBIntText.get("No data available: "), ee);
+            log.log(Level.WARNING, CBIntText.get("No data available") + ": ", ee);
         }            
             
          AudioPlayer.player.start(audioStream);
@@ -216,7 +216,7 @@ public class audioeditor extends basicbinaryeditor
         }
         catch(IOException e)
         {
-            CBUtility.error(CBIntText.get("Error writing to the file: ") + e);
+            CBUtility.error(CBIntText.get("Error writing to the file") + ": " + e);
         }		
     }
     
@@ -238,7 +238,7 @@ public class audioeditor extends basicbinaryeditor
         } 
         catch(IOException e)
         {
-            CBUtility.error(CBIntText.get("Error writing to the file: ") + e);
+            CBUtility.error(CBIntText.get("Error writing to the file") + ": " + e);
         }
     }
 

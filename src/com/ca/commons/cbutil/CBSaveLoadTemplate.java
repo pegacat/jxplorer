@@ -81,7 +81,7 @@ public class CBSaveLoadTemplate extends JPanel
         main.add(delete);
         main.add(makeDefault);
 
-        setBorder(new TitledBorder(CBIntText.get(" Use a Template ")));
+        setBorder(new TitledBorder(CBIntText.get("Use a Template")));
         setLayout(new BorderLayout());
         add(main);
 

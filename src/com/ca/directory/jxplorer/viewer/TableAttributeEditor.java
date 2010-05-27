@@ -337,7 +337,7 @@ public class TableAttributeEditor extends JPanel
         }
         catch (NamingException e)
         {
-            CBUtility.error(TableAttributeEditor.this, CBIntText.get("Unable to read entry " + currentDN), e);
+            CBUtility.error(TableAttributeEditor.this, CBIntText.get("Unable to read entry") + " " + currentDN, e);
         }
         StringBuffer buffy = new StringBuffer("DN: " + currentDN.toString() + "\n\n");
 

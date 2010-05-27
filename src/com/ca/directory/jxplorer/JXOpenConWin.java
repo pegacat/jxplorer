@@ -192,7 +192,7 @@ public class JXOpenConWin extends CBOpenConWin implements DataListener
         display.makeLight();
         display.add(urlLabel = new JLabel("   " + CBIntText.get("DSML Service") + ": "), 0, 2, 1, 1);
         display.addWide(dsmlService = new JTextField("", 30), 4);
-        urlLabel.setToolTipText(CBIntText.get("The DSML service; e.g. ") + "'dsml/services/DSML?ldapHost=localhost&ldapPort=19289'");
+        urlLabel.setToolTipText(CBIntText.get("The DSML service; e.g.") + " 'dsml/services/DSML?ldapHost=localhost&ldapPort=19289'");
 
         VersionActionListener versionListener = new VersionActionListener();
         version.addActionListener(versionListener);
@@ -388,10 +388,10 @@ public class JXOpenConWin extends CBOpenConWin implements DataListener
 
             log.log(Level.WARNING, "Error opening connection ", request.getException());
             request.clearException();
-            setTitle(CBIntText.get("Couldn't Connect" + ": " + "Try Again"));
+            setTitle(CBIntText.get("Couldn't Connect: Try Again"));
             dispose();	//TE: don't remove this...for some reason if an incorrect port etc is entered on Linux - JX crashes!
             setVisible(true);
-            userMessage.setText(CBIntText.get("Couldn't Open ") + request.getExtendedData("url"));
+            userMessage.setText(CBIntText.get("Couldn't Open") + " " + request.getExtendedData("url"));
             jxplorer.disconnect();
             request.squelch();  // we're done here.
         }

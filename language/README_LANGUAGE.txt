@@ -15,9 +15,13 @@ instead.
 
 The files follow the normal java i18n standard for locale specification:
 e.g. 
-JX.properties - default
-JX_en.properties - english
-JX_ja.properties - japanese
+JX.properties - Default
+JX_de.properties - German
+JX_en.properties - English
+JX_fr.properties - French
+JX_ja.properties - Japanese
+JX_zh_CN.properties - Simplified Chinese
+JX_zh_TW.properties - Traditional Chinese
 JX_en_US.properties - wierd american dialect of english
 
 

@@ -102,8 +102,8 @@ public class userpasswordeditor extends JDialog
 
         newPwd.setBackground(Color.white); // For a better motif display
 
-        oldLabel = new JLabel(CBIntText.get("Enter Password:"));
-        newLabel = new JLabel(CBIntText.get("Re-enter Password:"));
+        oldLabel = new JLabel(CBIntText.get("Enter Password")+":");
+        newLabel = new JLabel(CBIntText.get("Re-enter Password")+":");
 
         btnOK = new CBButton(CBIntText.get("OK"), CBIntText.get("Click here to save the changes (remember to click Submit in the table editor)."));
         btnOK.addActionListener(new ActionListener()

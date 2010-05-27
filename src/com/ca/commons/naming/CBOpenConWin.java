@@ -187,7 +187,7 @@ public abstract class CBOpenConWin extends CBDialog
         JLabel temp;
         display.add(hostLabel = new JLabel("   " + CBIntText.get("Host") + ": "));
         display.addWide(hostName = new JTextField(oldConnection, 30), 2);
-        hostLabel.setToolTipText(CBIntText.get("The url of the server; e.g. ") + "'www.cai.com'");
+        hostLabel.setToolTipText(CBIntText.get("The url of the server; e.g.") + " 'www.cai.com'");
 
         display.add(portLabel = new JLabel("  " + CBIntText.get("Port") + ": "));
         display.addLine(port = new JTextField(String.valueOf(oldPortNo), 5));
@@ -196,8 +196,8 @@ public abstract class CBOpenConWin extends CBDialog
         display.add(temp = new JLabel("   " + CBIntText.get("Protocol") + (": ")));
         display.add(version = new CBJComboBox(new String[]{LDAPV2, LDAPV3}));
         version.setSelectedIndex(1);
-        temp.setToolTipText(CBIntText.get("For all but the oldest servers, this should be 'Ldap v3'."));
-        version.setToolTipText(CBIntText.get("For all but the oldest servers, this should be 'Ldap v3'."));
+        temp.setToolTipText(CBIntText.get("For all but the oldest servers, this should be 'LDAP v3'."));
+        version.setToolTipText(CBIntText.get("For all but the oldest servers, this should be 'LDAP v3'."));
 
         display.addLine(new JLabel("")); // padding
 
@@ -211,7 +211,7 @@ public abstract class CBOpenConWin extends CBDialog
         inset.setBorder(new TitledBorder(CBIntText.get("Optional Values")));
 
         inset.add(temp = new JLabel(CBIntText.get("Base DN") + ":         "));
-        temp.setToolTipText(CBIntText.get("The base to start browsing from; e.g. ") + "'o=Democorp,c=au'");
+        temp.setToolTipText(CBIntText.get("The base to start browsing from; e.g.") + " 'o=Democorp,c=au'");
         inset.makeWide();
         inset.addln(baseDN = new JTextField(String.valueOf(oldBaseDN), 30));
 
@@ -466,7 +466,7 @@ public abstract class CBOpenConWin extends CBDialog
 
             newCon.setURL(url);
 
-            userMessage.setText(CBIntText.get("Opening Connection To ") + url);
+            userMessage.setText(CBIntText.get("Opening Connection To") + " " + url);
 
             /*
              *   ldap version number
@@ -538,7 +538,7 @@ public abstract class CBOpenConWin extends CBDialog
             password.setText("");
             setVisible(true);
 
-            this.setTitle(CBIntText.get("Couldn't Connect : Try Again"));
+            this.setTitle(CBIntText.get("Couldn't Connect: Try Again"));
             log.warning("User error in openconwin: " + err);
             userMessage.setText(CBIntText.get("Error Opening Connection."));
 

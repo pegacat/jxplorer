@@ -40,7 +40,7 @@ public class DeleteFilterGUI extends CBDialog
 		
 		filterNames = searchModel.getFilterNames(SearchModel.ALLFILTERS);
 				
-		display.addln(new JLabel(CBIntText.get("Select a Search Filter to Delete:")));
+		display.addln(new JLabel(CBIntText.get("Select a Search Filter to Delete")+":"));
 
 		display.makeWide();
 		display.add(getScrollList(filterNames.toArray(), filterNames.toArray()));

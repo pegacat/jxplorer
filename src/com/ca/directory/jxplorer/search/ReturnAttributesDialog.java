@@ -180,7 +180,7 @@ public class ReturnAttributesDialog extends CBDialog
 
 		// Top panel...
 		topPanel.makeLight();
-		topPanel.add(new JLabel(CBIntText.get("Name: ")));
+		topPanel.add(new JLabel(CBIntText.get("Name") + ": "));
 		topPanel.makeWide();
 		topPanel.add(nameField = new JTextField(CBIntText.get("Untitled")));
 		topPanel.makeLight();
@@ -213,7 +213,7 @@ public class ReturnAttributesDialog extends CBDialog
 		}});
 
 		// Left panel...
-		leftPanel.addln(new JLabel(CBIntText.get("Available Attributes:")));
+		leftPanel.addln(new JLabel(CBIntText.get("Available Attributes")+":"));
 		leftPanel.makeHeavy();
 
 		availableList = new JList(getAttributes());
@@ -252,7 +252,7 @@ public class ReturnAttributesDialog extends CBDialog
 		middlePanel.addln(new JLabel("  "));
 
 		// Right panel...
-		rightPanel.addln(new JLabel(CBIntText.get("Selected Attributes:")));
+		rightPanel.addln(new JLabel(CBIntText.get("Selected Attributes")+":"));
 		rightPanel.makeHeavy();
 
 		selectedList = new JList();

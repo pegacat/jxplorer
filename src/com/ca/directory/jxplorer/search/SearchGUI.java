@@ -157,7 +157,7 @@ public class SearchGUI extends CBDialog
 
 		//TE: alias check boxes...	
 		CBPanel aliasPanel = new CBPanel();
-       	aliasPanel.setBorder(new TitledBorder(CBIntText.get(" Alias Options ")));
+       	aliasPanel.setBorder(new TitledBorder(CBIntText.get("Alias Options")));
 		
 		aliasPanel.makeWide();
 		aliasPanel.addln(aliasSearchCheckBox = new JCheckBox(CBIntText.get("Resolve aliases while searching.")));		
@@ -167,8 +167,8 @@ public class SearchGUI extends CBDialog
 
 		//TE: search level combo...
 		CBPanel searchLevelPanel = new CBPanel();
-		searchLevelPanel.setBorder(new TitledBorder(CBIntText.get(" Search Level ")));	
-		searchLevelPanel.addln(new JLabel(CBIntText.get("Select Search Level:  ")));
+		searchLevelPanel.setBorder(new TitledBorder(CBIntText.get("Search Level")));	
+		searchLevelPanel.addln(new JLabel(CBIntText.get("Select Search Level") + ": "));
 		searchLevelPanel.makeWide();
 		searchLevelPanel.addln(searchLevelCombo = new CBJComboBox(searchLevelArray));
 		searchLevelCombo.setSelectedIndex(FULLSUBTREESEARCH);	
@@ -187,7 +187,7 @@ public class SearchGUI extends CBDialog
 		returnAttributesCombo.setSelectedItem(ReturnAttributesDialog.DEFAULT_RETURN_ATTRS);
 	
 		returnAttrsPanel.makeLight();
-		returnAttrsPanel.add(new JLabel(CBIntText.get("Information to retrieve:    ")));
+		returnAttrsPanel.add(new JLabel(CBIntText.get("Information to retrieve")+": "));
 		returnAttrsPanel.makeWide();
 		returnAttrsPanel.addln(returnAttributesCombo);
 		
@@ -861,7 +861,7 @@ public class SearchGUI extends CBDialog
 	{		
 		if(recursiveFilterCheck(filterName, filter))	//TE: stop the user from constructing a filter that is recursive.
 		{
-			showMessage(CBIntText.get("The filter you are trying to {0} is not valid.  You may be trying to construct a filter within itself which will cause an infinite loop.", new String[] {type.toLowerCase()}), CBIntText.get(type + " Error"));
+			showMessage(CBIntText.get("The filter you are trying to {0} is not valid.  You may be trying to construct a filter within itself which will cause an infinite loop.", new String[] {type.toLowerCase()}), CBIntText.get(type) + " " + CBIntText.get("Error"));
 			return true;
 		}				
 		return false;

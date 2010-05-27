@@ -234,7 +234,7 @@ public class defaultbinaryeditor extends JFileChooser
             radioGroup.add(saveRadio);
 
             CBPanel radioPanel = new CBPanel();
-            radioPanel.setBorder(new TitledBorder(CBIntText.get(" Options ")));
+            radioPanel.setBorder(new TitledBorder(CBIntText.get("Options")));
             radioPanel.addln(saveRadio);
             radioPanel.addln(loadRadio);
 

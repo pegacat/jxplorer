@@ -113,11 +113,11 @@ public class KeystoreOptions extends CBDialog
         //  --- first line ---
 		
 		CBPanel caPanel = new CBPanel();
-        caPanel.setBorder(new TitledBorder(CBIntText.get("Setup the Trusted CA / Server Keystore ")));
+        caPanel.setBorder(new TitledBorder(CBIntText.get("Setup the Trusted CA / Server Keystore")));
         
         //  --- second line ---
         
-        caPanel.add(new JLabel(CBIntText.get("CA/Server Keystore:")));
+        caPanel.add(new JLabel(CBIntText.get("CA/Server Keystore")+":"));
         
         caKeystoreLocationText = new JTextField(caStore);
         caPanel.addGreedyWide(caKeystoreLocationText, 2);
@@ -130,7 +130,7 @@ public class KeystoreOptions extends CBDialog
         
         //  --- third line ---
 
-        caPanel.add(new JLabel(CBIntText.get("Set CA/Server Keystore Type:")));
+        caPanel.add(new JLabel(CBIntText.get("Set CA/Server Keystore Type")+":"));
 		caTypeCombo.setPreferredSize(new Dimension(100,21));
 		caPanel.add(caTypeCombo); 
 		caPanel.add(new JLabel("  "));
@@ -143,11 +143,11 @@ public class KeystoreOptions extends CBDialog
 		
         display.addln(new JLabel(" "));
 		CBPanel clientPanel = new CBPanel();
-		clientPanel.setBorder(new TitledBorder(CBIntText.get("Setup the Client's Private Keystore ")));
+		clientPanel.setBorder(new TitledBorder(CBIntText.get("Setup the Client's Private Keystore")));
         
         //  --- fifth line ---
         
-        clientPanel.add(new JLabel(CBIntText.get("Client Keystore:")));
+        clientPanel.add(new JLabel(CBIntText.get("Client Keystore")+":"));
         
         clientKeystoreLocationText = new JTextField(clientStore);
         clientPanel.addGreedyWide(clientKeystoreLocationText, 2);
@@ -160,7 +160,7 @@ public class KeystoreOptions extends CBDialog
         
         //  --- sixth line ---
 
-        clientPanel.add(new JLabel(CBIntText.get("Set Client Keystore Type:       ")));
+        clientPanel.add(new JLabel(CBIntText.get("Set Client Keystore Type") + ": "));
 		clientTypeCombo.setPreferredSize(new Dimension(100,21));
         clientPanel.add(clientTypeCombo);       
 		clientPanel.add(new JLabel("  "));

@@ -211,7 +211,7 @@ public class AdvancedOptions extends JDialog
         ButtonGroup lookAndFeelButtonGroup = new ButtonGroup();
         CBPanel lookAndFeelPanel = new CBPanel();
 
-        lookAndFeelPanel.addln(new JLabel(CBIntText.get("Select a New Look & Feel: ")));
+        lookAndFeelPanel.addln(new JLabel(CBIntText.get("Select a New Look & Feel")+": "));
 
         // White space...
         lookAndFeelPanel.addln(new JLabel(" "));
@@ -449,7 +449,7 @@ public class AdvancedOptions extends JDialog
     {
         CBPanel logMethodPanel = new CBPanel();
 
-        logMethodPanel.addln(new JLabel(CBIntText.get("Select a New Log Method: ")));
+        logMethodPanel.addln(new JLabel(CBIntText.get("Select a New Log Method")+": "));
 
         // White space...
         logMethodPanel.addln(new JLabel(" "));
@@ -491,7 +491,7 @@ public class AdvancedOptions extends JDialog
     {
         CBPanel logLevelPanel = new CBPanel();
 
-        logLevelPanel.addln(new JLabel(CBIntText.get("Select a New Log Level: ")));
+        logLevelPanel.addln(new JLabel(CBIntText.get("Select a New Log Level")+": "));
         logLevelPanel.addln(new JLabel(" "));
 
         logLevelCombo = new JComboBox(logLevelVal);
@@ -550,13 +550,13 @@ public class AdvancedOptions extends JDialog
 
         CBPanel ldapLevelsPanel = new CBPanel();
 
-        ldapLevelsPanel.addln(new JLabel(CBIntText.get("Set LDAP Options:           ")));
+        ldapLevelsPanel.addln(new JLabel(CBIntText.get("Set LDAP Options") + ": "));
         ldapLevelsPanel.addln(new JLabel(" "));        //TE: white space.
-        ldapLevelsPanel.add(new JLabel(CBIntText.get("LDAP Limit: ")));
+        ldapLevelsPanel.add(new JLabel(CBIntText.get("LDAP Limit") + ": "));
         ldapLevelsPanel.add(ldapLimit);
         ldapLevelsPanel.newLine();
         ldapLevelsPanel.addln(new JLabel(" "));        //TE: white space.
-        ldapLevelsPanel.add(new JLabel(CBIntText.get("LDAP Timeout: ")));
+        ldapLevelsPanel.add(new JLabel(CBIntText.get("LDAP Timeout")+": "));
         ldapLevelsPanel.add(ldapTimeout);
 
         tabbedPane.addTab(CBIntText.get("Search Limits"),
@@ -591,7 +591,7 @@ public class AdvancedOptions extends JDialog
 
         getURLHandling();
 
-        urlPanel.addln(new JLabel(CBIntText.get("Select URL handling: ")));
+        urlPanel.addln(new JLabel(CBIntText.get("Select URL handling") + ": "));
         urlPanel.addln(new JLabel(" "));
         urlPanel.addln(urlCombo);
         urlPanel.addln(new JLabel(" "));
@@ -631,7 +631,7 @@ public class AdvancedOptions extends JDialog
 
         getPasswordCachingOption();
 
-        urlPanel.addln(new JLabel(CBIntText.get("Cache passwords: ")));
+        urlPanel.addln(new JLabel(CBIntText.get("Cache passwords") + ": "));
         urlPanel.addln(new JLabel(" "));
         urlPanel.addln(cachePwdCombo);
         urlPanel.addln(new JLabel(" "));

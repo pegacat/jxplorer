@@ -75,7 +75,7 @@ public class CBListSelector extends CBDialog
 
         //TE: left panel...
 
-        leftPanel.addln(availableLabel = new JLabel(CBIntText.get("Available Attributes:")));
+        leftPanel.addln(availableLabel = new JLabel(CBIntText.get("Available Attributes")+":"));
         leftPanel.makeHeavy();
 
         availableList = new JList(list);
@@ -114,7 +114,7 @@ public class CBListSelector extends CBDialog
 
         //TE: right panel...
 
-        rightPanel.addln(selectedLabel = new JLabel(CBIntText.get("Selected Attributes:")));
+        rightPanel.addln(selectedLabel = new JLabel(CBIntText.get("Selected Attributes")+":"));
         rightPanel.makeHeavy();
 
         selectedList = new JList();

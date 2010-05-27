@@ -548,7 +548,7 @@ public class SmartPopupTool extends JPopupMenu
     {
         if (newEnabled==false)
         {
-            CBUtility.warning(this,CBIntText.get("Browser unable to add new entries using ldap 2 connection"), CBIntText.get("reduced funcitonality in ldap 2"));
+            CBUtility.warning(this,CBIntText.get("Browser unable to add new entries using LDAP 2 connection"), CBIntText.get("reduced funcitonality in LDAP 2"));
         }
         else
         {

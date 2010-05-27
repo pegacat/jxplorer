@@ -784,7 +784,7 @@ public class SmartTree extends JTree
         }
         catch (NamingException e)
         {
-            CBUtility.error(CBIntText.get("threaded broker error: "), e);
+            CBUtility.error(CBIntText.get("threaded broker error")+ ": ", e);
         } // XXXTHREAD
     }
 
