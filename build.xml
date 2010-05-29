@@ -156,83 +156,97 @@
         <copy todir="${dist}/jxplorer/htmldocs" overwrite="true">
             <fileset dir="htmldocs"/>
         </copy>
+        <copy todir="${dist}/jxplorer/JXplorer LDAP Browser.app" overwrite="true">
+            <fileset dir="JXplorer LDAP Browser.app"/>
+        </copy>
 
         <fixcrlf srcdir="${dist}"
             eol="lf"
             eof="remove"
             includes="**/*.sh"
             />
-    </target>
 
+        <chmod dir="${dist}" perm="755" 
+               includes="**/*.sh"/>
+
+        <chmod file="${dist}/jxplorer/JXplorer LDAP Browser.app/Contents/PkgInfo" perm="755"/>
+
+        <chmod file="${dist}/jxplorer/JXplorer LDAP Browser.app/Contents/MacOS/JXplorer LDAP Browser" perm="755"/>
+
+    </target>
 
     <!-- note; this is specific to Chris's machine; you will need to install BitRock Install Builder
 	           and mess around with the paths in this target to get it to all work... explicit file list set in jxplorer.xml
 	   linux, windows, osx, solaris-sparc, solaris-intel, linux-x64, linux-ia64, linux-ppc, linux-s390, freebsd5, freebsd6, freebsd, freebsd4, openbsd3, hpux, aix, irix-n32, and cdrom
+
+	<note - installer_dir and installer_project_file and builder_output and builder are all set in developer specific build.properties, developer specific file -
+	        values here are just to show new folks what those values should look like; they should be overwritten by build.properties, which isn't committed to svn)
+
+    <note - OSX installer may require hand tweaking 'JXplorer LDAP Browser.app' files to set version numbers etc...        
 	            -->
 
 	<target name="build_installers" description="build install packages" depends="dist">
-        <property name="installer_dir" value="C:/Program Files (x86)/BitRock InstallBuilder Enterprise 6.3.0/bin/"/>
-        <property name="installer_project_file" value="./jxplorer.xml"/>
+        <property name="installer_dir" value="/Applications/BitRock\ InstallBuilder\ Enterprise\ 5.4.14/bin/"/>
+        <property name="installer_project_file" value="/Users/chrisbetts/projects/jxplorer/jxplorer.xml"/>
+        <property name="builder_output" location="/Users/chrisbetts/projects/jxplorer/installers"/>
+        <property name="builder" location="/Applications/BitRock InstallBuilder Enterprise 5.4.14/bin/Builder.app/Contents/MacOS/installbuilder.sh"/>
 
-        <property name="builder_output" location="C:/Users/chris/projects/svn_jxplorer/installers"/>
-
-        <property name="builder" location="C:/Program Files (x86)/BitRock InstallBuilder Enterprise 6.3.0/bin/builder.exe"/>
         <delete dir="${builder_output}"/>
         <mkdir dir="${builder_output}"/>
-        
+<!--        
         <exec executable="${builder}">
             <arg value="build"/>
-            <arg value="C:\Users\chris\projects\svn_jxplorer\jxplorer.xml"/>
+            <arg value="${installer_project_file}"/>
             <arg value="windows"/>
         </exec>
 
         <exec executable="${builder}">
             <arg value="build"/>
-            <arg value="C:\Users\chris\projects\svn_jxplorer\jxplorer.xml"/>
+            <arg value="${installer_project_file}"/>
             <arg value="linux"/>
         </exec>
 
         <exec executable="${builder}">
             <arg value="build"/>
-            <arg value="C:\Users\chris\projects\svn_jxplorer\jxplorer.xml"/>
-            <arg value="osx"/>
-        </exec>
-
-        <exec executable="${builder}">
-            <arg value="build"/>
-            <arg value="C:\Users\chris\projects\svn_jxplorer\jxplorer.xml"/>
+            <arg value="${installer_project_file}"/>
             <arg value="freebsd"/>
         </exec>
 
         <exec executable="${builder}">
             <arg value="build"/>
-            <arg value="C:\Users\chris\projects\svn_jxplorer\jxplorer.xml"/>
+            <arg value="${installer_project_file}"/>
             <arg value="solaris-intel"/>
         </exec>
 
         <exec executable="${builder}">
             <arg value="build"/>
-            <arg value="C:\Users\chris\projects\svn_jxplorer\jxplorer.xml"/>
+            <arg value="${installer_project_file}"/>
             <arg value="solaris-sparc"/>
         </exec>
 
         <exec executable="${builder}">
             <arg value="build"/>
-            <arg value="C:\Users\chris\projects\svn_jxplorer\jxplorer.xml"/>
+            <arg value="${installer_project_file}"/>
             <arg value="aix"/>
         </exec>
 
 
         <exec executable="${builder}">
             <arg value="build"/>
-            <arg value="C:\Users\chris\projects\svn_jxplorer\jxplorer.xml"/>
+            <arg value="${installer_project_file}"/>
             <arg value="hpux"/>
         </exec>
 
-        
+-->
+        <exec executable="${builder}">
+            <arg value="build"/>
+            <arg value="${installer_project_file}"/>
+            <arg value="osx"/>
+        </exec>
+
         <zip destfile="${builder_output}/jxplorer-${version_number}-osx-installer.zip" basedir="${builder_output}/jxplorer-${version_number}-osx-installer.app"/>
 
-        <delete dir="${builder_output}/jxplorer-${version_number}-osx-installer.app"/>
+        <!--delete dir="${builder_output}/jxplorer-${version_number}-osx-installer.app"/-->
 
 
         <copy todir="${release}">
