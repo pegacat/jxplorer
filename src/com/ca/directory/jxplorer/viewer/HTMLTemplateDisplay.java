@@ -1488,7 +1488,7 @@ public class HTMLTemplateDisplay extends JPanel
         while ((pos = htmlString.indexOf("<select", pos)) >= 0)
         {
             tagStart = pos;
-            tagEnd = htmlString.indexOf("</select>", pos);
+            tagEnd = htmlString.indexOf("</select>", pos)+"</select>".length();
 
             String tag = htmlString.substring(tagStart, tagEnd);
 
@@ -1499,18 +1499,19 @@ public class HTMLTemplateDisplay extends JPanel
                 try
                 {
                     Attribute a = entry.get(name);
-                    if (a == null) return htmlString;  // no pre-existing value, so nothing to do.
-                    if (a.get() == null) return htmlString;  // no pre-existing value, so nothing to do.
+                    if (a == null || a.get() == null) return htmlString;  // no pre-existing value, so nothing to do.
 
                     String entryValue = ((String) a.get()).toLowerCase();
 
+                    // Convert to lower case
                     String lowerCaseTag = tag.toLowerCase();
-                    int valPos = lowerCaseTag.indexOf(entryValue);
-                    int valTag = lowerCaseTag.lastIndexOf("value", valPos); //XXX should this be " value" ??
-                    if (valTag > -1 && valTag > valPos - 9) // make sure we're not picking up the wrong value!
-                    {	//TE: was (valTag > valPos-9) but was throwing a exception each time a page loaded.
-                        tag = tag.substring(0, valTag - 1) + " selected " + tag.substring(valTag);
-                        htmlString = htmlString.substring(0, tagStart) + tag + htmlString.substring(tagEnd);
+                    // Remove seleced attribute
+                    String selectedRemovedTag = lowerCaseTag.replaceAll("[ \\t]*\\bselected\\b[ \\t]*", "");
+                    // Add selected attribute to the pre-existing value
+                    String resultTag = selectedRemovedTag.replaceAll("value[ \\t]*=[ \\t]*([\"']*)\\b"+entryValue+"\\b\\1[ \\t]*", "value=\""+entryValue+"\" selected");
+                    if (selectedRemovedTag.length()!=resultTag.length()) {
+                        htmlString = htmlString.substring(0, tagStart) + resultTag + htmlString.substring(tagEnd);
+                        tagEnd=tagEnd-tag.length()+resultTag.length();
                     }
                 }
                 catch (Exception e)
