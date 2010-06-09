@@ -348,7 +348,7 @@ public class SmartPopupTool extends JPopupMenu
         if ("false".equalsIgnoreCase(prop))    // the user has wisely decided not to bother with this mis-feature.
             return true;
 
-        return (JOptionPane.showConfirmDialog(this, CBIntText.get("The {0} operation will modify the directory - continue?", new String[] {operationType}),
+        return (JOptionPane.showConfirmDialog(this, CBIntText.get("The {0} operation will modify the directory - continue?", new String[] {CBIntText.get(operationType)}),
                     CBIntText.get("Confirm Tree Operation"), JOptionPane.OK_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE)
             == JOptionPane.OK_OPTION);
     }
