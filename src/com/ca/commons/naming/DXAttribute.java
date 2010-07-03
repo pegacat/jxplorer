@@ -116,6 +116,21 @@ public class DXAttribute extends BasicAttribute implements Comparable
         init();
     }
 
+       /**
+     *
+     * @param id the name of attribute (e.g. 'objectClass')
+     * @param values the values of the attribute (e.g. {'top', 'person', 'inetorgperson'}
+     */
+    public DXAttribute(String id, Object[] values)
+    {
+        super(id);
+
+        for (Object value : values)
+        {
+            add(value);
+        }
+    }
+
     /**
      * Adds a series of values to the attribute.
      * @param values a bunch of new values to append to the attribute
@@ -883,4 +898,5 @@ public class DXAttribute extends BasicAttribute implements Comparable
     {
         return collationKey.compareTo(((DXAttribute) o).getCollationKey());
     }
+
 }

@@ -1353,11 +1353,26 @@ public class DXAttributes implements Attributes
      *    Utility ftn: checks that an attribute is not null and has at least
      *    one non-null value.
      */
+    
     public static boolean emptyAtt(Attribute att)
     {
          return DXAttribute.isEmpty(att);
     }
 
 
+    /**
+     * Utility method - useful for creating a multi valued attributes for the Entry constructor,
+     * esp when chained with a bunch of 'makeAtt()' calls.
+     * @param vals
+     * @return a newly created set of attributes
+     */
+
+    public static BasicAttributes makeAtts(Attribute[] vals)
+    {
+        BasicAttributes atts = new BasicAttributes();
+        for (Attribute val : vals)
+            atts.put(val);
+        return atts;
+    }
 
 }

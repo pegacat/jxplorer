@@ -69,6 +69,10 @@ public class DXEntry extends DXAttributes
     }
 
 
+    public DXEntry(Attribute[] atts, DN name)
+    {
+        this(makeAtts(atts), name);
+    }
 
     /**
      *    Intercept a DN being passed as an attribute
@@ -190,27 +194,42 @@ public class DXEntry extends DXAttributes
                 getStringStatus() + "\n" +
                 super.toString());
     }
-    
-    /** 
-     *    Utility class intended for recovering the value of a single
-     *    value attribute as a string.
-     *    @param id the attribute name
-     *    @return the value of the attribute as a string.
+
+        /**
+     * Utility method to get as a String an attribute value.  Returns 'first'
+     * attribute value if multi valued.
+     * @param attributeName
+     * @return null if attribute doesn't exist.
+     * @throws NamingException
      */
-     
-    public String getString(String id)
+    public String getString(String attributeName)
+       // throws NamingException
     {
-        Attribute a = get(id);
+        Attribute att = get(attributeName);
+        if (att == null)
+            return null;
+        if (att.size() == 0) // can this happen?
+            return "";
         try
         {
-            return a.get().toString();
+            Object value = att.get();
+            if (value == null)
+                return null;
+            else
+                return value.toString();
         }
-        catch (Exception e) 
-        { 
-            return null; 
-        }    
-    } 
-    
+        catch (NamingException e)
+        {
+            return null;
+        }
+
+    }
+
+    public String getStringName()
+    {
+        return (dn==null)?"":dn.toString();
+    }
+
     /**
      *    Returns the Entry's RDN. 
      *    @return RDN the lowest RDN of the entry's DN - e.g.
