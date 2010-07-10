@@ -336,6 +336,7 @@ public class TestJNDIBulkOps
 	    */
 	    
 	    public void connect(DXEntry entry)
+              // throws NamingException
 	    {
 	        if (debug) System.out.println("connect: " + entry);
 	        if (myOps != null)

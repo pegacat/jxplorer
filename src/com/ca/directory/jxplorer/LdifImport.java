@@ -126,19 +126,20 @@ public class LdifImport //extends JDialog implements ActionListener
 
     public void openFile(String fileName)
     {
-        if (fileName == null) openFile();
-	else
-	{
-	    readFile = new File(fileName);
-            JXplorer.setProperty("ldif.homeDir", readFile.getParent());
-            ldifutil.setFileDir(readFile.getParent());
-            doFileRead(readFile);
+        if (fileName == null)
+            openFile();
+        else
+        {
+            readFile = new File(fileName);
+                JXplorer.setProperty("ldif.homeDir", readFile.getParent());
+                ldifutil.setFileDir(readFile.getParent());
+                doFileRead(readFile);
 
-            if(owner instanceof JXplorer  && offline)
-            {
-                ((JXplorer)owner).getMainMenu().setConnected(false);
-            }
-	}
+                if(owner instanceof JXplorer  && offline)
+                {
+                    ((JXplorer)owner).getMainMenu().setConnected(false);
+                }
+        }
     }
 
     protected void doFileRead(File readFile)
@@ -163,12 +164,22 @@ public class LdifImport //extends JDialog implements ActionListener
                     return;
                 }
 
-                readLdifTree("", pmonitor, "", "", b, this);
-
-                if (b.getException() != null)
+                // hmmm.. how will this work in a multi-threaded environment?
+                // ... might be better to pass a new ldif utility object into readLdifTree... however they shouldn't
+                // be reading more than one ldif file at a time, and the only affect would be to stuff up ldif error reporting...
+                ldifutil.resetErrorReportingInformation(myFile.toString());
+                try
                 {
-                    CBUtility.error(CBIntText.get("There were one or more errors reading the LDIF file\n(See the log for more details)"), b.getException());
-                    b.clearException();
+                    readLdifTree("", pmonitor, "", "", b, this);
+                }
+                catch (NamingException e)
+                {
+                    CBUtility.error(CBIntText.get("There were one or more errors reading the LDIF file\n(See the log for more details)"), e);
+                }
+                catch (Exception e)
+                {
+                    CBUtility.error(CBIntText.get("There were one or more errors reading the LDIF file\n(See the log for more details)"), e);
+                    System.out.println("=== ran CBUtility error code... ====");
                 }
                 closeDown();
             }
@@ -179,7 +190,11 @@ public class LdifImport //extends JDialog implements ActionListener
     
     /**
      *    Read a subtree from an ldif file, adding entries as 
-     *    they are read...   
+     *    they are read..
+     *
+     *    THere's an open question here as to how strict we should be reading an ldif file -
+     *    the approach taken is to throw an error and stop if the ldif file is obviously corrupt,
+     *    but to allow minor errors through.
      *
      *    @param treeApex the root node of the sub tree to be written out.
      *    @param textStream The stream being read (i.e. the ldif file)
@@ -189,9 +204,12 @@ public class LdifImport //extends JDialog implements ActionListener
      *    @param newPrefix another DN to replace the originalPrefix.
      *    @param b the broker to send the read data to
      *    @param query the DataQuery doing the import
+     *
+     * @throws NamingException if there is an error reading the ldif file
      */
     
     public void readLdifTree(String treeApex, InputStream textStream, String origPrefix, String newPrefix, Broker b, DataQuery query)
+            throws NamingException
     {
         DN newDN = null;                   // a DN to be added to be read from the data source
 
@@ -214,10 +232,9 @@ public class LdifImport //extends JDialog implements ActionListener
         {
              readText = new BufferedReader(new InputStreamReader(textStream, "UTF-8"));
         }
-        catch (UnsupportedEncodingException e)
+        catch (UnsupportedEncodingException e)  // should never happen.
         {
-            CBUtility.error(CBIntText.get("Unexpected problem - Unable to read the LDIF file - no UTF-8 reader available") + ": ", e);
-            return;
+            throw new NamingException(CBIntText.get("Unexpected problem - Unable to read the LDIF file - no UTF-8 reader available") + ": " + e.getMessage());
         }
 
 
@@ -261,7 +278,7 @@ public class LdifImport //extends JDialog implements ActionListener
                     }
                     else
                     {
-                        log.warning("skipping ldif entry with no dn: ");
+                        log.severe("skipping ldif entry with no dn at line: " + ldifutil.getCurrentLineNumber());
                     }
 
                     pmonitor.getProgressMonitor().setNote(CBIntText.get("reading entry #") + " " + (++numEntriesRead));  // XXX I'm not translating this to the MessageFormat version of CBIntText.get because I'm worried about performance - CB
@@ -273,13 +290,14 @@ public class LdifImport //extends JDialog implements ActionListener
             }
             catch (IOException e2)    // some other file reading error
             {
-                CBUtility.error(CBIntText.get("unable to read LDIF file"), e2);
+                CBUtility.error(CBIntText.get("unable to read LDIF file" + ": " + readFile.toString()), e2);
+
                 return;
             }
             catch (NamingException e)
             {
                 //TE: bug: 5153.  Not sure if this should be caught here and stop or should it try to process the rest of the LDIF file?
-                CBUtility.error(CBIntText.get("An error occured while processing the LDIF file") + ": ", e);
+                CBUtility.error(CBIntText.get("An error occured while processing the LDIF file") + " -" + readFile.toString() + ":" + ldifutil.getCurrentLineNumber(), e);
                 return;
             }
 
@@ -310,14 +328,12 @@ public class LdifImport //extends JDialog implements ActionListener
         }
         catch (IOException e)
         {
-            log.warning("Unable to read file " + readFile.toString());
+            CBUtility.error(CBIntText.get("unable to read LDIF file"+ ": " + readFile.toString()), e);
         }
 
         catch (Exception e2)
         {
-            log.warning("error parsing file " + readFile.toString());
-            log.warning("Error occured reading line: " + ((line==null)?"*null line*":line) + "\n   (debug info: err was : " + e2 + "\n  ");
-            e2.printStackTrace();
+            CBUtility.error(CBIntText.get("An error occured while processing the LDIF file") + " -" + readFile.toString() + ":" + ldifutil.getCurrentLineNumber(), e2);
         }
 
     }

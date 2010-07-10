@@ -200,7 +200,7 @@ System.out.println("and finally we end up with: \n new: " + testAtt.toString() +
                     
                     if (newAtt == null)  // .. but it no longer exists...
                     {
-                        changes.put(new DXAttribute(oldAtt.getID(), null));  // ... delete it.
+                        changes.put(new DXAttribute(oldAtt.getID()));  // ... delete it.
                     }   
                     else if (attributesEqual(newAtt, oldAtt) == false)  
                     {

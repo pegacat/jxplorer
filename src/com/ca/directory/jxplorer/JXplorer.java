@@ -1382,8 +1382,18 @@ public class
     protected void setupFrills()
     {
         //this.setIconImage(new ImageIcon(getProperty("dir.images") + "ODlogo.gif").getImage());
-        this.setIconImage(getImageIcon("ODlogo.gif").getImage());
+        //this.setIconImage(getImageIcon("ODlogo.gif").getImage());
         this.setTitle("JXplorer");
+        this.setIconImage(getImageIcon("JX32.png").getImage());
+
+        /* java 6 specific code - sigh - not yet
+        ArrayList<Image> icons = new ArrayList<Image>();
+        icons.add( getImageIcon( "JX16.png" ).getImage() );
+        icons.add( getImageIcon( "JX32.png" ).getImage() );
+        icons.add( getImageIcon( "JX48.png" ).getImage() );
+        icons.add( getImageIcon( "JX128.png" ).getImage() );
+        this.setIconImages( icons );
+        */
     }
 
     /**

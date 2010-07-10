@@ -175,7 +175,6 @@ public class LdifUtilityTest extends TestCase
 
         String actual = (String)attValPair[1];
 
-        System.out.println("--- text ---\n" + text + "\n--- actual ---\n" + actual + "---");
         actual = actual.replaceAll("\r","" );
 
         //assertEquals(text, actual);
