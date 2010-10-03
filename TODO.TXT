@@ -1,0 +1,4 @@
+- Themes
+- Move quick search to right
+- Create tango icon theme
+- Update htmltemplates
