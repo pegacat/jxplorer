@@ -396,9 +396,12 @@ public class basicbinaryeditor extends JDialog
 
 	public boolean isValid()
 	{
-		String newvalue = ((field == null) ? "": field.getText());
-		return newvalue.length() != 0;
-	}
+        if (field == null)
+            return false;
+
+		String newValue = field.getText();
+        return (newValue != null && newValue.length() > 0);
+   	}
 
 
 
