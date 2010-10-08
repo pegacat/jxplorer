@@ -386,7 +386,7 @@ public class HTMLTemplateDisplay extends JPanel
         setupTemplateLists();
 
 /*
-        baseURL = JXplorer.getFileURL(myProperties.getProperty("dir.templates"));
+        baseURL = JXplorer.getFileURL(Theme.getInstance().getDirTemplates());
         try
         {
             base = new URL(baseURL);
@@ -544,7 +544,7 @@ public class HTMLTemplateDisplay extends JPanel
     private File getBaseTemplateDirectory()
             throws FileNotFoundException
     {
-        File baseTemplateDir = new File(myProperties.getProperty("dir.templates"));
+        File baseTemplateDir = new File(Theme.getInstance().getDirTemplates());
         if (!baseTemplateDir.exists())
         {
             log.warning("can't find html template directory " + baseTemplateDir + " - trying to find /templates directory");
@@ -667,7 +667,7 @@ public class HTMLTemplateDisplay extends JPanel
         if (editor == null) editor = getNewEditor();
 
 
-        String htmldocs = myProperties.getProperty("dir.htmldocs", JXplorer.localDir + "htmldocs" + File.separator);
+        String htmldocs = Theme.getInstance().getDirHtmlDocs();
         try
         {
             final String locale = Locale.getDefault().toString();;
@@ -908,7 +908,7 @@ public class HTMLTemplateDisplay extends JPanel
 
         URL url;
 
-        String baseTemplatePath = myProperties.getProperty("dir.templates");
+        String baseTemplatePath = Theme.getInstance().getDirTemplates();
 
         String fileName = baseTemplatePath + templateURL;    //TE: gets the path & name of each template that is displayed.  I.e when a tab is clicked.
 
@@ -2313,7 +2313,7 @@ public class HTMLTemplateDisplay extends JPanel
             return openPage(docURL);
         else
         {
-            File document = new File(myProperties.getProperty("dir.htmldocs") + docURL);
+            File document = new File(Theme.getInstance().getDirHtmlDocs() + docURL);
             try
             {
                 return openPage(document.toURL());

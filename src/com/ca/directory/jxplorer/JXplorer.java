@@ -603,23 +603,6 @@ public class
         setDefaultLocationProperty("dir.help", localDir + "help" + File.separator);
         setDefaultLocationProperty("dir.plugins", localDir + "plugins" + File.separator);
 
-        //Read theme property
-        Properties themeProp = new Properties();
-        try {
-            themeProp.load(new FileInputStream(localDir + "themes" + File.separator + "themes.properties"));
-        } catch (IOException e) { }
-        String theme = themeProp.getProperty("settings.theme", "classic-theme");
-        System.out.println("Loading theme: " + theme);
-        
-        setDefaultLocationProperty("dir.htmldocs", 
-        		localDir + "themes" + File.separator + theme + File.separator + "htmldocs" + File.separator);
-        setDefaultLocationProperty("dir.icons", 
-        		localDir + "themes" + File.separator + theme + File.separator + "icons" + File.separator);
-        setDefaultLocationProperty("dir.images", 
-        		localDir + "themes" + File.separator + theme + File.separator + "images" + File.separator);
-        setDefaultLocationProperty("dir.templates", 
-        		localDir + "themes" + File.separator + theme + File.separator + "templates" + File.separator);
-        
         setDefaultProperty("width", "800", "set by client GUI - don't change");
 
         setDefaultProperty("height", "600", "set by client GUI - don't change");
@@ -1135,8 +1118,6 @@ public class
     protected void setupActiveComponents()
     {
         mainViewer = new AttributeDisplay(myProperties, JXplorer.this, resourceLoader);
-
-        //String iconDir = JXplorer.getProperty("dir.icons");
 
         mrTree = new SmartTree(this, CBIntText.get("Explore"), resourceLoader);
         mrTree.setBackground(new Color(0xF7F9FF));

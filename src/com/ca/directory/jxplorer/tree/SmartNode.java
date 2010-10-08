@@ -117,7 +117,6 @@ public class SmartNode extends DefaultMutableTreeNode implements  Transferable, 
                 return;
             }
             log.warning("Recovered!  - iconPath reset to " + Theme.getInstance().getDirIcons());
-            JXplorer.myProperties.setProperty("dir.icons", Theme.getInstance().getDirIcons());
         }
          
         for (int i=0; i<iconFiles.length; i++)

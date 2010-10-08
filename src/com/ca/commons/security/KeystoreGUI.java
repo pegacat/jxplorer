@@ -1323,7 +1323,7 @@ public class KeystoreGUI extends CBDialog implements ActionListener
          *    its button images from.
          */
 
-        props.setProperty("dir.images", localDir + "images" + File.separator);
+        props.setProperty("dir.images", Theme.getInstance().getDirImages());
 
         /*
          *   Set the location of the java keystore to manipulate.

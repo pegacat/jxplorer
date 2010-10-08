@@ -599,7 +599,7 @@ System.out.println("using new code");
              *    its button images from.
              */
 
-            props.setProperty("dir.images", localDir + "images" + File.separator);
+            props.setProperty("dir.images", Theme.getInstance().getDirImages());
 
             CertViewer.setProperties(props);
 
