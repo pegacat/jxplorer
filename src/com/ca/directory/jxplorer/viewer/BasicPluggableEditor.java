@@ -8,6 +8,7 @@ import com.ca.directory.jxplorer.DataSink;
 import com.ca.commons.naming.DXEntry;
 import com.ca.commons.cbutil.CBIntText;
 import com.ca.commons.cbutil.CBHelpSystem;
+import com.ca.commons.cbutil.Theme;
 
 import javax.swing.ImageIcon;
 
@@ -126,7 +127,7 @@ public class BasicPluggableEditor extends JPanel
            
     public ImageIcon getIcon() 
     { 
-        return new ImageIcon("");
+        return new ImageIcon(Theme.getInstance().getDirImages() + "blank.gif");
     }  
     
     /**

@@ -84,6 +84,7 @@ public class CBFileChooserButton extends CBButton implements ActionListener
 
     public CBFileChooserButton(JTextComponent text, Component GUIparent, String buttonName, String tooltip)
     {
+    	//TODO: Check out for theme-izing
         super(buttonName, tooltip, new ImageIcon("open.gif"));
         myText = text;
         parent = GUIparent;

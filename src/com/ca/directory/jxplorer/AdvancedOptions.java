@@ -1,15 +1,36 @@
 package com.ca.directory.jxplorer;
 
-import com.ca.commons.cbutil.*;
-import com.ca.directory.jxplorer.search.SearchGUI;
-import com.ca.directory.jxplorer.tree.SmartTree;
-
-import javax.swing.*;
-import java.awt.*;
+import java.awt.Cursor;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import javax.swing.ButtonGroup;
+import javax.swing.ImageIcon;
+import javax.swing.JComboBox;
+import javax.swing.JComponent;
+import javax.swing.JDialog;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JRadioButton;
+import javax.swing.JTabbedPane;
+import javax.swing.JTextField;
+import javax.swing.KeyStroke;
+import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
+import javax.swing.UnsupportedLookAndFeelException;
+
+import com.ca.commons.cbutil.CBAction;
+import com.ca.commons.cbutil.CBButton;
+import com.ca.commons.cbutil.CBHelpSystem;
+import com.ca.commons.cbutil.CBIntText;
+import com.ca.commons.cbutil.CBPanel;
+import com.ca.commons.cbutil.CBUtility;
+import com.ca.commons.cbutil.Theme;
+import com.ca.directory.jxplorer.search.SearchGUI;
+import com.ca.directory.jxplorer.tree.SmartTree;
 
 /**
  * Sets up an advanced options dialog box that is accessable through the Options drop down menu.
@@ -37,7 +58,6 @@ public class AdvancedOptions extends JDialog
 
     private MainMenu mainMenu;
     private final JXplorer jx;
-    private String dirImage;
 
     // Utility constants for look and feel stuff..
     private static final int WINDOWS = 0;
@@ -69,8 +89,6 @@ public class AdvancedOptions extends JDialog
 
         this.mainMenu = mainMenu;
         jx = jxplorer;
-
-        dirImage = JXplorer.getProperty("dir.images");
 
         setTitle(CBIntText.get("JXplorer Advanced Options"));
 
@@ -232,7 +250,7 @@ public class AdvancedOptions extends JDialog
 
         getLookAndFeel();
 
-        tabbedPane.addTab(CBIntText.get("Look & Feel"), new ImageIcon(dirImage + "look_feel.gif"), lookAndFeelPanel, CBIntText.get("Change the 'look and feel' of JXplorer, that is, adopt a similar appearance to another application."));
+        tabbedPane.addTab(CBIntText.get("Look & Feel"), new ImageIcon(Theme.getInstance().getDirIcons() + "look_feel.gif"), lookAndFeelPanel, CBIntText.get("Change the 'look and feel' of JXplorer, that is, adopt a similar appearance to another application."));
     }
 
     /**
@@ -464,7 +482,7 @@ public class AdvancedOptions extends JDialog
 
         getLogMethod();
 
-        tabbedPane.addTab(CBIntText.get("Log Method"), new ImageIcon(dirImage + "log_method.gif"), logMethodPanel, CBIntText.get("Set the method of logging you want, for example, to a file."));
+        tabbedPane.addTab(CBIntText.get("Log Method"), new ImageIcon(Theme.getInstance().getDirIcons() + "log_method.gif"), logMethodPanel, CBIntText.get("Set the method of logging you want, for example, to a file."));
     }
 
     /**
@@ -502,7 +520,7 @@ public class AdvancedOptions extends JDialog
         getLogLevel();
 
         tabbedPane.addTab(CBIntText.get("Log Level"),
-                new ImageIcon(dirImage + "log_level.gif"), logLevelPanel,
+                new ImageIcon(Theme.getInstance().getDirIcons() + "log_level.gif"), logLevelPanel,
                 CBIntText.get("Set the level of logging you want, for example, errors only."));
     }
 
@@ -560,7 +578,7 @@ public class AdvancedOptions extends JDialog
         ldapLevelsPanel.add(ldapTimeout);
 
         tabbedPane.addTab(CBIntText.get("Search Limits"),
-                new ImageIcon(dirImage + "find.gif"), ldapLevelsPanel,
+                new ImageIcon(Theme.getInstance().getDirIcons() + "find.gif"), ldapLevelsPanel,
                 CBIntText.get("Set the search levels, that is, the number of entries returned from a search and the timeout."));
     }
 
@@ -597,7 +615,7 @@ public class AdvancedOptions extends JDialog
         urlPanel.addln(new JLabel(" "));
         urlPanel.addln(new JLabel(CBIntText.get("Note: Launch is for Windows only.")));
 
-        tabbedPane.addTab(CBIntText.get("URL"), new ImageIcon(dirImage + "url.gif"), urlPanel, CBIntText.get("Select how you would like the URLs handled in JXplorer."));
+        tabbedPane.addTab(CBIntText.get("URL"), new ImageIcon(Theme.getInstance().getDirIcons() + "url.gif"), urlPanel, CBIntText.get("Select how you would like the URLs handled in JXplorer."));
     }
 
     /**
@@ -637,7 +655,7 @@ public class AdvancedOptions extends JDialog
         urlPanel.addln(new JLabel(" "));
         urlPanel.addln(new JLabel(CBIntText.get(" ")));
 
-        tabbedPane.addTab(CBIntText.get("Cache Passwords"), new ImageIcon(dirImage + "cachePwds.gif"), urlPanel, CBIntText.get("Select Yes if you want passwords cached in JXplorer."));
+        tabbedPane.addTab(CBIntText.get("Cache Passwords"), new ImageIcon(Theme.getInstance().getDirIcons() + "cachePwds.gif"), urlPanel, CBIntText.get("Select Yes if you want passwords cached in JXplorer."));
     }
 
    /**

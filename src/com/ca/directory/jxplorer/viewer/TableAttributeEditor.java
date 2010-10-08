@@ -811,7 +811,7 @@ public class TableAttributeEditor extends JPanel
 
     public ImageIcon getIcon()
     {
-        return new ImageIcon("images" + File.separator + "table.gif");
+        return new ImageIcon(Theme.getInstance().getDirImages() + "table.gif");
     }    //TE: returns an icon.
 
     public String getToolTip()

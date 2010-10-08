@@ -11,6 +11,7 @@ public class GetImageIcon{
 	* from the root of your application. use a "/" before the 
 	* fileName, eg. /images/warning.gif 
 	*/ 
+	//TODO: Check if this works with the theme-izing
 	    public ImageIcon getImageIcon(String fileName, String jarName) { 
 	        int c, i = 0;
 	        byte buffer[];

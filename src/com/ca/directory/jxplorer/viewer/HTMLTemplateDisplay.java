@@ -2487,7 +2487,7 @@ public class HTMLTemplateDisplay extends JPanel
 
     public ImageIcon getIcon()
     {
-        return new ImageIcon("images" + File.separator + "html.gif");
+        return new ImageIcon(Theme.getInstance().getDirImages() + "html.gif");
     }    //TE: returns an icon.
 
     public String getToolTip()

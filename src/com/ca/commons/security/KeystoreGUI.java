@@ -95,7 +95,7 @@ public class KeystoreGUI extends CBDialog implements ActionListener
             // converted this to make it backwardly compatible - CB
             try
             {
-                this.owner.setIconImage(new ImageIcon("./images/logo_16.gif").getImage());
+                this.owner.setIconImage(getImageIcon("logo_16.gif").getImage());
             }
             catch (Exception e) {} // we don't care if this stuff up - it's just a nice to have...
 
@@ -871,7 +871,7 @@ public class KeystoreGUI extends CBDialog implements ActionListener
 
         // CB - not sure what's happening here;
         //if(standAlone)
-        //    newPassword.setIconImage(new ImageIcon("./ODlogo.gif")).getImage());
+        //    newPassword.setIconImage(new ImageIcon(Theme.getInstance().getDirImages() + "ODlogo.gif")).getImage());
 
         // Various things can go wrong here - keep showing the
         // user the password change window until they enter a
@@ -1254,7 +1254,7 @@ public class KeystoreGUI extends CBDialog implements ActionListener
     {
         try
         {
-            String path = properties.getProperty("dir.images") + name;
+            String path = Theme.getInstance().getDirImages() + name;
             File imageFile = new File(path);
             if (imageFile.exists())
             {
@@ -1268,6 +1268,7 @@ public class KeystoreGUI extends CBDialog implements ActionListener
 
         try
         {
+        	//TODO: Check this out for the Theme-izing
             return new ImageIcon(this.getClass().getResource("/" + name));
         }
         catch (Exception e)

@@ -12,6 +12,7 @@ import com.ca.directory.jxplorer.search.SearchBar;
 import com.ca.directory.jxplorer.tree.*;
 import com.ca.directory.jxplorer.viewer.AttributeDisplay;
 
+import javax.annotation.Resources;
 import javax.swing.*;
 import javax.swing.event.*;
 import javax.swing.tree.TreePath;
@@ -599,13 +600,26 @@ public class
 
         setProperty("dir.comment", "this sets the directories that JXplorer reads its resources from.");
         setDefaultLocationProperty("dir.local", localDir);
-        setDefaultLocationProperty("dir.htmldocs", localDir + "htmldocs" + File.separator);
-        setDefaultLocationProperty("dir.templates", localDir + "templates" + File.separator);
-        setDefaultLocationProperty("dir.icons", localDir + "icons" + File.separator);
-        setDefaultLocationProperty("dir.images", localDir + "images" + File.separator);
         setDefaultLocationProperty("dir.help", localDir + "help" + File.separator);
         setDefaultLocationProperty("dir.plugins", localDir + "plugins" + File.separator);
 
+        //Read theme property
+        Properties themeProp = new Properties();
+        try {
+            themeProp.load(new FileInputStream(localDir + "themes" + File.separator + "themes.properties"));
+        } catch (IOException e) { }
+        String theme = themeProp.getProperty("settings.theme", "classic-theme");
+        System.out.println("Loading theme: " + theme);
+        
+        setDefaultLocationProperty("dir.htmldocs", 
+        		localDir + "themes" + File.separator + theme + File.separator + "htmldocs" + File.separator);
+        setDefaultLocationProperty("dir.icons", 
+        		localDir + "themes" + File.separator + theme + File.separator + "icons" + File.separator);
+        setDefaultLocationProperty("dir.images", 
+        		localDir + "themes" + File.separator + theme + File.separator + "images" + File.separator);
+        setDefaultLocationProperty("dir.templates", 
+        		localDir + "themes" + File.separator + theme + File.separator + "templates" + File.separator);
+        
         setDefaultProperty("width", "800", "set by client GUI - don't change");
 
         setDefaultProperty("height", "600", "set by client GUI - don't change");
@@ -1101,7 +1115,7 @@ public class
         //buttonBar.setSize(topPanel.getWidth(), 20);
         topPanel.makeWide();
 
-        topPanel.addln(buttonBar);
+        topPanel.add(buttonBar);
         topPanel.addln(searchBar);
         mainPane.add(topPanel, BorderLayout.NORTH);
 
@@ -1253,9 +1267,9 @@ public class
             splitPane.add(userViewPanel, JSplitPane.RIGHT, 1);
         }
 
-        if (mrTree != null) treeTabPane.addTab(mrTree.getName(), new ImageIcon("images" + File.separator + "explore.gif"), explorePanel, "Displays the directory tree, and allows the user to graphically browse the directory.");     //TE: sets the tabs up with name, icon, component and tool tip.
-        if (searchTree != null) treeTabPane.addTab(searchTree.getName(), new ImageIcon("images" + File.separator + "find.gif"), resultsPanel, "Displays the search results, and allows the user to graphically browse these results.");
-        if (schemaTree != null) treeTabPane.addTab(schemaTree.getName(), new ImageIcon("icons" + File.separator + "schema.gif"), schemaPanel, "Displays the directory schema, and allows the user to graphically browse the schema.");
+        if (mrTree != null) treeTabPane.addTab(mrTree.getName(), new ImageIcon(Theme.getInstance().getDirImages() + "explore.gif"), explorePanel, "Displays the directory tree, and allows the user to graphically browse the directory.");     //TE: sets the tabs up with name, icon, component and tool tip.
+        if (searchTree != null) treeTabPane.addTab(searchTree.getName(), new ImageIcon(Theme.getInstance().getDirImages() + "find.gif"), resultsPanel, "Displays the search results, and allows the user to graphically browse these results.");
+        if (schemaTree != null) treeTabPane.addTab(schemaTree.getName(), new ImageIcon(Theme.getInstance().getDirIcons() + "schema.gif"), schemaPanel, "Displays the directory schema, and allows the user to graphically browse the schema.");
 
 
         // nb. Don't add Tab for Admin, this only appears if the user
@@ -1381,8 +1395,8 @@ public class
 
     protected void setupFrills()
     {
-        //this.setIconImage(new ImageIcon(getProperty("dir.images") + "ODlogo.gif").getImage());
-        //this.setIconImage(getImageIcon("ODlogo.gif").getImage());
+        //this.setIconImage(new ImageIcon(Theme.getInstance().getDirImages() + "ODlogo.gif").getImage());
+        //this.setIconImage(getImageIcon(Theme.getInstance().getDirImages() + "ODlogo.gif").getImage());
         this.setTitle("JXplorer");
         this.setIconImage(getImageIcon("JX32.png").getImage());
 
@@ -1405,7 +1419,7 @@ public class
 
     public static ImageIcon getImageIcon(String name)
     {
-        ImageIcon newIcon = new ImageIcon(getProperty("dir.images") + name);
+        ImageIcon newIcon = new ImageIcon(Theme.getInstance().getDirImages() + name);
         return newIcon;
     }
 
@@ -1791,7 +1805,7 @@ public class
 
     public void showSplashScreen(JWindow splash)
     {
-        ImageIcon splashIcon = new ImageIcon("templates" + File.separator + "JXsplash.png");
+        ImageIcon splashIcon = new ImageIcon(Theme.getInstance().getDirTemplates() + "JXsplash.png");
         int width = splashIcon.getIconWidth();
         int height = splashIcon.getIconHeight();
         Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();

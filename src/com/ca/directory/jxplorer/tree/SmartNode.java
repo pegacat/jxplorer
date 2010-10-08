@@ -2,6 +2,7 @@ package com.ca.directory.jxplorer.tree;
 
 import com.ca.commons.cbutil.CBResourceLoader;
 import com.ca.commons.cbutil.CBUtility;
+import com.ca.commons.cbutil.Theme;
 import com.ca.commons.naming.*;
 import com.ca.directory.jxplorer.JXplorer;
 
@@ -97,17 +98,9 @@ public class SmartNode extends DefaultMutableTreeNode implements  Transferable, 
     	if (initialised) return;	// we only need to run this method once, but
     	initialised = true;			// it's not an error to call it multiple times.
     
-        String iconPath = JXplorer.getProperty("dir.icons");
-
-        if (iconPath == null) 
-        {
-            useIcons = false;
-            return;
-        }
-        
         String[] extensions = {"jpg","gif","jpeg"};
         
-        String[] iconFiles = CBUtility.readFilteredDirectory(iconPath, extensions);
+        String[] iconFiles = CBUtility.readFilteredDirectory(Theme.getInstance().getDirIcons(), extensions);
         
         /*
          *    Emergency BackUp : If the icon directory is bad, try to
@@ -116,23 +109,22 @@ public class SmartNode extends DefaultMutableTreeNode implements  Transferable, 
          */
         if (iconFiles == null)
         {
-            log.warning("can't find icon directory " + iconPath + " trying to find /icons directory");
-            iconPath = JXplorer.localDir + "icons" + File.separator;
-            iconFiles = CBUtility.readFilteredDirectory(iconPath, extensions);
+            log.warning("can't find icon directory " + Theme.getInstance().getDirIcons() + " trying to find /icons directory");
+            iconFiles = CBUtility.readFilteredDirectory(Theme.getInstance().getDirIcons(), extensions);
             if (iconFiles == null)
             {
                 log.warning("Can't find icon directory; check 'dir.icons=' line in dxconfig.txt.");
                 return;
             }
-            log.warning("Recovered!  - iconPath reset to " + iconPath);
-            JXplorer.myProperties.setProperty("dir.icons", iconPath);
+            log.warning("Recovered!  - iconPath reset to " + Theme.getInstance().getDirIcons());
+            JXplorer.myProperties.setProperty("dir.icons", Theme.getInstance().getDirIcons());
         }
          
         for (int i=0; i<iconFiles.length; i++)
         {
             String stem = iconFiles[i].substring(0,iconFiles[i].lastIndexOf('.'));
             // save icon names *in lower case*
-            icons.put(stem.toLowerCase(), new ImageIcon(iconPath + iconFiles[i]));
+            icons.put(stem.toLowerCase(), new ImageIcon(Theme.getInstance().getDirIcons() + iconFiles[i]));
         }
         
         // get any extra icons available in resource files...
@@ -140,6 +132,7 @@ public class SmartNode extends DefaultMutableTreeNode implements  Transferable, 
         try
         {
 
+        	//TODO: Still check this case for theme-izing
 	        String[] extraIcons = resourceLoader.getPrefixedResources("icons/");
 	        for (int i=0; i<extraIcons.length; i++)
 	        {

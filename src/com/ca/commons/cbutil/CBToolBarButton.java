@@ -71,6 +71,7 @@ public class CBToolBarButton extends JButton
      * @param horizPos     - the horizontal position for the button text.
      * @param vertPos      - the vertical position for the button text.
      */
+    //TODO: Check this out for theme-izing
     public CBToolBarButton(String label, String iconFileName, String tooltip,
                            int horizPos, int vertPos)
     {

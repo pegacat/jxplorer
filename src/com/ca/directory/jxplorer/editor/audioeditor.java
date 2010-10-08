@@ -52,7 +52,7 @@ public class audioeditor extends basicbinaryeditor
 
         display = new CBPanel();
    
-        label = new JLabel(new ImageIcon("images" + File.separator + "audio.gif"));
+        label = new JLabel(new ImageIcon(Theme.getInstance().getDirImages() + "audio.gif"));
         label.setOpaque(true); 
         label.setBackground(Color.white);
         

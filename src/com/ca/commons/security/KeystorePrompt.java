@@ -16,6 +16,7 @@ package com.ca.commons.security;
 
 import com.ca.commons.cbutil.CBDialog;
 import com.ca.commons.cbutil.CBIntText;
+import com.ca.commons.cbutil.Theme;
 
 import javax.swing.*;
 import java.awt.event.*;
@@ -40,7 +41,7 @@ public class KeystorePrompt extends CBDialog implements ActionListener
         super(frame, CBIntText.get("Please select keystore file"), null);
         try
         {
-            frame.setIconImage(new javax.swing.ImageIcon(this.getClass().getResource("/images/logo_16.gif")).getImage());
+            frame.setIconImage(new javax.swing.ImageIcon(this.getClass().getResource(Theme.getInstance().getDirImages()+"logo_16.gif")).getImage());
         }
         catch (Exception e) {} // we don't care if this stuff up - it's just a nice to have...
 

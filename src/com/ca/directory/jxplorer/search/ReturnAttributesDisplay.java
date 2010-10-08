@@ -408,7 +408,7 @@ public class ReturnAttributesDisplay
 		{
 			JPopupMenu pop = new JPopupMenu("Go to");
 			final JMenuItem menuItem = new JMenuItem(CBIntText.get("Go to entry..."),
-                    new ImageIcon(JXplorer.getProperty("dir.images")+"goto.gif"));
+                    new ImageIcon(Theme.getInstance().getDirImages()+"goto.gif"));
 			pop.add(menuItem);
 
             // If a right click has been performed we can't be sure that row is selected.

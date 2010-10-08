@@ -148,7 +148,7 @@ public class CertViewer extends CBDialog
     {
         if (properties == null) return null;
 
-        ImageIcon newIcon = new ImageIcon(properties.getProperty("dir.images") + name);
+        ImageIcon newIcon = new ImageIcon(Theme.getInstance().getDirImages() + name);
         return newIcon;
     }
 

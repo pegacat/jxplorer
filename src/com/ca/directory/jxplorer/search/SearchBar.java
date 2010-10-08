@@ -88,8 +88,8 @@ public class SearchBar extends JToolBar
 
 /*
         stopMonitor = jxplorer.getStopMonitor();
-        CBButton stopMonitorButton = new CBButton(CBIntText.get("Stop"), new ImageIcon(jxplorer.getProperty("dir.images") + "stop.gif"));
-        stopMonitorButton.setDisabledSelectedIcon(new ImageIcon(jxplorer.getProperty("dir.images")+"stop_disabled.gif"));
+        CBButton stopMonitorButton = new CBButton(CBIntText.get("Stop"), new ImageIcon(Theme.getInstance().getDirImages() + "stop.gif"));
+        stopMonitorButton.setDisabledSelectedIcon(new ImageIcon(Theme.getInstance().getDirImages()+"stop_disabled.gif"));
         stopMonitorButton.setEnabled(false);
         stopMonitorButton.setToolTipText(CBIntText.get("Stop the current action"));
         stopMonitorButton.setAlignmentY(Component.BOTTOM_ALIGNMENT);

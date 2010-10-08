@@ -1,17 +1,36 @@
 package com.ca.directory.jxplorer.search;
 
-import java.awt.*;
-import java.awt.event.*;
-import java.util.*;
-import java.util.logging.Level;
+import java.awt.Dimension;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.logging.Logger;
-import javax.swing.*;
-import javax.swing.event.*;
-import javax.swing.border.*;
 
-import com.ca.directory.jxplorer.*;
-import com.ca.commons.naming.*;
-import com.ca.commons.cbutil.*;
+import javax.swing.ImageIcon;
+import javax.swing.JCheckBox;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JScrollPane;
+import javax.swing.JTabbedPane;
+import javax.swing.JTextArea;
+import javax.swing.JTextField;
+import javax.swing.border.TitledBorder;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
+
+import com.ca.commons.cbutil.CBBasicComboBoxRenderer;
+import com.ca.commons.cbutil.CBButton;
+import com.ca.commons.cbutil.CBDialog;
+import com.ca.commons.cbutil.CBIntText;
+import com.ca.commons.cbutil.CBJComboBox;
+import com.ca.commons.cbutil.CBListSelector;
+import com.ca.commons.cbutil.CBPanel;
+import com.ca.commons.cbutil.CBUtility;
+import com.ca.commons.cbutil.Theme;
+import com.ca.commons.naming.DN;
+import com.ca.directory.jxplorer.HelpIDs;
+import com.ca.directory.jxplorer.JXplorer;
 
 /**
 *	This class creates a dialog that has currently three tabs on it.  The first one is for 
@@ -39,7 +58,7 @@ public class SearchGUI extends CBDialog
 	JoinFilterPanel				join;
 	TextFilterPanel				text;
 	SearchModel					searchModel;
-	String						buildName = "Untitled", joinName = "Untitled", textName = "Untitled", dirImages;
+	String						buildName = "Untitled", joinName = "Untitled", textName = "Untitled";
 	CBButton[]					btnEdit = new CBButton[50];
 	int							buttonCounter = 0;				//TE: a counter that keeps track of the number of created 'edit' buttons and is used when recalling buttons from the button array..
 	String[]					returnAttrs = null;
@@ -59,8 +78,6 @@ public class SearchGUI extends CBDialog
 		super(jxplorer, CBIntText.get("Search"), HelpIDs.SEARCH);  	
 		jx = jxplorer;
 
-		dirImages = JXplorer.getProperty("dir.images");
-		
 		build = new	BuildFilterPanel(jx);
 		join = new JoinFilterPanel(getEditButton());
 		text = new TextFilterPanel();
@@ -72,9 +89,9 @@ public class SearchGUI extends CBDialog
 		
 		tabbedPane = new JTabbedPane();
 
-		tabbedPane.addTab(CBIntText.get("Build Filter"), new ImageIcon(dirImages+"build.gif"), build, CBIntText.get("Build a filter from scratch."));
-		tabbedPane.addTab(CBIntText.get("Join Filters"), new ImageIcon(dirImages+"join.gif"), join, CBIntText.get("Join filters that have been made in the Build tab."));
-		tabbedPane.addTab(CBIntText.get("Text Filter"), new ImageIcon(dirImages+"text.gif"), text, CBIntText.get("Type or paste a filter into the field in plain text."));
+		tabbedPane.addTab(CBIntText.get("Build Filter"), new ImageIcon(Theme.getInstance().getDirImages()+"build.gif"), build, CBIntText.get("Build a filter from scratch."));
+		tabbedPane.addTab(CBIntText.get("Join Filters"), new ImageIcon(Theme.getInstance().getDirImages()+"join.gif"), join, CBIntText.get("Join filters that have been made in the Build tab."));
+		tabbedPane.addTab(CBIntText.get("Text Filter"), new ImageIcon(Theme.getInstance().getDirImages()+"text.gif"), text, CBIntText.get("Type or paste a filter into the field in plain text."));
 		
 		OK.setText(CBIntText.get("Search"));
 		

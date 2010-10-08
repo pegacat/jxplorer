@@ -1,20 +1,45 @@
 package com.ca.directory.jxplorer;
 
-import javax.swing.*;
-import javax.swing.event.*;
-import java.awt.*;
-import java.awt.event.*;
-import java.util.*;
-import java.util.logging.Logger;
-
-import com.ca.directory.jxplorer.search.*;
-import com.ca.commons.naming.*;
-import com.ca.directory.jxplorer.tree.*;
-import com.ca.commons.cbutil.*;
-import com.ca.commons.security.KeystoreGUI;
-
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Graphics;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Hashtable;
+import java.util.Properties;
+import java.util.logging.Logger;
+
+import javax.swing.ImageIcon;
+import javax.swing.JCheckBoxMenuItem;
+import javax.swing.JList;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
+import javax.swing.JScrollPane;
+import javax.swing.JSeparator;
+import javax.swing.KeyStroke;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
+
+import com.ca.commons.cbutil.CBAbout;
+import com.ca.commons.cbutil.CBCache;
+import com.ca.commons.cbutil.CBIntText;
+import com.ca.commons.cbutil.CBUtility;
+import com.ca.commons.cbutil.Theme;
+import com.ca.commons.naming.DN;
+import com.ca.commons.naming.DXNamingEnumeration;
+import com.ca.commons.security.KeystoreGUI;
+import com.ca.directory.jxplorer.search.DeleteFilterGUI;
+import com.ca.directory.jxplorer.search.ReturnAttributesDialog;
+import com.ca.directory.jxplorer.search.SearchExecute;
+import com.ca.directory.jxplorer.search.SearchModel;
+import com.ca.directory.jxplorer.tree.SmartTree;
 
 
 public class MainMenu extends JMenuBar
@@ -60,10 +85,6 @@ public class MainMenu extends JMenuBar
 
 	SmartTree tree;
 
-	String dirIcons;
-	String dirImages;
-	String dirTemplates;
-
     public static Properties myProperties;   // global variables for the browser, read from...
     public static String propertyFile;       // ...a user configurable file storing default properties.
     public static String localDir;           // local directory the browser is being run from...
@@ -73,8 +94,6 @@ public class MainMenu extends JMenuBar
     {
         super();
         this.jxplorer = jxplorer;
-
-		setImageDirs();	//TE: gets the image and icon dirs.
 
         /*
          *    This is a long ftn that sets up lots and lots
@@ -188,23 +207,23 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
         // initialise menu items
 
         connect = setMenuItem(fileMenu, fileListener,
-            new String[] {CBIntText.get("Connect"), "C", CBIntText.get("Connect to a directory server."), "E", dirImages+"connect.gif" } );
+            new String[] {CBIntText.get("Connect"), "C", CBIntText.get("Connect to a directory server."), "E", Theme.getInstance().getDirImages()+"connect.gif" } );
 
         disconnect = setMenuItem(fileMenu, fileListener,
-            new String[] {CBIntText.get("Disconnect"), "D", CBIntText.get("Disconnect from a directory server."), "E", dirImages+"disconnect.gif" } );
+            new String[] {CBIntText.get("Disconnect"), "D", CBIntText.get("Disconnect from a directory server."), "E", Theme.getInstance().getDirImages()+"disconnect.gif" } );
 
         print = setMenuItem(fileMenu, fileListener,
-            new String[] {CBIntText.get("Print"),   "P", CBIntText.get("Print out the current entry."), "E", dirImages+"print.gif" } );
+            new String[] {CBIntText.get("Print"),   "P", CBIntText.get("Print out the current entry."), "E", Theme.getInstance().getDirImages()+"print.gif" } );
 
         setMenuItem(fileMenu, fileListener, new String[] {"-", "",  "", "" } );
 
         refreshTree = setMenuItem(fileMenu, fileListener,
-            new String[] {CBIntText.get("Refresh Tree"), "R", CBIntText.get("Forces the tree to be reloaded from the directory."), "E", dirImages+"refresh_all.gif" } );
+            new String[] {CBIntText.get("Refresh Tree"), "R", CBIntText.get("Forces the tree to be reloaded from the directory."), "E", Theme.getInstance().getDirImages()+"refresh_all.gif" } );
 
         setMenuItem(fileMenu, fileListener, new String[] {"-", "",  "", "" } );
 
         exit = setMenuItem(fileMenu, fileListener,
-            new String[] {CBIntText.get("Exit"),    "x", CBIntText.get("Quit the JXplorer application."), "E", dirImages+"blank.gif" } );
+            new String[] {CBIntText.get("Exit"),    "x", CBIntText.get("Quit the JXplorer application."), "E", Theme.getInstance().getDirImages()+"blank.gif" } );
 
         ButtonRegister br = JXplorer.getButtonRegister();
         br.registerItem(br.CONNECT, connect);
@@ -307,32 +326,32 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
         // define the individual menu items
 
         newEntry = setMenuItem(editMenu, editListener,
-            new String[] {CBIntText.get("New"), "Ctrl+N", CBIntText.get("Create a new entry."), "E", dirImages+"new.gif"} );
+            new String[] {CBIntText.get("New"), "Ctrl+N", CBIntText.get("Create a new entry."), "E", Theme.getInstance().getDirImages()+"new.gif"} );
 
         copyDN = setMenuItem(editMenu, editListener,
-            new String[] {CBIntText.get("Copy DN"), "Ctrl+Y", CBIntText.get("Copy the Distinguished Name of an entry to the clipboard."), "E", dirImages+"copy_dn.gif"} );
+            new String[] {CBIntText.get("Copy DN"), "Ctrl+Y", CBIntText.get("Copy the Distinguished Name of an entry to the clipboard."), "E", Theme.getInstance().getDirImages()+"copy_dn.gif"} );
 
 	    setMenuItem(editMenu, editListener, new String[] {"-", "", "", ""} );
 
         cut = setMenuItem(editMenu, editListener,
-            new String[] {CBIntText.get("Cut Branch"), "Ctrl+U", CBIntText.get("Select a subtree to move."), "E", dirImages+"cut.gif"} );
+            new String[] {CBIntText.get("Cut Branch"), "Ctrl+U", CBIntText.get("Select a subtree to move."), "E", Theme.getInstance().getDirImages()+"cut.gif"} );
 
         copy = setMenuItem(editMenu, editListener,
-            new String[]  {CBIntText.get("Copy Branch"), "Ctrl+O", CBIntText.get("Select a subtree to copy."), "E", dirImages+"copy.gif"});
+            new String[]  {CBIntText.get("Copy Branch"), "Ctrl+O", CBIntText.get("Select a subtree to copy."), "E", Theme.getInstance().getDirImages()+"copy.gif"});
 
         paste = setMenuItem(editMenu, editListener,
-            new String[] {CBIntText.get("Paste Branch"), "Ctrl+P", CBIntText.get("Paste a previously selected subtree."), "E", dirImages+"paste.gif"} );
+            new String[] {CBIntText.get("Paste Branch"), "Ctrl+P", CBIntText.get("Paste a previously selected subtree."), "E", Theme.getInstance().getDirImages()+"paste.gif"} );
 
         pasteAlias = setMenuItem(editMenu, editListener,
-            new String[] {CBIntText.get("Paste Alias"), "", CBIntText.get("Paste an Alias."), "E", dirIcons+"alias.gif"} );
+            new String[] {CBIntText.get("Paste Alias"), "", CBIntText.get("Paste an Alias."), "E", Theme.getInstance().getDirIcons()+"alias.gif"} );
 
         setMenuItem(editMenu, editListener, new String[] {"-", "", "", ""} );
 
         delete = setMenuItem(editMenu, editListener,
-            new String[] {CBIntText.get("Delete"), "Ctrl+D", CBIntText.get("Delete an entry."), "E", dirImages+"delete.gif"} );
+            new String[] {CBIntText.get("Delete"), "Ctrl+D", CBIntText.get("Delete an entry."), "E", Theme.getInstance().getDirImages()+"delete.gif"} );
 
         rename = setMenuItem(editMenu, editListener,
-            new String[] {CBIntText.get("Rename"), "Ctrl+M", CBIntText.get("Rename an entry."), "E", dirImages+"rename.gif"} );
+            new String[] {CBIntText.get("Rename"), "Ctrl+M", CBIntText.get("Rename an entry."), "E", Theme.getInstance().getDirImages()+"rename.gif"} );
 
         ButtonRegister br = JXplorer.getButtonRegister();
         br.registerItem(br.PASTE, paste);
@@ -511,13 +530,13 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
         };
 
         search = setMenuItem(searchMenu, searchListener,
-            new String[] {CBIntText.get("Search Dialog"),  "Ctrl+F", CBIntText.get("Search the directory."), "E", dirImages+"find.gif"} );
+            new String[] {CBIntText.get("Search Dialog"),  "Ctrl+F", CBIntText.get("Search the directory."), "E", Theme.getInstance().getDirImages()+"find.gif"} );
 
         deleteFilter = setMenuItem(searchMenu, searchListener,
-            new String[] {CBIntText.get("Delete Filter"),  "", CBIntText.get("Delete an existing filter."), "E", dirImages+"delete.gif"} );
+            new String[] {CBIntText.get("Delete Filter"),  "", CBIntText.get("Delete an existing filter."), "E", Theme.getInstance().getDirImages()+"delete.gif"} );
 
         attrList = setMenuItem(searchMenu, searchListener,
-            new String[] {CBIntText.get("Return Attribute Lists"),  "", CBIntText.get("Opens a dialog that lets you manage the attributes that you wish to be returned in a search."), "E", dirImages+"return_attrs.gif"} );
+            new String[] {CBIntText.get("Return Attribute Lists"),  "", CBIntText.get("Opens a dialog that lets you manage the attributes that you wish to be returned in a search."), "E", Theme.getInstance().getDirImages()+"return_attrs.gif"} );
 
         if(names.length > 0)
 		    setMenuItem(searchMenu, searchListener, new String[] {"-", "", "", "", ""} );
@@ -757,13 +776,13 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
 		};
 
 		addBookmark = setMenuItem(bookmarkMenu, bookmarkListener,
-		new String[] {CBIntText.get("Add Bookmark"),  "Ctrl+B", CBIntText.get("Add a bookmark from the current DN."), "E", dirImages+"plus.gif"} );
+		new String[] {CBIntText.get("Add Bookmark"),  "Ctrl+B", CBIntText.get("Add a bookmark from the current DN."), "E", Theme.getInstance().getDirImages()+"plus.gif"} );
 
         deleteBookmark = setMenuItem(bookmarkMenu, bookmarkListener,
-        new String[] {CBIntText.get("Delete Bookmark"),"d", CBIntText.get("Delete a bookmark."), "E", dirImages+"delete.gif"} );
+        new String[] {CBIntText.get("Delete Bookmark"),"d", CBIntText.get("Delete a bookmark."), "E", Theme.getInstance().getDirImages()+"delete.gif"} );
 
 		editBookmark = setMenuItem(bookmarkMenu, bookmarkListener,
-		new String[] {CBIntText.get("Edit Bookmark"),"i", CBIntText.get("Edit your bookmarks."), "E", dirImages+"edit.gif"} );
+		new String[] {CBIntText.get("Edit Bookmark"),"i", CBIntText.get("Edit your bookmarks."), "E", Theme.getInstance().getDirImages()+"edit.gif"} );
 
 
         ButtonRegister br = JXplorer.getButtonRegister();
@@ -898,7 +917,7 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
     protected void setupLookAndFeelMenu(JMenu lookAndFeelMenu)
     {
        String status = ("false".equals(JXplorer.getProperty("gui.buttonbar")))?"U":"C";
-       setCheckBoxMenu(lookAndFeelMenu, new String[][] {{CBIntText.get("Show Button Bar"),"B", CBIntText.get("Display the shortcut button toolbar."),   "E", status, dirImages+"blank.gif"}},
+       setCheckBoxMenu(lookAndFeelMenu, new String[][] {{CBIntText.get("Show Button Bar"),"B", CBIntText.get("Display the shortcut button toolbar."),   "E", status, Theme.getInstance().getDirImages()+"blank.gif"}},
             new ActionListener()
             {
                 public void actionPerformed(ActionEvent e)
@@ -914,7 +933,7 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
 
         status = ("false".equals(JXplorer.getProperty("gui.searchbar")))?"U":"C";
 
-        setCheckBoxMenu(lookAndFeelMenu, new String[][] {{CBIntText.get("Show Search Bar"),"w", CBIntText.get("Show the quick search tool bar."), "E", status, dirImages+"blank.gif"}},
+        setCheckBoxMenu(lookAndFeelMenu, new String[][] {{CBIntText.get("Show Search Bar"),"w", CBIntText.get("Show the quick search tool bar."), "E", status, Theme.getInstance().getDirImages()+"blank.gif"}},
            	new ActionListener()
             {
                 public void actionPerformed(ActionEvent e)
@@ -945,7 +964,7 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
 		setMenuItem(lookAndFeelMenu, viewListener, new String[] {"-", "", "", "", ""} );
 
 		refresh = setMenuItem(lookAndFeelMenu, viewListener,
-			new String[] {CBIntText.get("Refresh"), "Ctrl+R",CBIntText.get("Refreshes an Entry."), "E", dirImages+"refresh.gif"} );
+			new String[] {CBIntText.get("Refresh"), "Ctrl+R",CBIntText.get("Refreshes an Entry."), "E", Theme.getInstance().getDirImages()+"refresh.gif"} );
 
         ButtonRegister br = JXplorer.getButtonRegister();
         br.registerItem(br.REFRESH, refresh);
@@ -1136,17 +1155,17 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
         simpleSSL = setMenuItem(sslMenu, sslListener,
             new String[] {CBIntText.get("Trusted Servers and CAs"),"u",
                           CBIntText.get("Setup which servers you trust for SSL."),
-                          "E", dirImages+"sslcert.gif"} );	//TE: changed mnemonic from 'S' to 'u'.
+                          "E", Theme.getInstance().getDirImages()+"sslcert.gif"} );	//TE: changed mnemonic from 'S' to 'u'.
 
         authSSL = setMenuItem(sslMenu, sslListener,
             new String[] {CBIntText.get("Client Certificates"),"C",
                           CBIntText.get("Setup client authentication (if available)."),
-                          ("none".equals(JXplorer.getProperty("authprovider"))?"D":"E"), dirImages+"sslkeycert.gif"} );
+                          ("none".equals(JXplorer.getProperty("authprovider"))?"D":"E"), Theme.getInstance().getDirImages()+"sslkeycert.gif"} );
 
         keystoreOptions = setMenuItem(sslMenu, sslListener,
             new String[] {CBIntText.get("Advanced Keystore Options"),"K",
                           CBIntText.get("Select your keystore locations and the type of keystore to use."),
-                          "E", dirImages+"blankRec.gif"} );
+                          "E", Theme.getInstance().getDirImages()+"blankRec.gif"} );
 
     }
 
@@ -1154,7 +1173,7 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
     protected void setupToolsMenu(JMenu toolsMenu)
     {
         String [][] toolsMenuItems =
-                { {CBIntText.get("Stop Action"),"A", CBIntText.get("Stop the currently executing browser action."), "E", dirImages+"stop.gif"} };
+                { {CBIntText.get("Stop Action"),"A", CBIntText.get("Stop the currently executing browser action."), "E", Theme.getInstance().getDirImages()+"stop.gif"} };
 
         setMenu(toolsMenu, toolsMenuItems, new ActionListener()
         {
@@ -1202,15 +1221,15 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
         };
 
         helpContents = setMenuItem(helpMenu, helpListener,
-            new String[] {CBIntText.get("Contents"), "C", CBIntText.get("Display the help index."), "E", dirImages+"content.gif" } );
+            new String[] {CBIntText.get("Contents"), "C", CBIntText.get("Display the help index."), "E", Theme.getInstance().getDirImages()+"content.gif" } );
 
         helpSearch = setMenuItem(helpMenu, helpListener,
-            new String[] {CBIntText.get("Search"),   "r", CBIntText.get("Search help for a keyword."), "E", dirImages+"search.gif" } );
+            new String[] {CBIntText.get("Search"),   "r", CBIntText.get("Search help for a keyword."), "E", Theme.getInstance().getDirImages()+"search.gif" } );
 
         setMenuItem(helpMenu, helpListener, new String[] {"-", "", "", "", ""  } );  // separator
 
         helpAbout = setMenuItem(helpMenu, helpListener,
-            new String[] {CBIntText.get("About"),    "A", CBIntText.get("General information about JXplorer."), "E", dirImages+"about.gif" } );
+            new String[] {CBIntText.get("About"),    "A", CBIntText.get("General information about JXplorer."), "E", Theme.getInstance().getDirImages()+"about.gif" } );
 
 
 
@@ -1242,8 +1261,8 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
             }
             catch (IOException e) {} // should still be set to original CA text.
 
-            CBAbout about = new CBAbout(jxplorer, textBody, new ImageIcon(dirTemplates + "JXAboutBottom.gif"),
-                        new ImageIcon(dirTemplates + "JXAboutTop.gif"), CBIntText.get("OK"), CBIntText.get("Close this window"), CBIntText.get("About JXplorer"));
+            CBAbout about = new CBAbout(jxplorer, textBody, new ImageIcon(Theme.getInstance().getDirTemplates() + "JXAboutBottom.gif"),
+                        new ImageIcon(Theme.getInstance().getDirTemplates() + "JXAboutTop.gif"), CBIntText.get("OK"), CBIntText.get("Close this window"), CBIntText.get("About JXplorer"));
 
             about.setSize(477, 350);
             about.setResizable(true);
@@ -1389,16 +1408,4 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
         menu.add(menuItem);
     }
 
-
-
-   /**
-    *	Sets the image & icon paths.
-	*/
-
-	public void setImageDirs()
-	{
-		dirImages = JXplorer.getProperty("dir.images");
-	 	dirIcons = JXplorer.getProperty("dir.icons");
-		dirTemplates = JXplorer.getProperty("dir.templates");
-	}
 }

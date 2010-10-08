@@ -2,6 +2,7 @@ package com.ca.directory.jxplorer.tree;
 
 import com.ca.commons.cbutil.CBIntText;
 import com.ca.commons.cbutil.CBUtility;
+import com.ca.commons.cbutil.Theme;
 import com.ca.commons.naming.*;
 import com.ca.directory.jxplorer.ButtonRegister;
 import com.ca.directory.jxplorer.JXplorer;
@@ -50,23 +51,20 @@ public class SmartPopupTool extends JPopupMenu
     {
         tree = owningTree;
 
-        String dirImage = JXplorer.getProperty("dir.images");
-		String dirIcons	= JXplorer.getProperty("dir.icons");
-
-        add(bookmark = new JMenuItem(CBIntText.get("Add to Bookmarks"), new ImageIcon(dirImage + "plus.gif")));
-		add(search = new JMenuItem(CBIntText.get("Search"), new ImageIcon( dirImage + "find.gif")));
+        add(bookmark = new JMenuItem(CBIntText.get("Add to Bookmarks"), new ImageIcon(Theme.getInstance().getDirImages() + "plus.gif")));
+		add(search = new JMenuItem(CBIntText.get("Search"), new ImageIcon( Theme.getInstance().getDirImages() + "find.gif")));
 		add(new JPopupMenu.Separator());
-	    add(newEntry = new JMenuItem(CBIntText.get("New"), new ImageIcon( dirImage + "new.gif")));
-        add(copydn = new JMenuItem(CBIntText.get("Copy DN"), new ImageIcon(dirImage + "copy_dn.gif")));
+	    add(newEntry = new JMenuItem(CBIntText.get("New"), new ImageIcon( Theme.getInstance().getDirImages() + "new.gif")));
+        add(copydn = new JMenuItem(CBIntText.get("Copy DN"), new ImageIcon(Theme.getInstance().getDirImages() + "copy_dn.gif")));
 		add(new JPopupMenu.Separator());
-		add(cut = new JMenuItem(CBIntText.get("Cut Branch"), new ImageIcon( dirImage + "cut.gif")));
-        add(copy = new JMenuItem(CBIntText.get("Copy Branch"), new ImageIcon( dirImage + "copy.gif")));
-        add(paste = new JMenuItem(CBIntText.get("Paste Branch"), new ImageIcon( dirImage + "paste.gif")));
-        add(pasteAlias = new JMenuItem(CBIntText.get("Paste Alias"), new ImageIcon(dirIcons + "alias.gif")));
+		add(cut = new JMenuItem(CBIntText.get("Cut Branch"), new ImageIcon( Theme.getInstance().getDirImages() + "cut.gif")));
+        add(copy = new JMenuItem(CBIntText.get("Copy Branch"), new ImageIcon( Theme.getInstance().getDirImages() + "copy.gif")));
+        add(paste = new JMenuItem(CBIntText.get("Paste Branch"), new ImageIcon( Theme.getInstance().getDirImages() + "paste.gif")));
+        add(pasteAlias = new JMenuItem(CBIntText.get("Paste Alias"), new ImageIcon(Theme.getInstance().getDirIcons() + "alias.gif")));
         add(new JPopupMenu.Separator());
-        add(delete = new JMenuItem(CBIntText.get("Delete"), new ImageIcon( dirImage + "delete.gif")));
-        add(rename = new JMenuItem(CBIntText.get("Rename"), new ImageIcon( dirImage + "rename.gif")));
-        add(refresh = new JMenuItem(CBIntText.get("Refresh"), new ImageIcon( dirImage + "refresh.gif")));
+        add(delete = new JMenuItem(CBIntText.get("Delete"), new ImageIcon( Theme.getInstance().getDirImages() + "delete.gif")));
+        add(rename = new JMenuItem(CBIntText.get("Rename"), new ImageIcon( Theme.getInstance().getDirImages() + "rename.gif")));
+        add(refresh = new JMenuItem(CBIntText.get("Refresh"), new ImageIcon( Theme.getInstance().getDirImages() + "refresh.gif")));
 
 		bookmark.setToolTipText(CBIntText.get("Bookmark an entry"));
 		bookmark.setAccelerator(KeyStroke.getKeyStroke("B".charAt(0), java.awt.Event.CTRL_MASK, false));

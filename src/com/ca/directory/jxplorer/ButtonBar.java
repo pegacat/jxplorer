@@ -1,13 +1,17 @@
 package com.ca.directory.jxplorer;
 
-import com.ca.commons.cbutil.CBIntText;
-import com.ca.commons.cbutil.CBUtility;
-
-import javax.swing.*;
-import java.awt.*;
+import java.awt.Component;
+import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.logging.Logger;
+
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JToolBar;
+
+import com.ca.commons.cbutil.CBIntText;
+import com.ca.commons.cbutil.Theme;
 
 
 
@@ -44,40 +48,38 @@ public class ButtonBar extends JToolBar
 
         setSize(750, 20);
 
-        String dir = JXplorer.getProperty("dir.images");
-        String dirIcons = JXplorer.getProperty("dir.icons");
-        add(connect = new JButton(new ImageIcon(dir + "connect.gif")));
-        add(disconnect = new JButton(new ImageIcon(dir + "disconnect.gif")));
-        add(print = new JButton(new ImageIcon(dir + "print.gif")));
+        add(connect = new JButton(new ImageIcon(Theme.getInstance().getDirImages() + "connect.gif")));
+        add(disconnect = new JButton(new ImageIcon(Theme.getInstance().getDirImages() + "disconnect.gif")));
+        add(print = new JButton(new ImageIcon(Theme.getInstance().getDirImages() + "print.gif")));
         addSeparator();
-        add(cut = new JButton(new ImageIcon(dir + "cut.gif")));
-        add(copyDN = new JButton(new ImageIcon(dir + "copy_dn.gif")));
-        add(copy = new JButton(new ImageIcon(dir + "copy.gif")));
-        add(paste = new JButton(new ImageIcon(dir + "paste.gif")));
-        add(pasteAlias = new JButton(new ImageIcon(dirIcons + "alias.gif")));
+        add(cut = new JButton(new ImageIcon(Theme.getInstance().getDirImages() + "cut.gif")));
+        add(copyDN = new JButton(new ImageIcon(Theme.getInstance().getDirImages() + "copy_dn.gif")));
+        add(copy = new JButton(new ImageIcon(Theme.getInstance().getDirImages() + "copy.gif")));
+        add(paste = new JButton(new ImageIcon(Theme.getInstance().getDirImages() + "paste.gif")));
+        add(pasteAlias = new JButton(new ImageIcon(Theme.getInstance().getDirIcons() + "alias.gif")));
         addSeparator();
-        add(del = new JButton(new ImageIcon(dir + "delete.gif")));
+        add(del = new JButton(new ImageIcon(Theme.getInstance().getDirImages() + "delete.gif")));
         addSeparator();
-        add(newEntry = new JButton(new ImageIcon(dir + "new.gif")));
-        add(rename = new JButton(new ImageIcon(dir + "rename.gif")));
+        add(newEntry = new JButton(new ImageIcon(Theme.getInstance().getDirImages() + "new.gif")));
+        add(rename = new JButton(new ImageIcon(Theme.getInstance().getDirImages() + "rename.gif")));
         addSeparator();
-        add(refresh = new JButton(new ImageIcon(dir + "refresh.gif")));
+        add(refresh = new JButton(new ImageIcon(Theme.getInstance().getDirImages() + "refresh.gif")));
         addSeparator();
-        add(stop = new JButton(new ImageIcon(dir + "stop.gif")));
+        add(stop = new JButton(new ImageIcon(Theme.getInstance().getDirImages() + "stop.gif")));
 
-        connect.setRolloverIcon(new ImageIcon(dir + "connect_rollover.gif"));
-        disconnect.setRolloverIcon(new ImageIcon(dir + "disconnect_rollover.gif"));
-        print.setRolloverIcon(new ImageIcon(dir + "print_rollover.gif"));
-        cut.setRolloverIcon(new ImageIcon(dir + "cut_rollover.gif"));
-        copy.setRolloverIcon(new ImageIcon(dir + "copy_rollover.gif"));
-        copyDN.setRolloverIcon(new ImageIcon(dir + "copy_dn_rollover.gif"));
-        paste.setRolloverIcon(new ImageIcon(dir + "paste_rollover.gif"));
-        pasteAlias.setRolloverIcon(new ImageIcon(dir + "alias_rollover.gif"));
-        del.setRolloverIcon(new ImageIcon(dir + "delete_rollover.gif"));
-        newEntry.setRolloverIcon(new ImageIcon(dir + "new_rollover.gif"));
-        rename.setRolloverIcon(new ImageIcon(dir + "rename_rollover.gif"));
-        refresh.setRolloverIcon(new ImageIcon(dir + "refresh_rollover.gif"));
-        stop.setRolloverIcon(new ImageIcon(dir + "stop_rollover.gif"));
+        connect.setRolloverIcon(new ImageIcon(Theme.getInstance().getDirImages() + "connect_rollover.gif"));
+        disconnect.setRolloverIcon(new ImageIcon(Theme.getInstance().getDirImages() + "disconnect_rollover.gif"));
+        print.setRolloverIcon(new ImageIcon(Theme.getInstance().getDirImages() + "print_rollover.gif"));
+        cut.setRolloverIcon(new ImageIcon(Theme.getInstance().getDirImages() + "cut_rollover.gif"));
+        copy.setRolloverIcon(new ImageIcon(Theme.getInstance().getDirImages() + "copy_rollover.gif"));
+        copyDN.setRolloverIcon(new ImageIcon(Theme.getInstance().getDirImages() + "copy_dn_rollover.gif"));
+        paste.setRolloverIcon(new ImageIcon(Theme.getInstance().getDirImages() + "paste_rollover.gif"));
+        pasteAlias.setRolloverIcon(new ImageIcon(Theme.getInstance().getDirImages() + "alias_rollover.gif"));
+        del.setRolloverIcon(new ImageIcon(Theme.getInstance().getDirImages() + "delete_rollover.gif"));
+        newEntry.setRolloverIcon(new ImageIcon(Theme.getInstance().getDirImages() + "new_rollover.gif"));
+        rename.setRolloverIcon(new ImageIcon(Theme.getInstance().getDirImages() + "rename_rollover.gif"));
+        refresh.setRolloverIcon(new ImageIcon(Theme.getInstance().getDirImages() + "refresh_rollover.gif"));
+        stop.setRolloverIcon(new ImageIcon(Theme.getInstance().getDirImages() + "stop_rollover.gif"));
 
         Component buttons[] = this.getComponents();
         for (int i = 0; i < buttons.length; i++)
