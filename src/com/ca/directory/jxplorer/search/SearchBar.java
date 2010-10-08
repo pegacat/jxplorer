@@ -38,7 +38,7 @@ public class SearchBar extends JToolBar
         setSize(750, 10);
 
         final CBButton search = new CBButton(CBIntText.get("Quick Search"), CBIntText.get("Click here to perform the search."));
-        search.setPreferredSize(new Dimension(115, 20));
+        search.setPreferredSize(new Dimension(90, 20));
 
         ButtonRegister br = JXplorer.getButtonRegister();
         br.registerItem(br.SEARCH, search);
@@ -65,7 +65,7 @@ public class SearchBar extends JToolBar
 
         searchAttribute = new CBJComboBox(selections);
         searchAttribute.setEditable(true);
-        searchAttribute.setPreferredSize(new Dimension(150, 20));
+        searchAttribute.setPreferredSize(new Dimension(125, 20));
 
         searchAttribute.setToolTipText(CBIntText.get("Select a search attribute, or type in a new one (and press enter)."));
         add(searchAttribute);
@@ -73,6 +73,7 @@ public class SearchBar extends JToolBar
         String[] ftns = new String[]{"=", "~=", ">=", "<=", "!(=)"};
         searchFtn = new CBJComboBox(ftns);
         searchFtn.setEditable(false);
+        searchFtn.setPreferredSize(new Dimension(55, 20));
 
         searchFtn.setToolTipText(CBIntText.get("Specify the matching relationship for your search."));
         add(searchFtn);
