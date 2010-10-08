@@ -346,7 +346,7 @@ public class SmartPopupTool extends JPopupMenu
         if ("false".equalsIgnoreCase(prop))    // the user has wisely decided not to bother with this mis-feature.
             return true;
 
-        return (JOptionPane.showConfirmDialog(this, CBIntText.get("The {0} operation will modify the directory - continue?", new String[] {CBIntText.get(operationType)}),
+        return (JOptionPane.showConfirmDialog(this, CBIntText.get("The {0} operation will modify the directory - continue?", new String[] {operationType}),
                     CBIntText.get("Confirm Tree Operation"), JOptionPane.OK_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE)
             == JOptionPane.OK_OPTION);
     }
@@ -560,6 +560,60 @@ public class SmartPopupTool extends JPopupMenu
      *    Creates an alias of the currently copied or copyDN-ed entry
      */
 
+/*
+    YIPE - here be dragons.  Try to stuff around to support RFC 4512
+    (No idea how this used to work at all?  eTrust Directory trickiness??)
+
+
+    See part of RFC 4512:
+2.6.  Alias Entries
+
+  As adapted from [X.501]:
+
+     An alias, or an alias name, for an object is an alternative name
+     for an object or object entry which is provided by the use of
+     alias entries.
+
+     Each alias entry contains, within the 'aliasedObjectName'
+     attribute (known as the 'aliasedEntryName' attribute in X.500), a
+     name of some object.  The distinguished name of the alias entry is
+     thus also a name for this object.
+
+         NOTE - The name within the 'aliasedObjectName' is said to be
+                pointed to by the alias.  It does not have to be the
+                distinguished name of any entry.
+
+     The conversion of an alias name to an object name is termed
+     (alias) dereferencing and comprises the systematic replacement of
+     alias names, where found within a purported name, by the value of
+     the corresponding 'aliasedObjectName' attribute.  The process may
+     require the examination of more than one alias entry.
+
+     Any particular entry in the DIT may have zero or more alias names.
+     It therefore follows that several alias entries may point to the
+     same entry.  An alias entry may point to an entry that is not a
+     leaf entry and may point to another alias entry.
+
+     An alias entry shall have no subordinates, so that an alias entry
+     is always a leaf entry.
+
+     Every alias entry shall belong to the 'alias' object class.
+
+  An entry with the 'alias' object class must also belong to an object
+  class (or classes), or be governed by a DIT content rule, which
+  allows suitable naming attributes to be present.
+
+  Example:
+
+     dn: cn=bar,dc=example,dc=com
+     objectClass: top
+     objectClass: alias
+     objectClass: extensibleObject
+     cn: bar
+     aliasedObjectName: cn=foo,dc=example,dc=com
+
+     */
+
     public void pasteAlias()
     {
         if (checkAction("paste alias") == false)
@@ -582,6 +636,7 @@ public class SmartPopupTool extends JPopupMenu
         DXEntry alias = new DXEntry(newAlias);
         DXAttribute oc = new DXAttribute("objectClass", "top");
         oc.add("alias");
+        oc.add("extensibleObject");
         alias.put(oc);
         alias.put(new DXAttribute("aliasedObjectName", aliasedObject.toString()));
         alias.put(new DXAttribute(newAliasName.getAtt(), newAliasName.getRawVal()));
