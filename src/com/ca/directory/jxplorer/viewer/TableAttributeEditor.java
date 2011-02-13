@@ -7,6 +7,7 @@ import com.ca.directory.jxplorer.tree.NewEntryWin;
 import com.ca.directory.jxplorer.viewer.tableviewer.*;
 import com.ca.directory.jxplorer.viewer.tableviewer.AttributeValue;
 
+import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
 import javax.naming.directory.Attribute;
 import javax.swing.*;
@@ -15,7 +16,6 @@ import java.awt.event.*;
 import java.io.File;
 import java.util.logging.Logger;
 import java.util.logging.Level;
-
 /**
  * This class displays attributes in a table (currently string attributes only).  The user can modify the table values,
  * and submit the results, which are passed to the registered DataSource (obtained from the registered DataSource)...
@@ -328,36 +328,22 @@ public class TableAttributeEditor extends JPanel
         else
             return;
 
-        String[] opAttrs = new String[]{"createTimestamp", "modifyTimestamp", "creatorsName", "modifiersName", "subschemaSubentry"};
-        int size = opAttrs.length;
+        // EJP 17 August 2010.
+        String[] opAttrs = {"+"};
         DXEntry entry = null;
         try
         {
             entry = (jx.getSearchBroker()).unthreadedReadEntry(currentDN, opAttrs);
-        }
-        catch (NamingException e)
-        {
-            CBUtility.error(TableAttributeEditor.this, CBIntText.get("Unable to read entry") + " " + currentDN, e);
-        }
         StringBuffer buffy = new StringBuffer("DN: " + currentDN.toString() + "\n\n");
 
         // Get the attribute values...
-        for (int i = 0; i < size; i++)
+            // EJP 17 August 2010: use the actual attributes returned.
+            NamingEnumeration   ne = entry.getAll();
+            while (ne.hasMore())
         {
-            DXAttribute att = (DXAttribute) entry.get(opAttrs[i]);
-
-            try
-            {
-                if (att != null)
-                {
-                    buffy.append(opAttrs[i] + ": " + att.get().toString() + "\n\n");
-                }
+                DXAttribute att = (DXAttribute)ne.next();
+                buffy.append(att.getName()+": "+att.get().toString()+"\n\n");
             }
-            catch (NamingException ee)
-            {
-                log.log(Level.WARNING, "Problem accessing Operational Attributes via Table Editor\n", ee);
-            }
-        }
 
         // Dialog setup...
         JTextArea area = new JTextArea(buffy.toString());
@@ -368,6 +354,11 @@ public class TableAttributeEditor extends JPanel
         scrollPane.setPreferredSize(new Dimension(300, 125));
         scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         JOptionPane.showMessageDialog(jx, scrollPane, CBIntText.get("Properties (Operational Attributes)"), JOptionPane.INFORMATION_MESSAGE);
+    }
+        catch (NamingException e)
+        {
+            CBUtility.error(TableAttributeEditor.this, CBIntText.get("Unable to read entry " + currentDN), e);
+        }
     }
 
     /**
