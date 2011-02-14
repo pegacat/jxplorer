@@ -338,23 +338,33 @@ public class TableAttributeEditor extends JPanel
 
         // Get the attribute values...
             // EJP 17 August 2010: use the actual attributes returned.
-            NamingEnumeration   ne = entry.getAll();
-            while (ne.hasMore())
-        {
-                DXAttribute att = (DXAttribute)ne.next();
-                buffy.append(att.getName()+": "+att.get().toString()+"\n\n");
-            }
+			NamingEnumeration ne = null;
+			
+			try
+			{
+				ne = entry.getAll();
+				while (ne.hasMore())
+				{
+					DXAttribute att = (DXAttribute)ne.next();
+					buffy.append(att.getName()+": "+att.get().toString()+"\n\n");
+				}	
+			}
+			finally
+			{
+                if(ne != null)
+				    ne.close();
+			}
 
-        // Dialog setup...
-        JTextArea area = new JTextArea(buffy.toString());
-        area.setFont(new Font("SansSerif", Font.PLAIN, 11));
-        area.setLineWrap(true);
-        area.setWrapStyleWord(true);
-        JScrollPane scrollPane = new JScrollPane(area);
-        scrollPane.setPreferredSize(new Dimension(300, 125));
-        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-        JOptionPane.showMessageDialog(jx, scrollPane, CBIntText.get("Properties (Operational Attributes)"), JOptionPane.INFORMATION_MESSAGE);
-    }
+			// Dialog setup...
+			JTextArea area = new JTextArea(buffy.toString());
+			area.setFont(new Font("SansSerif", Font.PLAIN, 11));
+			area.setLineWrap(true);
+			area.setWrapStyleWord(true);
+			JScrollPane scrollPane = new JScrollPane(area);
+			scrollPane.setPreferredSize(new Dimension(300, 125));
+			scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+			JOptionPane.showMessageDialog(jx, scrollPane, CBIntText.get("Properties (Operational Attributes)"), JOptionPane.INFORMATION_MESSAGE);
+		}
         catch (NamingException e)
         {
             CBUtility.error(TableAttributeEditor.this, CBIntText.get("Unable to read entry " + currentDN), e);
