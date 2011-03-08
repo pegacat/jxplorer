@@ -275,7 +275,7 @@ public class AdvancedOps extends BasicOps
 
         try
         {
-            recCopyTree(from, to);
+            recCopyTree(from, to, true);
         }
         catch (NamingException e)
         {
@@ -316,7 +316,7 @@ public class AdvancedOps extends BasicOps
             log.finer("recursively copy tree from " + oldNodeDN.toString() + " to " + newNodeDN.toString());
 
             startOperation("Copying " + oldNodeDN.toString(), "copying");
-            recCopyTree(oldNodeDN, newNodeDN);
+            recCopyTree(oldNodeDN, newNodeDN, true);
         }
         finally
         {
@@ -329,14 +329,23 @@ public class AdvancedOps extends BasicOps
      *    Takes two DNs, and goes through the first, copying each element
      *    from the top down to the new DN.
      *
+     *    in some cases when we copy an entry in-situ, we have to rename it from '<x>' to 'copy of <x>'.  However
+     *    directories that check the RDN against the actual attribute value will fail on this, since the RDN does
+     *    not match the naming attribute value in the entry.  This only occurs for the root node of a copied tree,
+     *    so we include a special flag to check if special handling is required for that one node.
+     *
      *    @param from the ldap Name dn to copy the tree from
      *    @param to the ldap Name dn to copy the tree to
+     *    @param resetNamingAttribute - whether we need to change the copied entries naming attribute value
      */
 
-    protected void recCopyTree(Name from, Name to)
+    protected void recCopyTree(Name from, Name to, boolean resetNamingAttribute)
             throws NamingException
     {
-        copyEntry(from, to);                                    // where the work finally gets done
+        if (resetNamingAttribute) // check if we need to change the naming attribute for the tree root node...
+            copyEntryResettingNamingAttribute(from, to);
+        else
+            copyEntry(from, to);                                    // where the work finally gets done
 
         inc();
 
@@ -353,9 +362,52 @@ public class AdvancedOps extends BasicOps
             Name destinationDN = (Name)to.clone();
             destinationDN.add(childDN.get(childDN.size()-1));
 
-            recCopyTree(childDN, destinationDN);
+            recCopyTree(childDN, destinationDN, false);
         }
         pop();
+    }
+
+    /**
+     * Copies an object to a new DN by the simple expedient of adding
+     * an object with the new DN, and the attributes of the old object.
+     *
+     * @param fromDN the original object being copied
+     * @param toDN   the new object being created
+     */
+
+    public void copyEntryResettingNamingAttribute(Name fromDN, Name toDN)
+            throws NamingException
+    {
+        Attributes atts = read(fromDN);
+        String RDN = toDN.get(toDN.size()-1);
+        int pos = RDN.indexOf("=");
+        String rdnAttributeName = RDN.substring(0, pos);
+        String rdnNamingValue = RDN.substring(pos+1);
+        Attribute namingAtt = atts.get(rdnAttributeName);
+
+        boolean namingValueFound = false;
+        int numberOfValues = 0;
+        NamingEnumeration vals = namingAtt.getAll();
+        while (vals.hasMore())
+        {
+            numberOfValues++;
+            String val = vals.next().toString();
+            if (rdnNamingValue.equals(val))
+                namingValueFound = true;
+        }
+
+        // the nub of it... if we can't find the RDN naming value, we replace it.  We assume if we
+        // have a single valued we replace that value, if multi-valued we just add it into the pot
+        // and let the user deal with it.
+        if (namingValueFound == false)
+        {
+            if (numberOfValues == 1)
+                namingAtt.set(0, rdnNamingValue);
+            else
+                namingAtt.add(rdnNamingValue);
+        }
+
+        addEntry(toDN, atts);
     }
 
     /**
