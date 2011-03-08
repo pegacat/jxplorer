@@ -1,13 +1,13 @@
 <project>
     <shortName>jxplorer</shortName>
     <fullName>JXplorer</fullName>
-    <version>3.2.1</version>
+    <version>3.2.2-b1</version>
     <installerFilename></installerFilename>
     <readmeFile>dist/jxplorer/RELEASE.TXT</readmeFile>
     <licenseFile>dist/jxplorer/licence.txt</licenseFile>
-    <leftImage>dist/jxplorer/images/side.png</leftImage>
-    <logoImage>dist/jxplorer/images/logo_48.gif</logoImage>
-    <splashImage>dist/jxplorer/templates/JXsplash.png</splashImage>
+    <leftImage>dist/jxplorer/themes/classic-theme/images/side.png</leftImage>
+    <logoImage>dist/jxplorer/themes/classic-theme/images/logo_48.gif</logoImage>
+    <splashImage>dist/jxplorer/themes/classic-theme/templates/JXsplash.png</splashImage>
     <preInstallationActionList>
         <autodetectJava>
             <promptUser>0</promptUser>
@@ -58,13 +58,13 @@
                             <origin>dist/jxplorer/RELEASE.TXT</origin>
                         </distributionFile>
                         <distributionDirectory>
-                            <origin>dist/jxplorer/htmldocs</origin>
+                            <origin>dist/jxplorer/themes/classic-theme/htmldocs</origin>
                         </distributionDirectory>
                         <distributionDirectory>
-                            <origin>dist/jxplorer/icons</origin>
+                            <origin>dist/jxplorer/themes/classic-theme/icons</origin>
                         </distributionDirectory>
                         <distributionDirectory>
-                            <origin>dist/jxplorer/images</origin>
+                            <origin>dist/jxplorer/themes/classic-theme/images</origin>
                         </distributionDirectory>
                         <distributionDirectory>
                             <origin>dist/jxplorer/jars</origin>
@@ -79,7 +79,7 @@
                             <origin>dist/jxplorer/security</origin>
                         </distributionDirectory>
                         <distributionDirectory>
-                            <origin>dist/jxplorer/templates</origin>
+                            <origin>dist/jxplorer/themes/classic-theme/templates</origin>
                         </distributionDirectory>
                     </distributionFileList>
                     <shortcutList>
