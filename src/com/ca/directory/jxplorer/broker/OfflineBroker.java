@@ -401,11 +401,18 @@ public class OfflineBroker extends Broker
     public  void unthreadedCopy(DN oldNodeDN, DN newNodeDN)
         throws NamingException
     {
+        if (oldNodeDN == null)
+            throw new NamingException("null old dn passed to unthreadedCopy() in OfflineBroker");                              // sanity check
+
+
         Node Old = (Node)nodes.get(oldNodeDN.toString());         // get the Node to copy
         if (Old==null)
-            throw new NamingException("null old dn passed to unthreaded copy");                              // sanity check
-        
-        addNode(new DXEntry(Old.getEntry(), newNodeDN));      // create a copy of Old
+            throw new NamingException("null old Node found to unthreadedCopy() in OfflineBroker");                              // sanity check
+
+        DXEntry newEntry = new DXEntry(Old.getEntry(), newNodeDN);
+        // TODO: stick in 'copy Entry' naming check, to make sure that the root node has the right naming attribute
+        // TODO: (cf: AdvancedOps.copyEntryResettingNamingAttribute)
+        addNode(newEntry);          // create a copy of the Old node...
         Node New = (Node)nodes.get(newNodeDN.toString());         // get the newly created copy  
         Enumeration children = Old.getChildNodes();               // get the old nodes children...
         while (children.hasMoreElements())                        // ...and for each child
@@ -416,7 +423,8 @@ public class OfflineBroker extends Broker
             unthreadedCopy(child.getDN(),NewChildDN);                   // copy (and therefore create) the child node copy
         }
     }
-    
+
+
 
 
    /**
