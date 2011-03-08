@@ -36,11 +36,24 @@ public class Theme {
 		return theme;
 	}
 	
-	private void init(String localDir, String theme) {
-        dirHtmlDocs = localDir + "themes" + File.separator + theme + File.separator + "htmldocs" + File.separator;
-        dirIcons = localDir + "themes" + File.separator + theme + File.separator + "icons" + File.separator;
-        dirImages = localDir + "themes" + File.separator + theme + File.separator + "images" + File.separator; 
-        dirTemplates = localDir + "themes" + File.separator + theme + File.separator + "templates" + File.separator;
+	private void init(String localDir, String theme)
+    {
+        String themeDirectory = localDir + "themes" + File.separator + theme + File.separator;
+
+        // backward compatibility hack to allow new jar files to be used in old installs (some folks just drop a new jar file in)
+        File themeLocation = new File(themeDirectory);
+        if (!themeLocation.exists())
+        {
+            themeDirectory = localDir;
+            System.out.println("Unable to find theme directory; falling back to: " + themeDirectory);
+        }
+
+        dirHtmlDocs = themeDirectory + "htmldocs" + File.separator;
+        dirIcons = themeDirectory + "icons" + File.separator;
+        dirImages = themeDirectory + "images" + File.separator;
+        dirTemplates = themeDirectory + "templates" + File.separator;
+
+
 	}
 	
 	public String getDirHtmlDocs() {
