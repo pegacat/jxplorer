@@ -477,7 +477,7 @@ public class SmartPopupTool extends JPopupMenu
 
 
 	/**
-	 *	Copys (in the directory) the selected Dn to the new
+	 *	Copies (in the directory) the selected Dn to the new
 	 *	destination.  The copied entry/subtree is placed *under*
 	 *  the destination node.
 	 *  @param copyFrom the DN of an entry or subtree apex to copy entries from
