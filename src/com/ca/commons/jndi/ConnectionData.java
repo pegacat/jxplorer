@@ -432,7 +432,8 @@ public class ConnectionData
      * This returns the connection data as a jndi env object suitable for
      * use in opening a directory context.
      *
-     * @return
+     * @return the JNDI environment
+     *
      * @throws NamingException a large range of exceptions, ranging from invalid data through
      *                         to problems setting up the SSL connection.
      */

@@ -22,11 +22,14 @@ public class JXTrustManager
     private char[] caPassphrase;
 
     /**
-     * <p>This takes an array of existing trust managers, and returns an array of
+     * This takes an array of existing trust managers, and returns an array of
      * extended Trust Managers that include our own code to allow the user to
-     * select new certificates at run time.</p>
-     * @param arrayOfTrustManagers; must be of type X509TrustManager...
+     * select new certificates at run time.
+     * 
+     * @param arrayOfTrustManagers must be of type X509TrustManager...
+     * 
      * @return an array of JXTrustManagers incorporating the passed in managers.
+     * 
      * @throws javax.net.ssl.SSLException
      */
     public static X509TrustManager[] convert(TrustManager[] arrayOfTrustManagers, KeyStore keystore,
@@ -87,10 +90,12 @@ public class JXTrustManager
     }
 
     /**
-     * <p>Returns whether a particular certificate is one of the
-     * accepted issuers</p>
-     * @param caCert
-     * @return
+     * Returns whether a particular certificate is one of the
+     * accepted issuers.
+     * 
+     * @param caCert a CA certificate
+     * 
+     * @return whether caCert is a trusted authority
      */
     private boolean rootCertIsKnown(X509Certificate caCert)
     {

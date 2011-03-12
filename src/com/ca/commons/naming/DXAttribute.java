@@ -292,11 +292,13 @@ public class DXAttribute extends BasicAttribute implements Comparable
         return false;
     }
     /**
-     * This returns whether the Syntax is a non string syntax that should be passed
-     * via a byte array in JNDI
+     * This returns whether the syntax is a non-string syntax that should be
+     * passed via a byte array in JNDI.
      *
-     * @param syntaxName
-     * @return
+     * @param syntaxName the name of the syntax
+     *
+     * @return whether the syntax is a non-string syntax that should be
+     * passed via a byte array in JNDI
      */
     public static boolean isStringSyntax(String syntaxName)
     {
@@ -351,11 +353,12 @@ public class DXAttribute extends BasicAttribute implements Comparable
     }
 
     /**
-     * Returns whether the attribute is an ASN.1 structure
-     * (and thus a candidate for having ;binary tacked on to its name)
+     * Gets whether the attribute is an ASN.1 structure (and thus a candidate 
+     * for having ;binary tacked on to its name)
      *
      * @param syntaxName the name of the syntax (usually a thumping great OID)
-     * @return
+     * 
+     * @return whether the attribute is an ASN.1 structure
      */
     public static boolean isASN1Syntax(String syntaxName)
     {
@@ -527,8 +530,9 @@ public class DXAttribute extends BasicAttribute implements Comparable
     }
 
     /**
-     * returns whether this attribute has a description in the schema
-     * @return
+     * Gets whether this attribute has a description in the schema.
+     *
+     * @return whether this attribute has a description in the schema
      */
     public boolean hasOptions()
     {
@@ -603,9 +607,10 @@ public class DXAttribute extends BasicAttribute implements Comparable
     }
 
     /**
-     * returns the OID of the schema entry corresponding to this particular entry.  Whoo hoo... something like
+     * Gets the OID of the schema entry corresponding to this particular entry.  Whoo hoo... something like
      * '1.3.6.1.4.1.1466.115.121.1.27'.
-     * @return
+     *
+     * @return the syntax OID
      */
 
     public String getSyntaxOID()
@@ -682,7 +687,7 @@ public class DXAttribute extends BasicAttribute implements Comparable
     /**
      * <p>A synonym for getID().  Use 'toDebugString()' for the complete printout.</p>
      *
-     * @return
+     * @return a string representation of the object
      */
     public String toString()
     {
@@ -773,13 +778,15 @@ public class DXAttribute extends BasicAttribute implements Comparable
     /**
      * A last resort hack to guess whether an otherwise unknown attribute is
      * an ASN1 structure.  This should only be used if the schema is unavailable.
-     * @param id
-     * @return
+     *
+     * @param attribute the attribute to check
+     *
+     * @return whether an otherwise unknown attribute is an ASN1 structure
      */
 
-    public boolean isKnownASN1Attribute(String id)
+    public boolean isKnownASN1Attribute(final String attribute)
     {
-        String search = id.toLowerCase();
+        final String search = attribute.toLowerCase();
         if (search.indexOf("certificate") >= 0)
             return true;
         else if (search.indexOf("revocation") >= 0)
@@ -879,7 +886,7 @@ public class DXAttribute extends BasicAttribute implements Comparable
      * <p>This returns the collation key used for language sensitive
      * sorting.</p>
      *
-     * @return
+     * @return the collaction key
      */
     public CollationKey getCollationKey()
     {
@@ -891,8 +898,11 @@ public class DXAttribute extends BasicAttribute implements Comparable
      * throw a class cast exception for anything else.  It sorts on
      * their internal collationkeys.</p>
      *
-     * @param o
-     * @return
+     * @param o the object to compare to
+     * 
+     * @return an integer value. Value is less than zero if this is less than
+     * o, value is zero if this and o are equal and value is greater than zero
+     * if this is greater than o.
      */
     public int compareTo(Object o)
     {

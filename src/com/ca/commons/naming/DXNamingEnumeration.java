@@ -204,10 +204,11 @@ public class DXNamingEnumeration implements NamingEnumeration
     }
 
     /**
-     * <p>This sorts a DXNamingEnumeration that contains an
+     * This sorts a DXNamingEnumeration that contains an
      * enumeration of objects that implement the Comparable interface
-     * (such as DXAttribute).</p>
-     * @return
+     * (such as DXAttribute).
+     * 
+     * @return itself only sorted
      */
 
     public DXNamingEnumeration fastSort()

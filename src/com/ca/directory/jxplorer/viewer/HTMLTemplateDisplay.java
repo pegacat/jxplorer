@@ -517,8 +517,8 @@ public class HTMLTemplateDisplay extends JPanel
     /**
      * <p>CONSTRUCTOR METHOD: returns all sub directories under the template directory</p>
      * <p>These correspond to the various object classes.</p>
-     * @param baseTemplateDir
-     * @return
+     * @param baseTemplateDir 
+     * @return returns all sub directories under the template directory
      */
     private String[] getAllTemplateSubDirectories(File baseTemplateDir)
     {

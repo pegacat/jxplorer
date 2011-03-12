@@ -340,7 +340,7 @@
 
             <doctitle><![CDATA[<h1>JXplorer Ldap Browser</h1>]]></doctitle>
             <bottom><![CDATA[<i>This is Open Source Code under the CA Open Source Licence ( == Apache Licence)</i>]]></bottom>
-            <link href="http://java.sun.com/products/jdk/1.4/docs/api/"/>
+            <link href="http://download.oracle.com/javase/1.5.0/docs/api/"/>
         </javadoc>
     </target>
 

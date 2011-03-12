@@ -3,9 +3,6 @@ package com.ca.commons.security.asn1;
 
 /**
  * This class represents ASN.1 context specifically tagged types.
- * @see iss.security.asn1.ASN1Object
- *
- * @author who
  */
 public class Context extends ASN1Object implements java.io.Serializable
 {

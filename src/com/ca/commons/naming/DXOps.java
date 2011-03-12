@@ -277,16 +277,18 @@ System.out.println("ended up with: '" + rawName + "'");
 */
 
     /**
-     * overload the corresponding method in JNDIOps so that we can play silly buggers with parsing
+     * Overload the corresponding method in JNDIOps so that we can play silly buggers with parsing
      * the stupid composite names that jndi inflicts on us.
      *
-     * @param searchbase
-     * @param filter
-     * @param limit
-     * @param timeout
-     * @param returnAttributes
-     * @return
-     * @throws NamingException
+     * @param searchbase the search base
+     * @param filter the search filter
+     * @param limit size limit of the search
+     * @param timeout time limit of the search
+     * @param returnAttributes the attributes to return in the search
+     * 
+     * @return the search result
+     * 
+     * @throws NamingException if unable to perform the search
      */
     protected NamingEnumeration rawSearchBaseEntry(Name searchbase, String filter, int limit,
                                                    int timeout, String[] returnAttributes)
@@ -296,16 +298,18 @@ System.out.println("ended up with: '" + rawName + "'");
     }
 
     /**
-     * overload the corresponding method in JNDIOps so that we can play silly buggers with parsing
+     * Overload the corresponding method in JNDIOps so that we can play silly buggers with parsing
      * the stupid composite names that jndi inflicts on us.
      *
-     * @param searchbase
-     * @param filter
-     * @param limit
-     * @param timeout
-     * @param returnAttributes
-     * @return
-     * @throws NamingException
+     * @param searchbase the search base
+     * @param filter the search filter
+     * @param limit size limit of the search
+     * @param timeout time limit of the search
+     * @param returnAttributes the attributes to return in the search
+     * 
+     * @return the search result
+     * 
+     * @throws NamingException if unable to perform the search
      */
     protected NamingEnumeration rawSearchOneLevel(Name searchbase, String filter, int limit,
                                                   int timeout, String[] returnAttributes) throws NamingException
@@ -317,13 +321,15 @@ System.out.println("ended up with: '" + rawName + "'");
      * overload the corresponding method in JNDIOps so that we can play silly buggers with parsing
      * the stupid composite names that jndi inflicts on us.
      *
-     * @param searchbase
-     * @param filter
-     * @param limit
-     * @param timeout
-     * @param returnAttributes
-     * @return
-     * @throws NamingException
+     * @param searchbase the search base
+     * @param filter the search filter
+     * @param limit size limit of the search
+     * @param timeout time limit of the search
+     * @param returnAttributes the attributes to return in the search
+     * 
+     * @return the search result
+     * 
+     * @throws NamingException if unable to perform the search
      */
     protected NamingEnumeration rawSearchSubTree(Name searchbase, String filter, int limit,
                                                  int timeout, String[] returnAttributes) throws NamingException

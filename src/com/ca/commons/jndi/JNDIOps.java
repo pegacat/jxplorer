@@ -282,6 +282,14 @@ public class JNDIOps
    such characters. These characters are "{", "}", "|", "\", "^", "~",
    "[", "]", and "`".
 */
+    /**
+     * Make the server URL from the specified server URL and base DN.
+     * 
+     * @param serverURL the URL of the server
+     * @param baseDN the base distinguished name of the directory server
+     * 
+     * @return the server URL
+     */
     public static String makeServerURL(String serverURL, String baseDN)
     {
         if (baseDN != null && baseDN.length() > 0)
@@ -314,8 +322,6 @@ public class JNDIOps
         }
 
         return serverURL;
-
-
     }
 
     /**
@@ -919,8 +925,9 @@ public class JNDIOps
      * @param limit            the maximum number of results to return
      * @param timeout          the maximum time to wait before abandoning the search
      * @param returnAttributes an array of strings containing the names of attributes to search. (null = all, empty array = none)
-     * @return
-     * @throws NamingException
+     * @return the search result
+     * 
+     * @throws NamingException if unable to search
      */
     protected NamingEnumeration rawSearchOneLevel(Name searchbase, String filter, int limit,
                                                   int timeout, String[] returnAttributes) throws NamingException

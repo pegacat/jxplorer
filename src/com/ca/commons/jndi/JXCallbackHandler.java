@@ -83,7 +83,7 @@ public class JXCallbackHandler implements CallbackHandler
      * This should raise a swing dialogue prompt and get a response from the user.
      * It relies on Callback.getPrompt() to produce a sensible text message to prompt the user with.
      * @param prompt
-     * @return
+     * @return the user name
      */
     private String getUserName(String prompt)
     {
@@ -96,7 +96,7 @@ public class JXCallbackHandler implements CallbackHandler
      * This should raise a swing dialogue prompt and get a response from the user.
      * It relies on Callback.getPrompt() to produce a sensible text message to prompt the user with.
      * @param prompt
-     * @return
+     * @return the password
      */
     private char[] getPassword(String prompt)
     {

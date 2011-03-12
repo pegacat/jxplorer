@@ -174,7 +174,7 @@ public class JXOpenConWin extends CBOpenConWin implements DataListener
      * We mash the unique connection details together into a unique key so we can recognise the connection
      * again and reproduce the required password.
      *
-     * @return
+     * @return the password key
      */
     private String makePwdKey()
     {

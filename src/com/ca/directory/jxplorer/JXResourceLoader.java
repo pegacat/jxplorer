@@ -14,10 +14,7 @@ import com.ca.commons.cbutil.*;
  *
  *
  * @author Chris Betts
- * @see com.ca.od.util.CBJarResource
  */
-
-
 public class JXResourceLoader
 {
     /**

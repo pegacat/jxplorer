@@ -10,7 +10,7 @@ public interface editablestring
 {
     /**
      *    te: sets the value of the editable object.
-     *    @param String that may be edited later.
+     *    @param attString that may be edited later.
      *
      */
     public void setStringValue(String attString);

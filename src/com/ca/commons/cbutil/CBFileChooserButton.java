@@ -12,8 +12,6 @@ import java.io.File;
  * a JTextComponent.  It brings up a 'file' button that the user can
  * use to select a file, the name + path of which is then set in the
  * associated text component.
- *
- * @see javax.swing.JTextComponent
  */
 
 public class CBFileChooserButton extends CBButton implements ActionListener

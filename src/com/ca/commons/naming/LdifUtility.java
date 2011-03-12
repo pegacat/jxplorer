@@ -281,8 +281,8 @@ public class LdifUtility
     /**
      * This replaces new lines (of various sorts) with a 'new line' + '>' character, as per 'xml in ldif' draft rfc.
      *
-     * @param s
-     * @return
+     * @param s the string to translate
+     * @return the translated string
      */
     private String translateToLdifXML(String s)
     {

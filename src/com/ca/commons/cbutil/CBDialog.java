@@ -157,7 +157,9 @@ public class CBDialog extends JDialog
     }
 
     /**
-     * @return
+     * Gets the display panel.
+     *
+     * @return the display panel
      */
     public CBPanel getDisplayPanel()
     {

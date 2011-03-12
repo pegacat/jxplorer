@@ -1423,8 +1423,9 @@ public class CBUtility
      * home directory to see if the specific config file already exists there.  Then reverts to the default
      * location in the user.dir directory the program is run from.
      *
-     * @param configFileName the name of the actual file - e.g. "bookmarks.txt".
-     * @return
+     * @param configFileName the name of the actual file - e.g. "bookmarks.txt"
+     * 
+     * @return the property config path
      */
     public static String getPropertyConfigPath(String configFileName)
     {

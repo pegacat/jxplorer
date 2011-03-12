@@ -170,8 +170,9 @@ public class SmartPopupTool extends JPopupMenu
 
 
     /**
-     *
-     * @return
+     * Gets the active DN.
+     * 
+     * @return the active DN
      */
 
 	public DN getActiveDN()

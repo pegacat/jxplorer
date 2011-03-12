@@ -527,7 +527,6 @@ public class JndiSocketFactory extends SSLSocketFactory
      * @param host	Address of the server host.
      * @param port	Port to connect to.
      * @param client_host	Address of this (client) host.
-     * @param port	Port to connect from.
      * @return		An SSLSocket instance (as a Socket).
      * @throws	IOException	If the connection can't be established.
      * @throws	UnknownHostException	If the host is not known.
@@ -547,7 +546,6 @@ public class JndiSocketFactory extends SSLSocketFactory
      * @param host	Address of the server host.
      * @param port	Port to connect to.
      * @param client_host	Address of this (client) host.
-     * @param port	Port to connect from.
      * @return		An SSLSocket instance (as a Socket).
      * @throws	IOException	If the connection can't be established.
      * @throws	UnknownHostException	If the host is not known.

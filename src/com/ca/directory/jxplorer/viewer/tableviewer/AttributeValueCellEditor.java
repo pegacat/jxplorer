@@ -100,7 +100,7 @@ public class AttributeValueCellEditor extends AbstractCellEditor
      * @param isSelected
      * @param row
      * @param column
-     * @return
+     * @return an awt.Component that acts as a cell editor
      */
     public Component getTableCellEditorComponent(JTable table,
                          Object value, boolean isSelected,

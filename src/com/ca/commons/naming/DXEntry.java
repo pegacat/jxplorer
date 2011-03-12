@@ -158,7 +158,8 @@ public class DXEntry extends DXAttributes
     /**
      *    Add a DN directly, without using an attribute.
      *    @param dn the distinguished name to add.
-     *    @depricated use @setDN instead
+     *
+     *    @deprecated use @setDN instead
      */
     
     public void putDN(DN dn)

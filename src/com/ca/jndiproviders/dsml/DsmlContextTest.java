@@ -24,7 +24,7 @@ public class DsmlContextTest extends TestCase
     }
 
     /**
-     * @return
+     * @return the test suite
      */
     public static Test suite()
     {
@@ -837,7 +837,7 @@ public class DsmlContextTest extends TestCase
 
     private static String errorResponse =
             "        <errorResponse type=\"malformedRequest\">\n" +
-            "              <message>Unknown element ‘bogusRequest’  line 87 column 4</message>\n" +
+            "              <message>Unknown element ï¿½bogusRequestï¿½  line 87 column 4</message>\n" +
             "           </errorResponse>";
 
     // if modifying error messages, use 'print strings' to confirm result for assertEquals test
@@ -876,7 +876,7 @@ public class DsmlContextTest extends TestCase
         {
             // expected case!
             //System.out.println(e.getMessage());
-            assertEquals(e.getMessage(), "Error Processing DSML Request: malformedRequest\nUnknown element ‘bogusRequest’  line 87 column 4");
+            assertEquals(e.getMessage(), "Error Processing DSML Request: malformedRequest\nUnknown element ï¿½bogusRequestï¿½  line 87 column 4");
         }
     }
 

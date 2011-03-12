@@ -9,8 +9,6 @@ import javax.swing.*;
  * changes.  This can be a little bit more convienent than using the
  * ListModels ListSelectionListener, since ListSelectionListeners
  * are only given the range of indices that the change spans.
- *
- * @see http://java.sun.com/products/jfc/tsc/tech_topics/jlist_1/jlist.html
  */
 
 public class CBSingleSelectionModel extends DefaultListSelectionModel

@@ -325,7 +325,9 @@ public class JXSSLSocketFactory extends SSLSocketFactory
      *  evil undocumented feature - can change SSL protocol on command line
      *   (needed for mainframe TOPSECRET folks who have want to use SSLv3).
      * ... normally it just returns "TLS".
-     * @return
+     * 
+     * @return the SSL context
+     * 
      * @throws NoSuchAlgorithmException
      */
     private static SSLContext setSSLContextProtocol() throws NoSuchAlgorithmException
@@ -479,7 +481,6 @@ public class JXSSLSocketFactory extends SSLSocketFactory
      * @param host	Address of the server host.
      * @param port	Port to connect to.
      * @param client_host	Address of this (client) host.
-     * @param port	Port to connect from.
      * @return		An SSLSocket instance (as a Socket).
      * @throws	IOException	If the connection can't be established.
      * @throws	UnknownHostException	If the host is not known.
@@ -499,7 +500,6 @@ public class JXSSLSocketFactory extends SSLSocketFactory
      * @param host	Address of the server host.
      * @param port	Port to connect to.
      * @param client_host	Address of this (client) host.
-     * @param port	Port to connect from.
      * @return		An SSLSocket instance (as a Socket).
      * @throws	IOException	If the connection can't be established.
      * @throws	UnknownHostException	If the host is not known.

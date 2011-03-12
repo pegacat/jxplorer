@@ -238,7 +238,9 @@ public class JNDIBroker  extends Broker
 	*  	program was in 'quiet gui' (i.e. no error dialogs) mode.
 	*  	It does not return the actual error, since frequently there
 	*  	were many: the user should consult the log file.
-	*	@return
+    * 
+	*	@return whether one or more errors occured while the
+	*  	program was in 'quiet gui' (i.e. no error dialogs) mode
 	*/
 
     public boolean getQuietError()
@@ -820,7 +822,9 @@ public class JNDIBroker  extends Broker
 
 
    /**
-    *	@return
+    *   Process the queue.
+    * 
+    *	@return whether the queue was successfully processed
 	*/
 
     public boolean processQueue()

@@ -854,9 +854,6 @@ public class CBAutoGUI extends JDialog implements ActionListener
          * @param arg          whether the option has an argument (if not, treat it as a check box)
          * @param lbl          whether the 'option' is in fact simply a label (a comment, or extra directions or something)
          * @param hide         whether the option is hidden from the user, and always present.
-         * @param whether      the option represents a file, and hence requires a file picker menu.
-         * @param tt           the tooltip (may be null) to show the user when the mouse passes over this component.
-         * @param an           optional default value for the component (nb *any* value corresponds to 'on' for a checkbox...)
          */
         public SecondaryOption(String optionString, boolean pwd, boolean arg, boolean lbl, boolean hide, boolean isFile, String tooltip, String defVal)
         {

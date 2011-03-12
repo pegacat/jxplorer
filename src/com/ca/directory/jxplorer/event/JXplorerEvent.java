@@ -16,7 +16,7 @@ public class JXplorerEvent extends EventObject {
     
     /**
      *    The user selected DN being passed back in this event.
-     *    @see getDN()
+     *    @see #getDN()
      */
      
     private String DN;
@@ -27,9 +27,8 @@ public class JXplorerEvent extends EventObject {
      * Constructs a <code>JXplorerEvent</code> object.
      *
      * @param source  the object that originated the event
-     * @param id      an integer that identifies the event
-     * @param command a string that may specify a command (possibly one 
-     *                of several) associated with the event
+     * @param type    the event type
+     * @param DN      the DN
      */
     public JXplorerEvent(Object source, EventType type, String DN) 
     {

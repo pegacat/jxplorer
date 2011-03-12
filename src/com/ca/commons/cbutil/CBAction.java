@@ -57,9 +57,9 @@ public abstract class CBAction
     }
 
     /**
-     * Returns the key.
+     * Gets the key.
      *
-     * @return
+     * @return the key
      */
     public int getKey()
     {

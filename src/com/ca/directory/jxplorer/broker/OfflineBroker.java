@@ -173,7 +173,8 @@ public class OfflineBroker extends Broker
 
     /**
      * Whether there are any nodes in our offline broker (effectively, if the ldif file read was successful)
-     * @return
+     * 
+     * @return whether there are any nodes in our offline broker
      */
      public boolean hasData() { return !nodes.isEmpty(); }  
 

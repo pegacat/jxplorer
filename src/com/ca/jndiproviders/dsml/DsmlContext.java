@@ -181,7 +181,8 @@ public class DsmlContext implements DirContext
      *
      * @param searchAttributes an existing string buffer to append the search attribute list information to
      * @param attributes       a string array of attribute names
-     * @return
+     * 
+     * @return the search request attributes
      */
     private static StringBuffer getSearchRequestAttributes(StringBuffer searchAttributes, String[] attributes)
     {
@@ -232,7 +233,8 @@ public class DsmlContext implements DirContext
      *
      * @param name
      * @param num
-     * @return
+     * 
+     * @return the test enumeration
      */
     private NamingEnumeration getTestEnumeration(Name name, int num)
     {
@@ -260,7 +262,8 @@ public class DsmlContext implements DirContext
      * A little test method to produce dummy attributes objects during development.
      *
      * @param name
-     * @return
+     * 
+     * @return the test attributes
      */
     private BasicAttributes getTestAttributes(String name)
     {
@@ -2073,7 +2076,9 @@ public class DsmlContext implements DirContext
      * @param typesOnly
      * @param filter
      * @param attributesToReturn
-     * @return
+     * 
+     * @return the search results
+     * 
      * @throws NamingException
      */
     public NamingEnumeration doDsmlSearch(String name, String scope, String derefAliases, long sizeLimit, int timeLimit, boolean typesOnly, String filter, String[] attributesToReturn)
@@ -2251,7 +2256,9 @@ public class DsmlContext implements DirContext
      * returning the response.
      *
      * @param searchRequestBuffer
-     * @return
+     * 
+     * @return the response from the request
+     * 
      * @throws NamingException
      */
     private String sendDSMLRequest(StringBuffer searchRequestBuffer)
@@ -2289,9 +2296,12 @@ public class DsmlContext implements DirContext
     }
 
     /**
-     * @param name
-     * @param atts
-     * @return
+     * Constructs an add request.
+     * 
+     * @param name the name
+     * @param atts the attributes
+     * 
+     * @return the add request
      */
     static StringBuffer constructAddRequest(String name, Attributes atts)
             throws NamingException
@@ -2416,8 +2426,9 @@ System.out.println("SENDING BINARY DATA; byte length: " + data.length + " encode
     /**
      * This returns a DSML batchrequest containing a single 'delRequest' element.
      *
-     * @param name
-     * @return
+     * @param name the name
+     * 
+     * @return a DSML batchrequest containing a single 'delRequest' element
      */
     static StringBuffer constructDeleteRequest(String name)
     {
@@ -2457,7 +2468,9 @@ System.out.println("SENDING BINARY DATA; byte length: " + data.length + " encode
      * @param typesOnly
      * @param filter
      * @param attributesToReturn
-     * @return
+     * 
+     * @return the search request
+     * 
      * @throws NamingException
      */
     static StringBuffer constructSearchRequest(String name, String scope, String derefAliases, long sizeLimit, int timeLimit, boolean typesOnly, String filter, String[] attributesToReturn)
@@ -2489,7 +2502,8 @@ System.out.println("SENDING BINARY DATA; byte length: " + data.length + " encode
      * section 4.6.
      *
      * @param value a string containing escaped character sequences such as '&amp;' or '&
-     * @return
+     * 
+     * @return the un-escaped value
      */
 
 // I wonder what the efficiency hit of this is?  Hopefully it won't happen very often,
@@ -2556,8 +2570,10 @@ System.out.println("SENDING BINARY DATA; byte length: " + data.length + " encode
      * Handling to DSML escape names.  Currently this is done in
      * exactly the same way as values, but this method will allow
      * us to perform any future trickiness that may be required.
+     * 
      * @param value
-     * @return
+     * 
+     * @return the escaped value
      */
     static String escapeName(String value)
     {
@@ -2569,7 +2585,8 @@ System.out.println("SENDING BINARY DATA; byte length: " + data.length + " encode
      * As per the standard XML rules, we have to escape 'html' like
      * characters  &gt;, &lt;, &apos;, &quot;, and &amp;.
      * @param value
-     * @return
+     * 
+     * @return the escaped string
      */
     static String escape(String value)
     {
@@ -2653,7 +2670,8 @@ System.out.println("SENDING BINARY DATA; byte length: " + data.length + " encode
      * @param message an existing string buffer to append the search filter information to
      * @param filter  an LDAP RFC 2254 filter to translate into verbose DSML woffle
      * @param indent  whitespace padding to indent the filter for a pleasent and harmonious viewing experience
-     * @return
+     * 
+     * @return the search request filter
      */
 
     static String getSearchRequestFilter(StringBuffer message, String filter, String indent)

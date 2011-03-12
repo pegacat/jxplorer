@@ -101,7 +101,8 @@ public class SmartTreeCellEditor extends DefaultTreeCellEditor
     
     /**
      *    Returns the value of the tree entry currently being edited.
-     *    @return 
+     * 
+     *    @return  the value of the tree entry currently being edited
      */
      
     public Object getCellEditorValue()

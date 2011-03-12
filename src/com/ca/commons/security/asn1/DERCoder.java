@@ -8,7 +8,6 @@ import java.util.StringTokenizer;
  * This class provides the facilities of encoding and decoding ASN1Objects
  * using Distinguished Encoding Rules (DER). The class is only used in this
  * package.
- * @see	iss.security.asn1.ASN1Object
  */
 public class DERCoder implements java.io.Serializable
 {
