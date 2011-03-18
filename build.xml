@@ -50,8 +50,8 @@
             optimize="${compile.optimize}"
             deprecation="off"
             nowarn="off"
-            target="1.5"
-            source="1.5"
+            target="1.4"
+            source="1.4"
             verbose="off">
         </javac>
     </target>
