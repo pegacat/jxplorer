@@ -1,7 +1,6 @@
 
 package com.ca.commons.security.cert.extensions;
 
-import java.util.Hashtable;
 import com.ca.commons.security.asn1.*;
 
 /**

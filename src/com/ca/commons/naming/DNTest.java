@@ -8,13 +8,9 @@
 package com.ca.commons.naming;
 
 import junit.framework.*;
-import junit.extensions.*;
 
 import javax.naming.InvalidNameException;
-import javax.naming.Name;
 import javax.naming.NamingException;
-import java.util.Vector;
-import java.util.Enumeration;
 
 
 /**

@@ -12,7 +12,6 @@ import com.ca.directory.jxplorer.search.SearchBar;
 import com.ca.directory.jxplorer.tree.*;
 import com.ca.directory.jxplorer.viewer.AttributeDisplay;
 
-import javax.annotation.Resources;
 import javax.swing.*;
 import javax.swing.event.*;
 import javax.swing.tree.TreePath;

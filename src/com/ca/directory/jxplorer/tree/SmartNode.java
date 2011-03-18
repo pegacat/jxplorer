@@ -10,7 +10,6 @@ import javax.naming.NamingEnumeration;
 import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
 import java.awt.datatransfer.*;
-import java.io.File;
 import java.io.IOException;
 import java.text.CollationKey;
 import java.text.Collator;

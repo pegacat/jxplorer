@@ -7,7 +7,6 @@ package com.ca.commons.naming;
  */
 
 import junit.framework.*;
-import javax.naming.directory.BasicAttribute;
 import javax.naming.NamingException;
 import java.util.ArrayList;
 import java.util.Arrays;

@@ -2,10 +2,8 @@ package com.ca.commons.naming;
 
 import java.util.*;
 import java.text.Collator;
-import java.text.CollationKey;
 
 import javax.naming.*;
-//import javax.naming.directory.*;
 
 /**
  *    A simple class that implements NamingEnumeration, used to 

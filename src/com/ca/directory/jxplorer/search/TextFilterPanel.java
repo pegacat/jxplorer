@@ -1,7 +1,6 @@
 package com.ca.directory.jxplorer.search;
 
 import javax.swing.*;
-import java.awt.Color;
 
 import com.ca.commons.cbutil.*;	
 

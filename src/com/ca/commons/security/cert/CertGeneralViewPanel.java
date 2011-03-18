@@ -4,7 +4,6 @@ package com.ca.commons.security.cert;
 import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
-import java.util.StringTokenizer;
 import java.text.SimpleDateFormat;
 
 import java.security.cert.*;

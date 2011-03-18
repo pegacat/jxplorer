@@ -13,7 +13,6 @@ import javax.naming.directory.Attribute;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
-import java.io.File;
 import java.util.logging.Logger;
 import java.util.logging.Level;
 /**
