@@ -42,6 +42,9 @@ public class CBIntText
      * This initialises the international text class.
      *
      * @param bundleLocation the name of the i18n bundle (e.g. "language/JX_ja.properties").
+     */
+
+     /*  OBSOLETE - WE NO LONGER NEED THIS??
      * @param customLoader   a custom class loader (may be null).  JX uses a custom loader
      *                       that auto-detects unicode and utf-8 files for ease of configuration by
      *                       non-expert users.
@@ -86,7 +89,7 @@ public class CBIntText
     public static void addBundle(String bundleLocation, ClassLoader customLoader)
     {
 
-        log.fine("adding resource bundle: " + bundleLocation + " using loader: " + customLoader.toString());
+        log.fine("adding resource bundle: " + bundleLocation); // + " using loader: " + customLoader.toString());
 
         int startSize = translations.size();
 
@@ -98,8 +101,8 @@ public class CBIntText
 
         try
         {
-//            CBResourceBundle bundle = new CBResourceBundle( bundleLocation, locale, customLoader);
-            CBResourceBundle bundle = new CBResourceBundle(bundleLocation, locale);
+            CBResourceBundle bundle = new CBResourceBundle( bundleLocation, locale, customLoader);
+//            CBResourceBundle bundle = new CBResourceBundle(bundleLocation, locale);
 
             String name = bundle.getString("name");
             log.info(" added language localizaton set: " + ((name == null) ? "(not named)" : name));

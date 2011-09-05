@@ -321,22 +321,23 @@ public class JXSSLSocketFactory extends SSLSocketFactory
         }
     }
 
+
     /**
      *  evil undocumented feature - can change SSL protocol on command line
      *   (needed for mainframe TOPSECRET folks who have want to use SSLv3).
      * ... normally it just returns "TLS".
-     * 
-     * @return the SSL context
-     * 
+     * @return
      * @throws NoSuchAlgorithmException
      */
     private static SSLContext setSSLContextProtocol() throws NoSuchAlgorithmException
     {
-        SSLContext sslctx;
+    	SSLContext sslctx;
 
-        String protocol = System.getProperty("sslversion", "TLS"); // TLS for java 1.4
+    	String protocol = System.getProperty("sslversion", "TLS"); // default to TLS
         if (!"TLS".equals(protocol))
-            System.out.println("SECURITY WARNING: Using non-standard ssl version: '" + protocol + "'");
+        {
+            System.out.println("SECURITY WARNING: Using non-standard ssl version: '" + protocol + "'\n (P.S. You can set the exact ssl protocol used with options.ssl.protocol; see jxconfig.txt)");
+        }
         sslctx = SSLContext.getInstance(protocol);
         return sslctx;
     }
@@ -444,6 +445,50 @@ public class JXSSLSocketFactory extends SSLSocketFactory
 	}
 
     /**
+     * This forces the socket to use only a specific protocol (e.g. 'TLSv1'), if available.
+     *
+     * By default, a range of protocols are enabled (SSLv3, TLSv1 etc.).  This
+     * method checks if a particular protocol (passed as a variable via System property 'option.ssl.protocol')
+     * is available, and then sets it to be the only
+     * enabled protocol
+     *
+     * @param newSocket
+     */
+	private static void optionallySetSSLSocketProtocol(SSLSocket newSocket)
+	{
+        //DEBUG
+        /*
+        String[] enabledProtocols = newSocket.getEnabledProtocols();
+        for (int i=0; i<enabledProtocols.length; i++)
+        {
+            System.out.println("Enabled Protocol: " + i + " = " + enabledProtocols[i]);
+        }
+        */
+
+        String protocol = System.getProperty("option.ssl.protocol");
+        if (protocol.equalsIgnoreCase("any"))
+             return;  // nothing to do
+
+        System.out.println("DEBUG: setting SSL to use only '" + protocol + "' ssl protocol");
+
+        // reads supported protocols; e.g. "{SSLv2Hello, SSLv3, TLSv1}"
+        String[] availableProtocols = newSocket.getSupportedProtocols();
+
+        for (int i=0; i<availableProtocols.length; i++)
+        {
+            if (availableProtocols[i].equals(protocol))
+            {
+                newSocket.setEnabledProtocols(new String[] {protocol});
+                return;
+            }
+        }
+        System.out.println("WARNING: Unable to set SSL to use '" + protocol + "'.  Available Protocols are:");
+        for (int i=0; i<availableProtocols.length; i++)
+            System.out.println(availableProtocols[i]);
+	}
+
+
+    /**
      * Return an SSLSocket (upcast to Socket) given host and port.
      *
      * @param host	Name of the host to which the socket will be opened.
@@ -455,7 +500,9 @@ public class JXSSLSocketFactory extends SSLSocketFactory
     public Socket createSocket(String host, int port)
         throws IOException, UnknownHostException
     {
-        return factory.createSocket(host, port);
+    	final SSLSocket newSocket = (SSLSocket)factory.createSocket(host, port);
+    	optionallySetSSLSocketProtocol(newSocket);
+    	return newSocket;
     }
 
     /**
@@ -470,9 +517,10 @@ public class JXSSLSocketFactory extends SSLSocketFactory
     public Socket createSocket(InetAddress host, int port)
        throws IOException, UnknownHostException
     {
-        return factory.createSocket(host, port);
+    	final SSLSocket newSocket = (SSLSocket)factory.createSocket(host, port);
+    	optionallySetSSLSocketProtocol(newSocket);
+    	return newSocket;
     }
-
 
     /**
      * Return an SSLSocket (upcast to Socket) given host and port.
@@ -481,6 +529,7 @@ public class JXSSLSocketFactory extends SSLSocketFactory
      * @param host	Address of the server host.
      * @param port	Port to connect to.
      * @param client_host	Address of this (client) host.
+     * @param port	Port to connect from.
      * @return		An SSLSocket instance (as a Socket).
      * @throws	IOException	If the connection can't be established.
      * @throws	UnknownHostException	If the host is not known.
@@ -489,7 +538,9 @@ public class JXSSLSocketFactory extends SSLSocketFactory
 			     InetAddress client_host, int client_port)
        throws IOException, UnknownHostException
     {
-        return factory.createSocket(host, port, client_host, client_port);
+    	final SSLSocket newSocket = (SSLSocket)factory.createSocket(host, port, client_host, client_port);
+    	optionallySetSSLSocketProtocol(newSocket);
+    	return newSocket;
     }
 
 
@@ -500,6 +551,7 @@ public class JXSSLSocketFactory extends SSLSocketFactory
      * @param host	Address of the server host.
      * @param port	Port to connect to.
      * @param client_host	Address of this (client) host.
+     * @param port	Port to connect from.
      * @return		An SSLSocket instance (as a Socket).
      * @throws	IOException	If the connection can't be established.
      * @throws	UnknownHostException	If the host is not known.
@@ -508,7 +560,9 @@ public class JXSSLSocketFactory extends SSLSocketFactory
 			     InetAddress client_host, int client_port)
        throws IOException, UnknownHostException
     {
-        return factory.createSocket(host, port, client_host, client_port);
+    	final SSLSocket newSocket = (SSLSocket)factory.createSocket(host, port, client_host, client_port);
+    	optionallySetSSLSocketProtocol(newSocket);
+    	return newSocket;
     }
 
     /**
@@ -517,7 +571,9 @@ public class JXSSLSocketFactory extends SSLSocketFactory
     public Socket createSocket(Socket socket, String host, int port, boolean autoclose)
        throws IOException, UnknownHostException
     {
-        return factory.createSocket(socket, host, port, autoclose);
+    	final SSLSocket newSocket = (SSLSocket)factory.createSocket(socket, host, port, autoclose);
+    	optionallySetSSLSocketProtocol(newSocket);
+    	return newSocket;
     }
 
     /**

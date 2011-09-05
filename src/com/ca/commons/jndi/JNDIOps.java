@@ -367,6 +367,7 @@ public class JNDIOps
         env.put(Context.PROVIDER_URL, url);                     // the ldap url to connect to; e.g. "ldap://ca.com:389"
     }
 
+
     /**
      * This sets the environment properties needed for a simple username +
      * password authenticated jndi connection.  It is used by openSimpleSecurityContext().
@@ -414,7 +415,7 @@ public class JNDIOps
         setupSSLProperties(env, cacerts, clientcerts, caKeystorePwd, clientKeystorePwd, caKeystoreType, clientKeystoreType, sslTracing, sslSocketFactory);
     }
 
-    /*    This static ftn. sets the environment used to open an SSL or SASL context.
+    /*  This static ftn. sets the environment used to open an SSL or SASL context.
     *   It is used by openSSLContext.
     *
     *   If only SSL is desired, the clientcerts, clientKeystorePwd and clientKeystoreType
@@ -1035,6 +1036,8 @@ public class JNDIOps
 
         constraints1.setReturningAttributes(returnAttributes);
         SearchControls constraints = constraints1;
+
+        System.out.println("subtree search- base: " + searchbase + " filter: " + filter);
 
         return ctx.search(searchbase, filter, constraints);
     }

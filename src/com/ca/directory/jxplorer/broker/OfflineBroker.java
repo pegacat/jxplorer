@@ -501,7 +501,7 @@ public class OfflineBroker extends Broker
             if (oldEntry.getDN().equals(newEntry.getDN()) == false)
             {
                 move(oldEntry.getDN(), newEntry.getDN());
-                oldEntry.putDN(newEntry.getDN());
+                oldEntry.setDN(newEntry.getDN());
             }
 
             // check for change of attributes done in modify()

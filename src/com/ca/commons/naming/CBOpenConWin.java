@@ -172,7 +172,7 @@ public abstract class CBOpenConWin extends CBDialog
     protected void initGUI(JLabel statusDisplay)
     {
         String oldConnection = "";
-        int oldPortNo = 19389;
+        int oldPortNo = 389;
         String oldBaseDN = "";
         //String oldUseSSL = CBIntText.get("false");
 

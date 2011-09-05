@@ -28,13 +28,13 @@ import java.util.logging.*;
  * Does the main setup for JXplorer.
  */
 public class
-        JXplorer extends JFrame         			// Applet
+        JXplorer extends JFrame                     // Applet
         implements JXplorerEventGenerator
 {
     static String version = BuildNumber.value;
 
-    private static JFrame rootFrame;                 	// convenience variables to avoid
-    Container mainPane;                      			// calling get methods all the time.
+    private static JFrame rootFrame;                     // convenience variables to avoid
+    Container mainPane;                                  // calling get methods all the time.
 
     transient JXplorerListener jxplorerListener;
 
@@ -48,26 +48,26 @@ public class
 
     JPanel userViewPanel;
 
-    CBPanel topPanel;                        	// the top panel, containing the tool bars.
-    JToolBar searchBar;                      	// the quick search toolbar.
-    ButtonBar buttonBar;                     	// the graphic button bar.
+    CBPanel topPanel;                            // the top panel, containing the tool bars.
+    JToolBar searchBar;                          // the quick search toolbar.
+    ButtonBar buttonBar;                         // the graphic button bar.
 
-    public static Properties myProperties;   	// global variables for the browser, read from...
-    public static String propertyFile;       	// ...a user configurable file storing default properties.
-    public static String localDir;           	// local directory the browser is being run from...
+    public static Properties myProperties;       // global variables for the browser, read from...
+    public static String propertyFile;           // ...a user configurable file storing default properties.
+    public static String localDir;               // local directory the browser is being run from...
 
     public static JFrame jx;
 
-    JNDIBroker jndiBroker = null;      	// the JNDIBroker intermediary class through which requests pass
-    JNDIBroker searchBroker = null;      	// another JNDIBroker used for searching, and the search tree.
-    OfflineBroker offlineBroker = null;      	// provides a gateway to ldif files.
-    SchemaBroker schemaBroker = null;      	// provides access to an artificaial 'schema tree'
+    JNDIBroker jndiBroker = null;          // the JNDIBroker intermediary class through which requests pass
+    JNDIBroker searchBroker = null;          // another JNDIBroker used for searching, and the search tree.
+    OfflineBroker offlineBroker = null;          // provides a gateway to ldif files.
+    SchemaBroker schemaBroker = null;          // provides access to an artificaial 'schema tree'
 
-    SmartTree mrTree = null;      	// the display tree
-    SmartTree searchTree = null;      	// the search results tree
-    SmartTree schemaTree = null;      	// the schema display tree
+    SmartTree mrTree = null;          // the display tree
+    SmartTree searchTree = null;          // the search results tree
+    SmartTree schemaTree = null;          // the schema display tree
 
-    AttributeDisplay mainViewer;				// the main display panel
+    AttributeDisplay mainViewer;                // the main display panel
 
     CBPanel statusDisplay;
     JLabel displayLabel;
@@ -91,8 +91,8 @@ public class
 
     public String url = "Disconnected";         //TE: an anchor for the LDAP/DSML url.
 
-    CBResourceLoader resourceLoader;  			// loads files 'n stuff from zip/jar archives.
-    CBClassLoader classLoader;        			// loads classes from zip/jar archives.
+    CBResourceLoader resourceLoader;              // loads files 'n stuff from zip/jar archives.
+    CBClassLoader classLoader;                    // loads classes from zip/jar archives.
 
     /*
      *    Constants that define which security property elements to use.
@@ -118,18 +118,18 @@ public class
     public JXplorer()
     {
         super();
-        JXplorerInit((String)null);
+        JXplorerInit((String) null);
     }
 
     public JXplorer(String initLdifName)
     {
         super();
-	JXplorerInit(initLdifName);
+        JXplorerInit(initLdifName);
     }
 
     protected void JXplorerInit(String initLdifName)
     {
-	DataSource datamodifier;
+        DataSource datamodifier;
 
         JWindow splash = new JWindow();
 
@@ -147,7 +147,7 @@ public class
 
         setupResourceFiles();
 
-        CBIntText.init("language.JX", classLoader);   // i18n support.
+        CBIntText.init("language.JX", classLoader);   // i18n support. //TODO: I don't think we need classloader...
 
 
         if (checkFileEnvironment() == false) return;
@@ -170,17 +170,18 @@ public class
 
         setBackground(Color.white);
 
-	datamodifier = (DataSource)this.offlineBroker;
+        datamodifier = (DataSource) this.offlineBroker;
 
-	if (initLdifName != null) {
-	    this.setStatus("Working Offline");
-	    this.workOffline = true ;
-	    this.offlineBroker.clear();
-	    this.mrTree.registerDataSource(this.offlineBroker);
-	    this.mrTree.setRoot(new DN(SmartTree.NODATA));
+        if (initLdifName != null)
+        {
+            this.setStatus("Working Offline");
+            this.workOffline = true;
+            this.offlineBroker.clear();
+            this.mrTree.registerDataSource(this.offlineBroker);
+            this.mrTree.setRoot(new DN(SmartTree.NODATA));
 
             LdifImport imp = new LdifImport(datamodifier, this.mrTree, this, null, initLdifName);
-	}
+        }
 
         setVisible(true);
 
@@ -207,18 +208,21 @@ public class
 
         log.fine("running JXplorer version " + version);
 
-	boolean loadFile;
-	String initLdifName;
+        boolean loadFile;
+        String initLdifName;
 
         if (checkJavaEnvironment() == false)
             System.exit(-1);
 
-	if (args.length > 0) {
-	    log.info("trying to open " + args[0]);
-	    initLdifName=args[0];
-	} else {
-	    initLdifName=null;
-	}
+        if (args.length > 0)
+        {
+            log.info("trying to open " + args[0]);
+            initLdifName = args[0];
+        }
+        else
+        {
+            initLdifName = null;
+        }
 
         new JXplorer(initLdifName);
 
@@ -406,6 +410,7 @@ public class
         JXplorer newExplorer = new JXplorer();
     }
 */
+
     /**
      * Checks that the java and system environment is
      * adequate to run in.
@@ -496,10 +501,10 @@ public class
      */
     public void checkSpecialLoggingActions()
     {
-            if (CBUtility.getTrueLogLevel(log) == Level.ALL)
-                jndiBroker.setTracing(true);
-            else
-                jndiBroker.setTracing(false);
+        if (CBUtility.getTrueLogLevel(log) == Level.ALL)
+            jndiBroker.setTracing(true);
+        else
+            jndiBroker.setTracing(false);
     }
 
     /**
@@ -650,20 +655,20 @@ public class
         setDefaultProperty("option.ldap.referral", JNDIOps.DEFAULT_REFERRAL_HANDLING, "this is a jdni variable determinning how referrals are handled: 'ignore','follow' or 'throw'");   // 'ignore'
 
 
-        setDefaultProperty("option.ldap.browseAliasBehaviour", JNDIOps.DEFAULT_ALIAS_HANDLING, "jndi variable setting how aliases are handled while browsing: 'always','never','finding','searching'");    	// behaviour when browsing tree (= 'finding')
+        setDefaultProperty("option.ldap.browseAliasBehaviour", JNDIOps.DEFAULT_ALIAS_HANDLING, "jndi variable setting how aliases are handled while browsing: 'always','never','finding','searching'");        // behaviour when browsing tree (= 'finding')
 
-        setDefaultProperty("option.ldap.searchAliasBehaviour", "searching", "jndi variable setting how aliases are handled while searching: 'always','never','finding','searching'");  	// behaviour when making search request
+        setDefaultProperty("option.ldap.searchAliasBehaviour", "searching", "jndi variable setting how aliases are handled while searching: 'always','never','finding','searching'");      // behaviour when making search request
 
-        setDefaultProperty("option.confirmTableEditorUpdates", "false", "whether the user is prompted before updates; usually set by GUI");  		//TE: set false by default for dxadmin (bug 2848).
+        setDefaultProperty("option.confirmTableEditorUpdates", "false", "whether the user is prompted before updates; usually set by GUI");          //TE: set false by default for dxadmin (bug 2848).
 
-        setDefaultProperty("option.url.handling", "JXplorer", "override URL handling to launch JXplorer rather than default browser");  		            //TE: set the URL handling to displaying JXplorer rather than launch into default browser.
+        setDefaultProperty("option.url.handling", "JXplorer", "override URL handling to launch JXplorer rather than default browser");                      //TE: set the URL handling to displaying JXplorer rather than launch into default browser.
 
         setDefaultProperty("option.ldap.sendVerboseBinarySuffix", "false", "some directories require ';binary' to be explicitly appended to binary attribute names: 'true' or 'false'");
 
         setDefaultProperty("option.drag.and.drop", "true", "set to 'false' to disable drag and drop in the left hand tree view");
 
         setDefaultProperty("jxplorer.cache.passwords", "true", "whether JX should keep a (run time only) cache of passwords for reuse and reconnection");
-        
+
         setDefaultProperty("mask.raw.passwords", "true", "whether to mask userPassword in the entry password editor");
 
         setDefaultProperty("sort.by.naming.attribute", "false", "if true, this sorts entries in the tree editor by naming attribute first, then by attribute value");
@@ -694,6 +699,11 @@ public class
         setDefaultProperty("ldap.sslsocketfactory", "com.ca.commons.jndi.JndiSocketFactory");
         setProperty("ldap.sslsocketfactory.comment", "This is the built in ssl factory - it can be changed if required.");
 
+        // special hack to allow forcing of TLSv1 as the only allowed SSL protocol...
+        setDefaultProperty("option.ssl.protocol", "any", "Force JXplorer to only use one specific SSL protocol, rather than negotiating a normal SSL connection. e.g. just 'TLSv1' or 'SSLv3';  default is 'any'");
+        // special special hack to add to system properties, so it can be picked up by seprate com.ca.security.commons.JXSSLSocketFactory
+        System.setProperty("option.ssl.protocol", myProperties.getProperty("option.ssl.protocol"));
+
         setDefaultProperty("gui.lookandfeel", UIManager.getSystemLookAndFeelClassName());    //TE: sets the default look and feel to the system default.
         setDefaultProperty("gui.lookandfeel.comment", "Can set to com.sun.java.swing.plaf.mac.MacLookAndFeel for OSX");    //TE: sets the default look and feel to the system default.
 
@@ -712,7 +722,6 @@ public class
         }
 
 
-
         // XXX something of a hack - manually set these properties in CertViewer,
         // XXX simply because it is a 'sorta' pluggable editor, that may be called
         // XXX directly without an opportunity to pass them directly.
@@ -722,7 +731,6 @@ public class
         //TE: sets up the help link in the cert viewer so that a help button is
         //TE: added to the dialog which links to the appropriate topic in the help.
         CertViewer.setupHelpLink(HelpIDs.SSL_VIEW);
-
 
 
         // optional support for xml in ldif files.
@@ -1139,6 +1147,7 @@ public class
         if (viewer != null) tree.registerDataSink(viewer);
         if (gen != null) tree.registerEventPublisher(gen);
     }
+
     /**
      * The Status panel is the small (one line) panel at the bottom
      * of the browser that reports to users what is happening with
@@ -1220,7 +1229,7 @@ public class
         treeTabPane.setMinimumSize(new Dimension(100, 100));
 
         if (isLinux())
-            treeTabPane.setPreferredSize(new Dimension(265, 100));  	//TE: bug 2538.
+            treeTabPane.setPreferredSize(new Dimension(265, 100));      //TE: bug 2538.
         else
             treeTabPane.setPreferredSize(new Dimension(240, 100));   //TE: was 220x100 but increased size to fit icons.
 
@@ -1247,9 +1256,12 @@ public class
             splitPane.add(userViewPanel, JSplitPane.RIGHT, 1);
         }
 
-        if (mrTree != null) treeTabPane.addTab(mrTree.getName(), new ImageIcon(Theme.getInstance().getDirImages() + "explore.gif"), explorePanel, "Displays the directory tree, and allows the user to graphically browse the directory.");     //TE: sets the tabs up with name, icon, component and tool tip.
-        if (searchTree != null) treeTabPane.addTab(searchTree.getName(), new ImageIcon(Theme.getInstance().getDirImages() + "find.gif"), resultsPanel, "Displays the search results, and allows the user to graphically browse these results.");
-        if (schemaTree != null) treeTabPane.addTab(schemaTree.getName(), new ImageIcon(Theme.getInstance().getDirIcons() + "schema.gif"), schemaPanel, "Displays the directory schema, and allows the user to graphically browse the schema.");
+        if (mrTree != null)
+            treeTabPane.addTab(mrTree.getName(), new ImageIcon(Theme.getInstance().getDirImages() + "explore.gif"), explorePanel, "Displays the directory tree, and allows the user to graphically browse the directory.");     //TE: sets the tabs up with name, icon, component and tool tip.
+        if (searchTree != null)
+            treeTabPane.addTab(searchTree.getName(), new ImageIcon(Theme.getInstance().getDirImages() + "find.gif"), resultsPanel, "Displays the search results, and allows the user to graphically browse these results.");
+        if (schemaTree != null)
+            treeTabPane.addTab(schemaTree.getName(), new ImageIcon(Theme.getInstance().getDirIcons() + "schema.gif"), schemaPanel, "Displays the directory schema, and allows the user to graphically browse the schema.");
 
 
         // nb. Don't add Tab for Admin, this only appears if the user
@@ -1269,14 +1281,14 @@ public class
             {
                 Component treePane = treeTabPane.getSelectedComponent();
                 ButtonRegister br = JXplorer.getButtonRegister();
-                if (treePane == explorePanel)			    // Explore.
+                if (treePane == explorePanel)                // Explore.
                 {
                     setStatus(CBIntText.get("Connected To ''{0}''", new String[]{url}));
                     if (br != null && isConnected())  //todo and only if connected!
                         br.setCommonState(true);            //TE: enable buttons.
                     mrTree.refreshEditorPane();
                 }
-                else if (treePane == resultsPanel) 		    // Search.
+                else if (treePane == resultsPanel)             // Search.
                 {
                     setStatus("Number of search results: " + String.valueOf(searchTree.getNumOfResults()));
                     searchTree.refreshEditorPane();
@@ -1292,34 +1304,31 @@ public class
         });
 
 
-
-
-
 /* CB removed - use components (above) instead of indices for clarity...
 
                 int index = treeTabPane.getSelectedIndex();
 
-				switch (index)
-				{
-					case 0:			//TE: Explore.
-					{
-						if (mrTree != null)
-							mrTree.refreshEditorPane();
-						break;
-					}
-					case 1: 		//TE: Search.
-					{
-						if (searchTree != null)
-							searchTree.refreshEditorPane();
-						break;
-					}
-					case 2: 		//TE: Schema.
-					{
-						if (schemaTree != null)
-							schemaTree.refreshEditorPane();
-						break;
-					}
-				}
+                switch (index)
+                {
+                    case 0:			//TE: Explore.
+                    {
+                        if (mrTree != null)
+                            mrTree.refreshEditorPane();
+                        break;
+                    }
+                    case 1: 		//TE: Search.
+                    {
+                        if (searchTree != null)
+                            searchTree.refreshEditorPane();
+                        break;
+                    }
+                    case 2: 		//TE: Schema.
+                    {
+                        if (schemaTree != null)
+                            schemaTree.refreshEditorPane();
+                        break;
+                    }
+                }
 */
     }
 
@@ -1447,7 +1456,7 @@ public class
         setProperty("xpos", String.valueOf(getX()));
         setProperty("ypos", String.valueOf(getY()));
 
-        setProperty("last.search.filter", "default");	//TE: sets the last filter property to 'default' (we don't really need to remember the filter after JX exists).
+        setProperty("last.search.filter", "default");    //TE: sets the last filter property to 'default' (we don't really need to remember the filter after JX exists).
 
         writePropertyFile();
 
@@ -1559,7 +1568,7 @@ public class
             mrTree.clearTree();
             mrTree.registerDataSource(jndiBroker);
         }
-        catch (Exception ex)	// wierd things can go wrong here; especially if ldap v2
+        catch (Exception ex)    // wierd things can go wrong here; especially if ldap v2
         {
             if (ldapV != 2)
             {
@@ -1714,7 +1723,6 @@ public class
 
         setStatus(CBIntText.get("Disconnected"));
     }
-
 
 
     //

@@ -10,8 +10,7 @@ import java.util.logging.Logger;
  * bad.  Why a class intended for i18n use deliberately
  * restricts itself to 8859-1 characters, while using
  * a bizarre unicode escaping format rather than utf8,
- * is beyond me (and
- * certainly beyond any translators I need to send
+ * is beyond me (and certainly beyond any translators I need to send
  * stuff to.)<p>
  * <p/>
  * This class is a reimplementation that automatically
@@ -130,6 +129,8 @@ public class CBResourceBundle
         for (int i = names.size() - 1; i >= 0; i--)
         {
             URL url = loader.getResource(names.get(i).toString());   // XXX why getResource, not findResource???
+            System.out.println("SEARCHING FOR: " + names.get(i) + " : " + url);
+            
             if (loadData(url) == true)
                 return;                  // once a single file has been loaded, we're done.
         }

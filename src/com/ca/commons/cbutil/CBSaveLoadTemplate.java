@@ -5,6 +5,8 @@ import javax.swing.border.TitledBorder;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Properties;
 import java.util.Vector;
 import java.util.logging.Level;
@@ -193,18 +195,27 @@ public class CBSaveLoadTemplate extends JPanel
         String temp = templates.getProperty(NUMTEMPLATES);
         if (temp == null)
         {
-            CBUtility.error(this, "Unable to read number of templates paramater from: " + configFile, null);
+            CBUtility.error(this, "Unable to read number of templates parameter from: " + configFile, null);
             return configFile;
         }
 
 
         numTemplates = Integer.parseInt(temp);
+        ArrayList names = new ArrayList(numTemplates);
 
         for (int i = 0; i < numTemplates; i++)
         {
             temp = templates.getProperty(TEMPLATENAME + i);
-            loadops.addItem(temp);
+            names.add(temp);
         }
+
+        Collections.sort(names);
+
+        for (int i=0; i<numTemplates; i++)
+        {
+            loadops.addItem(names.get(i));
+        }
+
         // make sure the default option is currently shown by the combo box.
         String defaultName = templates.getProperty(DEFAULT);
         loadops.setSelectedItem(defaultName);
