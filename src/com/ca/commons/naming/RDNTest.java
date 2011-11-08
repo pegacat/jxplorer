@@ -38,21 +38,21 @@ public class RDNTest extends TestCase
     {
         RDN stringRDN = new RDN(SMALL_RDN);
         assertEquals(stringRDN.toString(), SMALL_RDN);
-        assertEquals(stringRDN.getAtt(), "l");
+        assertEquals(stringRDN.getAttID(), "l");
         assertEquals(stringRDN.getRawVal(), "a");
 
-        System.out.println("RDN " + stringRDN.toString() + " : " + stringRDN.getAtt() + " " + stringRDN.getRawVal() );
+        System.out.println("RDN " + stringRDN.toString() + " : " + stringRDN.getAttID() + " " + stringRDN.getRawVal() );
     }
 
     public void testTripleRDN()
     {
         RDN stringRDN = new RDN(TRIPLE_RDN);
         assertEquals(stringRDN.toString(), TRIPLE_RDN);
-        assertEquals(stringRDN.getAtt(0), "cn");
+        assertEquals(stringRDN.getAttID(0), "cn");
         assertEquals(stringRDN.getRawVal(0), "fred");
-        assertEquals(stringRDN.getAtt(1), "l");
+        assertEquals(stringRDN.getAttID(1), "l");
         assertEquals(stringRDN.getRawVal(1), "a");
-        assertEquals(stringRDN.getAtt(2), "sn");
+        assertEquals(stringRDN.getAttID(2), "sn");
         assertEquals(stringRDN.getRawVal(2), "x");
     }
 
@@ -60,11 +60,11 @@ public class RDNTest extends TestCase
     {
         RDN stringRDN = new RDN(NASTY_RDN);
         assertEquals(stringRDN.toString(), NASTY_RDN);
-        assertEquals(stringRDN.getAtt(0), "cn");
+        assertEquals(stringRDN.getAttID(0), "cn");
         assertEquals(stringRDN.getRawVal(0), "x=y+z");
-        assertEquals(stringRDN.getAtt(1), "l");
+        assertEquals(stringRDN.getAttID(1), "l");
         assertEquals(stringRDN.getRawVal(1), "a ");
-        assertEquals(stringRDN.getAtt(2), "sn");
+        assertEquals(stringRDN.getAttID(2), "sn");
         assertEquals(stringRDN.getRawVal(2), "x");
     }
 

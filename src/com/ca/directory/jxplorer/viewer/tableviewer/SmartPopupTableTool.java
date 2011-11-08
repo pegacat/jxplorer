@@ -3,7 +3,8 @@ package com.ca.directory.jxplorer.viewer.tableviewer;
 import com.ca.commons.cbutil.*;
 import com.ca.commons.naming.DN;
 import com.ca.commons.naming.RDN;
-import com.ca.directory.jxplorer.JXplorer;
+import com.ca.directory.jxplorer.JXConfig;
+import com.ca.directory.jxplorer.JXplorerBrowser;
 import com.ca.directory.jxplorer.search.SearchExecute;
 
 import javax.swing.*;
@@ -22,7 +23,7 @@ public class SmartPopupTableTool extends JPopupMenu
 
     JMenuItem delete, newValue, findDN, makeNaming, removeNaming;  // displayable menu options for user input
 
-    JXplorer jx;
+    JXplorerBrowser browser;
 
     JTable table;                      // the table displaying the data - NOT CURRENTLY USED
 
@@ -47,9 +48,9 @@ public class SmartPopupTableTool extends JPopupMenu
      * Constructor initialises the drop down menu and menu items, and registers 'this' component as being the listener
      * for all the menu items.
      */
-    public SmartPopupTableTool(JTable t, AttributeTableModel m, JXplorer jxplorer)
+    public SmartPopupTableTool(JTable t, AttributeTableModel m, JXplorerBrowser jxplorer)
     {
-        jx = jxplorer;
+        browser = jxplorer;
         table = t;
         model = m;
 
@@ -167,8 +168,8 @@ public class SmartPopupTableTool extends JPopupMenu
     {
         if ("".equals(currentValue.getStringValue()))
         {
-            jx.getSearchTree().clearTree();
-            jx.getTreeTabPane().setSelectedComponent(jx.getResultsPanel());
+            browser.getSearchTree().clearTree();
+            browser.getTreeTabPane().setSelectedComponent(browser.getResultsPanel());
             return;
         }
 
@@ -177,12 +178,12 @@ public class SmartPopupTableTool extends JPopupMenu
 
         String aliasOption = "always";
         log.info("Setting search alias option to: [" + aliasOption + "]");
-        JXplorer.setProperty("option.ldap.searchAliasBehaviour", aliasOption);
+        JXConfig.setProperty("option.ldap.searchAliasBehaviour", aliasOption);
 
-        jx.getSearchBroker().setGUIQuiet(true);
-        SearchExecute.run(jx.getSearchTree(), dn, filter, new String[]{"objectClass"}, 0, jx.getSearchBroker());
+        browser.getSearchBroker().setGUIQuiet(true);
+        SearchExecute.run(browser.getSearchTree(), dn, filter, new String[]{"objectClass"}, 0, browser.getSearchBroker());
 
-        jx.getTreeTabPane().setSelectedComponent(jx.getResultsPanel());
+        browser.getTreeTabPane().setSelectedComponent(browser.getResultsPanel());
     }
 
     /**
@@ -192,16 +193,19 @@ public class SmartPopupTableTool extends JPopupMenu
     {
         int type = currentType.isMandatory() ? AttributeType.MANDATORY : AttributeType.NORMAL;
         String attName = currentType.getValue();
-        AttributeValue newVal;
+        AttributeValue newVal = new AttributeValue(currentValue.getBaseAttribute(), null);
+        
+
+        /*
         if (currentValue.isBinary())
         {
-            newVal = new AttributeValue(attName, null);
+            newVal = new AttributeValue(new DXAttribute(attName), null);
             newVal.setBinary(true);
         }
         else
-            newVal = new AttributeValue(attName, "");
-
-        model.addAttribute(attName, newVal, type, currentRow + 1);
+            newVal = new AttributeValue(new DXAttribute(attName), null);
+        */
+        model.addAttribute(newVal, type, currentRow + 1);
         model.fireChange();
     }
 
@@ -211,7 +215,7 @@ public class SmartPopupTableTool extends JPopupMenu
     public void delete()
     {
         model.deleteAttribute(currentType.getValue(), currentRow);
-        if (currentValue.isBinary())
+        if (currentValue.isNonStringData())
             currentValue.setValue(null);
         model.fireChange();
 
@@ -235,7 +239,7 @@ public class SmartPopupTableTool extends JPopupMenu
      */
     public void addRDNComponent()
     {
-        if (currentValue.isBinary())
+        if (currentValue.isNonStringData())
             CBUtility.error(CBIntText.get("Binary naming components are not supported."));
         else if (currentValue.isEmpty())
             CBUtility.error(CBIntText.get("A Naming Component must have an actual value."));

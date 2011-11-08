@@ -35,6 +35,7 @@ import com.ca.commons.cbutil.Theme;
 import com.ca.commons.naming.DN;
 import com.ca.commons.naming.DXNamingEnumeration;
 import com.ca.commons.security.KeystoreGUI;
+import com.ca.directory.jxplorer.broker.DataBrokerQueryInterface;
 import com.ca.directory.jxplorer.search.DeleteFilterGUI;
 import com.ca.directory.jxplorer.search.ReturnAttributesDialog;
 import com.ca.directory.jxplorer.search.SearchExecute;
@@ -53,47 +54,47 @@ public class MainMenu extends JMenuBar
 
     private static Logger log = Logger.getLogger(MainMenu.class.getName());
 
-    JXplorer jxplorer;
-    JXOpenConWin getConnection = null;  // the connection window
+    protected JXplorerBrowser browser;
+    protected JXOpenConWin getConnection = null;  // the connection window
 
-    JMenu fileMenu;
-    JMenuItem connect, disconnect, print, refreshTree, exit;
+    protected JMenu fileMenu;
+    protected JMenuItem connect, disconnect, print, refreshTree, newWindow, closeWindow, exit;
 
-    JMenu editMenu;
-    JMenuItem cut, copy, paste, delete, rename, copyDN, newEntry, pasteAlias;
+    protected JMenu editMenu;
+    protected JMenuItem cut, copy, paste, delete, rename, copyDN, newEntry, pasteAlias;
 
-    JMenu ldifMenu;
-    JMenuItem fullExport, subExport, importFile, viewOffline;
+    protected JMenu ldifMenu;
+    protected JMenuItem fullExport, subExport, importFile, viewOffline;
 
-    JMenu searchMenu;
-    JMenuItem search, deleteFilter, attrList;
+    protected JMenu searchMenu;
+    protected JMenuItem search, deleteFilter, attrList;
 
-    JMenu bookmarkMenu;
-    JMenuItem editBookmark, addBookmark, deleteBookmark;
+    protected JMenu bookmarkMenu;
+    protected JMenuItem editBookmark, addBookmark, deleteBookmark;
 
-    JMenu lookAndFeelMenu;
-	JMenuItem refresh;
+    protected JMenu lookAndFeelMenu;
+	protected JMenuItem refresh;
 
-    JMenu optionsMenu, toolsMenu;
-    JMenuItem advancedOptions;
+    protected JMenu optionsMenu, toolsMenu;
+    protected JMenuItem advancedOptions;
 
-    JMenu sslMenu;
-    JMenuItem simpleSSL, authSSL, keystoreOptions;
+    protected JMenu sslMenu;
+    protected JMenuItem simpleSSL, authSSL, keystoreOptions;
 
-    JMenu helpMenu;
-    JMenuItem helpContents, helpSearch, helpAbout;
+    protected JMenu helpMenu;
+    protected JMenuItem helpContents, helpSearch, helpAbout;
 
-	SmartTree tree;
+	protected SmartTree tree;
 
     public static Properties myProperties;   // global variables for the browser, read from...
     public static String propertyFile;       // ...a user configurable file storing default properties.
     public static String localDir;           // local directory the browser is being run from...
     public static String fileURLPrefix;      // a prefix that converts local files into a url (e.g. file:///)
 
-    public MainMenu(JXplorer jxplorer)
+    public MainMenu(JXplorerBrowser jxplorerBrowser)
     {
         super();
-        this.jxplorer = jxplorer;
+        this.browser = jxplorerBrowser;
 
         /*
          *    This is a long ftn that sets up lots and lots
@@ -164,7 +165,7 @@ public class MainMenu extends JMenuBar
         this.add(sslMenu);
         this.add(helpMenu);
 
-        jxplorer.setJMenuBar(this);
+        jxplorerBrowser.setJMenuBar(this);
 
         setDisconnected();
     }
@@ -187,7 +188,7 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
             {
                 JMenuItem src = ((JMenuItem)e.getSource());
 
-				tree = jxplorer.getActiveTree();
+				tree = browser.getActiveTree();
 
                 if (src == connect)
                     connect();
@@ -196,11 +197,15 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
                 else if (src == print)
                     print();
                 else if (src == refreshTree)
-                    jxplorer.mrTree.collapse();
+                    browser.mrTree.collapse();
+                else if (src == newWindow)
+                    browser.parent.createNewWindow();
+                else if (src == closeWindow)
+                    browser.closeWindow();
                 else if (src == exit)
-                    jxplorer.shutdown();
+                    browser.shutdown();
 
-                jxplorer.repaint();
+                browser.repaint();
             }
         };
 
@@ -222,10 +227,18 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
 
         setMenuItem(fileMenu, fileListener, new String[] {"-", "",  "", "" } );
 
-        exit = setMenuItem(fileMenu, fileListener,
-            new String[] {CBIntText.get("Exit"),    "x", CBIntText.get("Quit the JXplorer application."), "E", Theme.getInstance().getDirImages()+"blank.gif" } );
+        newWindow = setMenuItem(fileMenu, fileListener,
+            new String[] {CBIntText.get("New Window"), "N", CBIntText.get("Opens a New browser window."), "E", Theme.getInstance().getDirImages()+"new_window.gif" } );
 
-        ButtonRegister br = JXplorer.getButtonRegister();
+        closeWindow = setMenuItem(fileMenu, fileListener,
+            new String[] {CBIntText.get("Close Window"), "W", CBIntText.get("Closes this browser window."), "E", Theme.getInstance().getDirImages()+"blank.gif" } );
+
+        setMenuItem(fileMenu, fileListener, new String[] {"-", "",  "", "" } );
+
+        exit = setMenuItem(fileMenu, fileListener,
+            new String[] {CBIntText.get("Exit JXplorer"),    "x", CBIntText.get("Quit the JXplorer application."), "E", Theme.getInstance().getDirImages()+"blank.gif" } );
+
+        ButtonRegister br = browser.getButtonRegister();
         br.registerItem(br.CONNECT, connect);
         br.registerItem(br.DISCONNECT, disconnect);
         br.registerItem(br.PRINT, print);
@@ -239,20 +252,20 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
         if (getConnection == null)
         {
 			//TE: the new connection class extends CBOpenConWin...
-            getConnection = new JXOpenConWin(jxplorer, jxplorer.displayLabel,
-												JXplorer.getProperty("option.ssl.clientcerts"),
-												JXplorer.getProperty("option.ssl.cacerts"),
-												JXplorer.getProperty("option.ldap.referral"),
-												JXplorer.getProperty("option.ldap.searchAliasBehaviour"));
+            getConnection = new JXOpenConWin(browser, browser.displayLabel,
+												JXConfig.getProperty("option.ssl.clientcerts"),
+												JXConfig.getProperty("option.ssl.cacerts"),
+												JXConfig.getProperty("option.ldap.referral"),
+												JXConfig.getProperty("option.ldap.searchAliasBehaviour"));
             getConnection.setSize(450,340);
-            CBUtility.center(getConnection, jxplorer);
+            CBUtility.center(getConnection, browser);
         }
         else
         {
-            getConnection.reinit( JXplorer.getProperty("option.ssl.clientcerts"),
-                                  JXplorer.getProperty("option.ssl.cacerts"),
-                                  JXplorer.getProperty("option.ldap.referral"),
-                                  JXplorer.getProperty("option.ldap.searchAliasBehaviour"));
+            getConnection.reinit( JXConfig.getProperty("option.ssl.clientcerts"),
+                                  JXConfig.getProperty("option.ssl.cacerts"),
+                                  JXConfig.getProperty("option.ldap.referral"),
+                                  JXConfig.getProperty("option.ldap.searchAliasBehaviour"));
 
         }
 
@@ -274,7 +287,7 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
 
     public void disconnect()
     {
-        jxplorer.disconnect();
+        browser.disconnect();
     }
 
     public void setDisconnected()
@@ -287,9 +300,9 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
 
     public void print()
     {
-        jxplorer.pushStatus("Printing...");
-        jxplorer.mainViewer.print();
-        jxplorer.popStatus();
+        browser.pushStatus("Printing...");
+        browser.mainViewer.print();
+        browser.popStatus();
     }
 
     public void setupEditMenu(JMenu editMenu)
@@ -302,7 +315,7 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
             {
                 JMenuItem item = (JMenuItem)e.getSource();
 
-				tree = jxplorer.getActiveTree();
+				tree = browser.getActiveTree();
 
                 if (item == cut)
                     tree.getPopupTool().cut();
@@ -353,7 +366,7 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
         rename = setMenuItem(editMenu, editListener,
             new String[] {CBIntText.get("Rename"), "Ctrl+M", CBIntText.get("Rename an entry."), "E", Theme.getInstance().getDirImages()+"rename.gif"} );
 
-        ButtonRegister br = JXplorer.getButtonRegister();
+        ButtonRegister br = browser.getButtonRegister();
         br.registerItem(br.PASTE, paste);
         br.registerItem(br.PASTE_ALIAS, pasteAlias);
         br.registerItem(br.COPY, copy);
@@ -377,8 +390,8 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
             {
                 JMenuItem item = (JMenuItem)e.getSource();
 
-                SmartTree activeTree = jxplorer.getActiveTree();
-                boolean usingSearch = (activeTree == jxplorer.searchTree);
+                SmartTree activeTree = browser.getActiveTree();
+                boolean usingSearch = (activeTree == browser.searchTree);
 
                 if (item == fullExport)
                     ldifFullExport(activeTree, usingSearch);
@@ -389,7 +402,7 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
                 else if (item == viewOffline)
                     viewOffline();
 
-                jxplorer.repaint();
+                browser.repaint();
             }
         };
 
@@ -407,7 +420,7 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
         viewOffline = setMenuItem(ldifMenu, ldifListener,
             new String[] {CBIntText.get("View Offline"),     "w", CBIntText.get("View an LDIF file off-Line, without adding to a directory."), "E", ""} );
 
-        ButtonRegister br = JXplorer.getButtonRegister();
+        ButtonRegister br = browser.getButtonRegister();
         br.registerItem(br.LDIF, fullExport);
         br.registerItem(br.LDIF, subExport);
         br.registerItem(br.LDIF, importFile);
@@ -416,60 +429,66 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
     public void ldifFullExport(SmartTree activeTree, boolean usingSearch)
     {
         DN base = activeTree.getRootDN();
-        DataSource datasource = activeTree.getDataSource();
-        LdifExport export = new LdifExport(base, datasource, jxplorer.searchTree, usingSearch, jxplorer, HelpIDs.LDIF_EXPORT_TREE);
+        DataBrokerQueryInterface datasource = activeTree.getDataSource();
+        LdifExport export = new LdifExport(base, datasource, browser.searchTree, usingSearch, browser, HelpIDs.LDIF_EXPORT_TREE);
         export.setSize(360,120);
         export.setTitle(CBIntText.get("Export Full Tree"));
-        CBUtility.center(export, jxplorer);
+        CBUtility.center(export, browser);
         export.setVisible(true);
     }
 
     public void ldifSubExport(SmartTree activeTree, boolean usingSearch)
     {
         DN base = activeTree.getCurrentDN();
-        DataSource datasource = activeTree.getDataSource();
-        LdifExport export = new LdifExport(base, datasource, jxplorer.searchTree, usingSearch, jxplorer, HelpIDs.LDIF_EXPORT_SUBTREE);
+        DataBrokerQueryInterface datasource = activeTree.getDataSource();
+        LdifExport export = new LdifExport(base, datasource, browser.searchTree, usingSearch, browser, HelpIDs.LDIF_EXPORT_SUBTREE);
         export.setSize(360,120);
         export.setTitle(CBIntText.get("Export Subtree"));
-        CBUtility.center(export, jxplorer);
+        CBUtility.center(export, browser);
         export.setVisible(true);
     }
 
     public void importFile()
     {
-        DataSource datamodifier;
-        if (jxplorer.workOffline)
-            datamodifier = (DataSource)jxplorer.offlineBroker;
+        DataBrokerQueryInterface datamodifier;
+        if (browser.workOffline)
+            datamodifier = (DataBrokerQueryInterface) browser.offlineBroker;
         else
         {
-            if (jxplorer.jndiBroker.isActive())
-                datamodifier = (DataSource)jxplorer.jndiBroker;
+            if (browser.getJndiBroker().isActive())
+                datamodifier = (DataBrokerQueryInterface) browser.getJndiBroker();
             else
             {
-                CBUtility.error(jxplorer, "Error: Not Connected! (Did You Want to 'View Offline'?)");
+                CBUtility.error(browser, "Error: Not Connected! (Did You Want to 'View Offline'?)");
                 return;
             }
         }
-        LdifImport imp = new LdifImport(datamodifier, jxplorer.mrTree, jxplorer, null);
+        LdifImport imp = new LdifImport(datamodifier, browser.mrTree, browser, null);
     }
 
     public void viewOffline()
     {
         disconnect();
-        jxplorer.setStatus("Working Offline");
-        jxplorer.workOffline = true ;
-        jxplorer.offlineBroker.clear();
-        jxplorer.mrTree.registerDataSource(jxplorer.offlineBroker);
-        jxplorer.mrTree.setRoot(new DN(SmartTree.NODATA));
-        LdifImport imp = new LdifImport(jxplorer.offlineBroker, jxplorer.mrTree, jxplorer, null);
+        browser.setStatus("Working Offline");
+        browser.workOffline = true ;
+        browser.offlineBroker.clear();
+        browser.mrTree.registerDataSource(browser.offlineBroker);
+        browser.mrTree.setRoot(new DN(SmartTree.NODATA));
+
+        LdifImport imp = new LdifImport(browser.offlineBroker, browser.mrTree, browser, null);
+
+        browser.setTitle(CBIntText.get("JXplorer") +" - " + imp.getFileName());
 
         // XXX This activates the rest of the LDIF menu, *but* it will leave the LDIF menu activated
         // XXX even if the view offline load fails for some reason :-(.  Not sure how to fix this
         // XXX problem... - CB
 
-        ButtonRegister br = JXplorer.getButtonRegister();
+        ButtonRegister br = browser.getButtonRegister();
         br.setItemEnabled(br.LDIF, true);
-
+        br.setItemEnabled(br.CUT, true);
+        br.setItemEnabled(br.COPY, true);
+        br.setItemEnabled(br.COPY_DN, true);
+        br.setItemEnabled(br.REFRESH, true);
     }
 
 
@@ -499,25 +518,25 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
 
 				if (item == search)
 				{
-					tree = jxplorer.getActiveTree();
+					tree = browser.getActiveTree();
 					tree.openSearch();											//TE: open the search window (via Smart Tree).
 				}
 				else if (item == deleteFilter)
 				{
 					if (sm.getFilterNames(SearchModel.ALLFILTERS).size()==0)
 					{
-						JOptionPane.showMessageDialog(jxplorer, CBIntText.get("There are no filters available to delete."), CBIntText.get("Nothing to Delete"), JOptionPane.INFORMATION_MESSAGE );
+						JOptionPane.showMessageDialog(browser, CBIntText.get("There are no filters available to delete."), CBIntText.get("Nothing to Delete"), JOptionPane.INFORMATION_MESSAGE );
 						return;
 					}
 					else
 					{
-						DeleteFilterGUI dfg = new DeleteFilterGUI(jxplorer);	//TE: open the delete filter dialog.
+						DeleteFilterGUI dfg = new DeleteFilterGUI(browser);	//TE: open the delete filter dialog.
 						dfg.setVisible(true);
 					}
 				}
 				else if (item == attrList)
 				{
-					 ReturnAttributesDialog rad = new ReturnAttributesDialog(jxplorer);
+					 ReturnAttributesDialog rad = new ReturnAttributesDialog(browser);
 					 rad.setVisible(true);
 				}
 				else
@@ -525,7 +544,7 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
 					doSearch(item.getText(), ((myJMenuItem)item).getToolTipText());
 				}
 
-                jxplorer.repaint();
+                browser.repaint();
             }
         };
 
@@ -541,7 +560,7 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
         if(names.length > 0)
 		    setMenuItem(searchMenu, searchListener, new String[] {"-", "", "", "", ""} );
 
-        ButtonRegister br = JXplorer.getButtonRegister();
+        ButtonRegister br = browser.getButtonRegister();
         br.registerItem(br.SEARCH, search);
 
 		String[] searchValues = new String[names.length];
@@ -585,7 +604,7 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
 
 		//TE: base DN...
 		String baseDN = sm.getValue(name+"."+SearchModel.BASEDN);
-		DN dn = (baseDN==null) ? jxplorer.getActiveTree().getCurrentDN() : new DN(baseDN);
+		DN dn = (baseDN==null) ? browser.getActiveTree().getCurrentDN() : new DN(baseDN);
 
 		//TE: search level (base object, one level, full subtree)...
 		int searchLevel = 2;
@@ -613,7 +632,7 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
         else  //TE: there is a list of return attributes so get it...
         {
             retAttrsList = ReturnAttributesDialog.getReturnAttributes(retAttrs);
-			sm.openRetAttrDisplay(jxplorer, retAttrsList, (jxplorer.getSearchTree()).getDataSource());
+			sm.openRetAttrDisplay(browser, retAttrsList, (browser.getSearchTree()).getDataSource());
         }
 
         // Get the alias options...
@@ -630,18 +649,18 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
             aliasOption = "finding";
 
         log.info("Setting search alias option to: ["+aliasOption+"]");
-        JXplorer.setProperty("option.ldap.searchAliasBehaviour", aliasOption);
+        JXConfig.setProperty("option.ldap.searchAliasBehaviour", aliasOption);
 
 		//TE: run the search...
-		SearchExecute.run(jxplorer.getSearchTree(),
+		SearchExecute.run(browser.getSearchTree(),
 							dn,
 							filter,
 							retAttrsList,
 							searchLevel,
-							jxplorer.getSearchBroker());
+							browser.getSearchBroker());
 
 		//TE: go to results tab...
-		jxplorer.getTreeTabPane().setSelectedComponent(jxplorer.getResultsPanel());
+		browser.getTreeTabPane().setSelectedComponent(browser.getResultsPanel());
 	}
 
 
@@ -723,8 +742,8 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
 					}
 					else if (type==bookmarkMenu)								//TE: bookmark menu action.
 					{
-                        jxplorer.getTreeTabPane().setSelectedIndex(0);
-						goToBookmark(toolTps[list.getSelectedIndex()].toString(), jxplorer.getActiveTree());
+                        browser.getTreeTabPane().setSelectedIndex(0);
+						goToBookmark(toolTps[list.getSelectedIndex()].toString(), browser.getActiveTree());
 						bookmarkMenu.getPopupMenu().setVisible(false);			//TE: kill the menu (wont do it automatically with the list in it).
 						bookmarkMenu.setSelected(false);
 					}
@@ -758,20 +777,20 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
 			{
 				JMenuItem item = (JMenuItem)e.getSource();
 
-                jxplorer.getTreeTabPane().setSelectedIndex(0);
+                browser.getTreeTabPane().setSelectedIndex(0);
 
-				tree = jxplorer.getActiveTree();
+				tree = browser.getActiveTree();
 
 				if (item == editBookmark)
 					tree.openEditBookmarkDialog();
 				else if (item == addBookmark)
-					tree.openAddBookmarkDialog(jxplorer.mrTree.getCurrentDN());
+					tree.openAddBookmarkDialog(browser.mrTree.getCurrentDN());
 				else if (item == deleteBookmark)
 					tree.openDeleteBookmarkDialog();
 				else
 					goToBookmark(((myJMenuItem)item).name, tree);
 
-				jxplorer.repaint();
+				browser.repaint();
 			}
 		};
 
@@ -785,7 +804,7 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
 		new String[] {CBIntText.get("Edit Bookmark"),"i", CBIntText.get("Edit your bookmarks."), "E", Theme.getInstance().getDirImages()+"edit.gif"} );
 
 
-        ButtonRegister br = JXplorer.getButtonRegister();
+        ButtonRegister br = browser.getButtonRegister();
         br.registerItem(br.BOOKMARKS, addBookmark);
 
 		Properties propertyList = CBUtility.readPropertyFile("bookmarks.txt");
@@ -916,22 +935,22 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
      */
     protected void setupLookAndFeelMenu(JMenu lookAndFeelMenu)
     {
-       String status = ("false".equals(JXplorer.getProperty("gui.buttonbar")))?"U":"C";
+       String status = ("false".equals(JXConfig.getProperty("gui.buttonbar")))?"U":"C";
        setCheckBoxMenu(lookAndFeelMenu, new String[][] {{CBIntText.get("Show Button Bar"),"B", CBIntText.get("Display the shortcut button toolbar."),   "E", status, Theme.getInstance().getDirImages()+"blank.gif"}},
             new ActionListener()
             {
                 public void actionPerformed(ActionEvent e)
                 {
                     boolean selected = ((JCheckBoxMenuItem)e.getSource()).isSelected();
-                    jxplorer.buttonBar.setVisible(selected);
-                    jxplorer.repaint();
-                    JXplorer.setProperty("gui.buttonbar", String.valueOf(selected));
+                    browser.buttonBar.setVisible(selected);
+                    browser.repaint();
+                    JXConfig.setProperty("gui.buttonbar", String.valueOf(selected));
                 }
             }
         );
 
 
-        status = ("false".equals(JXplorer.getProperty("gui.searchbar")))?"U":"C";
+        status = ("false".equals(JXConfig.getProperty("gui.searchbar")))?"U":"C";
 
         setCheckBoxMenu(lookAndFeelMenu, new String[][] {{CBIntText.get("Show Search Bar"),"w", CBIntText.get("Show the quick search tool bar."), "E", status, Theme.getInstance().getDirImages()+"blank.gif"}},
            	new ActionListener()
@@ -939,9 +958,9 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
                 public void actionPerformed(ActionEvent e)
                 {
                     boolean selected = ((JCheckBoxMenuItem)e.getSource()).isSelected();
-                    jxplorer.searchBar.setVisible(selected);
-                    jxplorer.repaint();
-                    JXplorer.setProperty("gui.searchbar", String.valueOf(selected));
+                    browser.searchBar.setVisible(selected);
+                    browser.repaint();
+                    JXConfig.setProperty("gui.searchbar", String.valueOf(selected));
                 }
             }
         );
@@ -952,12 +971,12 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
 		    {
 		        JMenuItem item = (JMenuItem)e.getSource();
 
-				tree = jxplorer.getActiveTree();
+				tree = browser.getActiveTree();
 
 		        if (item == refresh)
  					tree.getPopupTool().refresh();
 
-		        jxplorer.repaint();
+		        browser.repaint();
 		    }
 		};
 
@@ -966,7 +985,7 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
 		refresh = setMenuItem(lookAndFeelMenu, viewListener,
 			new String[] {CBIntText.get("Refresh"), "Ctrl+R",CBIntText.get("Refreshes an Entry."), "E", Theme.getInstance().getDirImages()+"refresh.gif"} );
 
-        ButtonRegister br = JXplorer.getButtonRegister();
+        ButtonRegister br = browser.getButtonRegister();
         br.registerItem(br.REFRESH, refresh);
     }
 
@@ -1003,8 +1022,8 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
 
                 addActionListener(new ActionListener() {
                     public void actionPerformed(ActionEvent e) {
-                        JXplorer.myProperties.setProperty(propName, String.valueOf(getState()));
-                        jxplorer.repaint();
+                        JXConfig.setProperty(propName, String.valueOf(getState()));
+                        browser.repaint();
                     }
                 });
             }
@@ -1012,7 +1031,7 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
             // property may be externally changed: recheck every paint!
             public void paint(Graphics g)
             {    // weird !("false"... syntax to force default case to be true...
-                boolean state = !("false".equalsIgnoreCase(JXplorer.myProperties.getProperty(propName)));
+                boolean state = !("false".equalsIgnoreCase(JXConfig.getProperty(propName)));
                 if (state != getState()) setState(state);  // nb - this triggers another paint...!
                 super.paint(g);
             }
@@ -1038,7 +1057,7 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
         browserSearchAliases =
             new JCheckBoxMenuItem(CBIntText.get("Resolve Aliases while Browsing"));
         setMenuItemState(optionsMenu, browserSearchAliases, "A", CBIntText.get("Whether to browse the referenced object, or the alias entry itself."), true);
-        browserSearchAliases.setState("finding".equals(JXplorer.getProperty("option.ldap.browseAliasBehaviour")));
+        browserSearchAliases.setState("finding".equals(JXConfig.getProperty("option.ldap.browseAliasBehaviour")));
 
         //TE: defines a listener for the Advanced Options menu item of the Options menu.
         ActionListener optionsListener = new ActionListener()
@@ -1051,7 +1070,7 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
                 {
                     setUpAdvancedOptions();    //TE: sets up the AdvancedOptions dialog when user clicks on this menu item.
                 }
-                jxplorer.repaint();
+                browser.repaint();
             }
         };
 
@@ -1065,19 +1084,19 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
                 {
                     if (browserSearchAliases.isSelected())
                     {
-                        JXplorer.setProperty("option.ldap.browseAliasBehaviour", "finding");
-                        if (jxplorer.jndiBroker.getDirContext() != null)
+                        JXConfig.setProperty("option.ldap.browseAliasBehaviour", "finding");
+                        if (browser.getJndiBroker().getDirContext() != null)
                         {
-                            jxplorer.jndiBroker.getDirContext().addToEnvironment("java.naming.ldap.derefAliases", "finding");
+                            browser.getJndiBroker().getDirContext().addToEnvironment("java.naming.ldap.derefAliases", "finding");
                             //System.out.println("set to: " + jxplorer.jndiBroker.getDirContext().getEnvironment().get("java.naming.ldap.derefAliases"));
                         }
                     }
                     else
                     {
-                        JXplorer.setProperty("option.ldap.browseAliasBehaviour", "never");
-                        if (jxplorer.jndiBroker.getDirContext() != null)
+                        JXConfig.setProperty("option.ldap.browseAliasBehaviour", "never");
+                        if (browser.getJndiBroker().getDirContext() != null)
                         {
-                            jxplorer.jndiBroker.getDirContext().addToEnvironment("java.naming.ldap.derefAliases", "never");
+                            browser.getJndiBroker().getDirContext().addToEnvironment("java.naming.ldap.derefAliases", "never");
                             //System.out.println("set to: " + jxplorer.jndiBroker.getDirContext().getEnvironment().get("java.naming.ldap.derefAliases"));
                         }
                     }
@@ -1098,8 +1117,8 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
 
     protected void setUpAdvancedOptions()
     {
-        AdvancedOptions adOpt = new AdvancedOptions(jxplorer, this);
-        CBUtility.center(adOpt, jxplorer);
+        AdvancedOptions adOpt = new AdvancedOptions(browser, this);
+        CBUtility.center(adOpt, browser);
         adOpt.setVisible(true);
     }
 
@@ -1114,26 +1133,26 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
 
                 if (item == simpleSSL)
                 {
-                    KeystoreGUI win = new KeystoreGUI(jxplorer, JXplorer.getMyProperties(),
-                                                     JXplorer.getProperty(JXplorer.CA_PATH_PROPERTY),
+                    KeystoreGUI win = new KeystoreGUI(browser, JXConfig.getMyProperties(),
+                                                     JXConfig.getProperty(JXConfig.CA_PATH_PROPERTY),
                                                      null,
-                                                     JXplorer.getProperty(JXplorer.CA_TYPE_PROPERTY),
+                                                     JXConfig.getProperty(JXConfig.CA_TYPE_PROPERTY),
                                                      CBIntText.get("Manage Your Trusted Server Certificates."),
                                                      false, HelpIDs.SSL_CERTS, false);
                     win.setSize(450,320);
-                    CBUtility.center(win, jxplorer);
+                    CBUtility.center(win, browser);
                     win.setVisible(true);  // may modify jxplorer properties
                 }
                 else if (item == authSSL)
                 {
-                    KeystoreGUI win = new KeystoreGUI(jxplorer, JXplorer.getMyProperties(),
-                                                     JXplorer.getProperty(JXplorer.CLIENT_PATH_PROPERTY),
+                    KeystoreGUI win = new KeystoreGUI(browser, JXConfig.getMyProperties(),
+                                                     JXConfig.getProperty(JXConfig.CLIENT_PATH_PROPERTY),
                                                      null,
-                                                     JXplorer.getProperty(JXplorer.CLIENT_TYPE_PROPERTY),
+                                                     JXConfig.getProperty(JXConfig.CLIENT_TYPE_PROPERTY),
                                                      CBIntText.get("Manage Your Own Private Keys and Certificates."),
                                                      true, HelpIDs.SSL_CERTS, false);
                     win.setSize(450,440);
-                    CBUtility.center(win, jxplorer);
+                    CBUtility.center(win, browser);
                     win.setVisible(true);  // may modify jxplorer properties
                 }
 
@@ -1143,12 +1162,12 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
 
                 else if (item == keystoreOptions)
                 {
-                    KeystoreOptions options = new KeystoreOptions(jxplorer, JXplorer.getMyProperties());
+                    KeystoreOptions options = new KeystoreOptions(browser, JXConfig.getMyProperties());
                     options.setSize(530,260);
-                    CBUtility.center(options, jxplorer);
+                    CBUtility.center(options, browser);
                     options.setVisible(true);
                 }
-                jxplorer.repaint();
+                browser.repaint();
             }
         };
 
@@ -1160,7 +1179,7 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
         authSSL = setMenuItem(sslMenu, sslListener,
             new String[] {CBIntText.get("Client Certificates"),"C",
                           CBIntText.get("Setup client authentication (if available)."),
-                          ("none".equals(JXplorer.getProperty("authprovider"))?"D":"E"), Theme.getInstance().getDirImages()+"sslkeycert.gif"} );
+                          ("none".equals(JXConfig.getProperty("authprovider"))?"D":"E"), Theme.getInstance().getDirImages()+"sslkeycert.gif"} );
 
         keystoreOptions = setMenuItem(sslMenu, sslListener,
             new String[] {CBIntText.get("Advanced Keystore Options"),"K",
@@ -1183,15 +1202,15 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
 
                 if (cmd.equals(CBIntText.get("Stop Action")))
                 {
-                    jxplorer.getStopMonitor().show();
+                    browser.getStopMonitor().show();
                 }
-                jxplorer.repaint();
+                browser.repaint();
             }
         });
 
 		//TE: only enables the stop menu item if there is a query to stop.  If the stop menu
 		//	  item is repositioned up date the getItem(0) method to the appropriate index.
-		jxplorer.getStopMonitor().addWatcher(toolsMenu.getItem(0));
+		browser.getStopMonitor().addWatcher(toolsMenu.getItem(0));
     }
 
 
@@ -1203,20 +1222,20 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
             {
                 JMenuItem item = (JMenuItem)e.getSource();
 
-                if (jxplorer.helpSystem == null && item != helpAbout)               // reality check - the help system
+                if (browser.getRootJXplorer().helpSystem == null && item != helpAbout)               // reality check - the help system
                 {                                                                   // seems a bit flaky
-                    CBUtility.error(jxplorer, "Unable to open Help System", null);
+                    CBUtility.error(browser, "Unable to open Help System", null);
                     return;
                 }
 
                 if (item == helpContents)
-                    jxplorer.helpSystem.openTab(HelpIDs.TAB_TOC);     //TE: opens the help with the table of contents tab visible.
+                    browser.getRootJXplorer().helpSystem.openTab(HelpIDs.TAB_TOC);     //TE: opens the help with the table of contents tab visible.
                 else if (item == helpSearch)                //TE: opens the help with the search tab visible.
-                    jxplorer.helpSystem.openTab(HelpIDs.TAB_SEARCH);
+                    browser.getRootJXplorer().helpSystem.openTab(HelpIDs.TAB_SEARCH);
                 else if (item == helpAbout)
                     showAboutMessage();
 
-                jxplorer.repaint();
+                browser.repaint();
             }
         };
 
@@ -1245,12 +1264,12 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
         File licence = new File(System.getProperty("user.dir") + File.separator + "licence.txt");
         if (licence.exists())
         {
-            String textBody = JXplorer.version+"\n\nCopyright \u00a9 2005 CA. All rights reserved.";
+            String textBody = JXConfig.version+"\n\nCopyright \u00a9 2005 CA. All rights reserved.";
 
             try
             {
                 textBody = CBUtility.readTextFile(licence);
-                textBody = JXplorer.version + "\n" +
+                textBody = JXConfig.version + "\n" +
                            "\nWritten by: Chris Betts" +
                            "\n            Trudi Ersvaer\n" +
                            "\nThanks to:  Jason Paul" +
@@ -1261,12 +1280,12 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
             }
             catch (IOException e) {} // should still be set to original CA text.
 
-            CBAbout about = new CBAbout(jxplorer, textBody, new ImageIcon(Theme.getInstance().getDirTemplates() + "JXAboutBottom.gif"),
+            CBAbout about = new CBAbout(browser, textBody, new ImageIcon(Theme.getInstance().getDirTemplates() + "JXAboutBottom.gif"),
                         new ImageIcon(Theme.getInstance().getDirTemplates() + "JXAboutTop.gif"), CBIntText.get("OK"), CBIntText.get("Close this window"), CBIntText.get("About JXplorer"));
 
             about.setSize(477, 350);
             about.setResizable(true);
-            CBUtility.center(about, jxplorer);
+            CBUtility.center(about, browser);
             about.setVisible(true);
         }
         else

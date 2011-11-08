@@ -358,7 +358,7 @@ public abstract class CBOpenConWin extends CBDialog
 
                 //XXX Big Dirty Hack - use password for non-JKS keystores...
                 /*                                
-                String caKeystoreType     = JXplorer.getProperty("keystoreType.cacerts", "JKS");  
+                String caKeystoreType     = JXConfig.getProperty("keystoreType.cacerts", "JKS");  
                 if ("JKS".equals(caKeystoreType) == false)
                     setState(false, true);                    // XXX HACK XXX
                 else

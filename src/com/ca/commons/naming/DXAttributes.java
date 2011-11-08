@@ -759,8 +759,10 @@ public class DXAttributes implements Attributes
     {
         if (schema == null) return;
 
-        Attribute oc = null;
-        oc = getAllObjectClasses();
+        if (get("structuralTreeNode")!=null)
+            return;
+
+        Attribute oc = getAllObjectClasses();
 
         try
         {
@@ -871,7 +873,7 @@ public class DXAttributes implements Attributes
             String testOID = myldapEntry.get("OID").get().toString();
             String newName = myldapEntry.get("NAME").get().toString();
             attributeNames.put(attributeName, newName);  // add an arbitrary 'standard' name to attributeNames hash.
-            System.out.println("DEE **** Adding original: " +  attributeName +  " ( oid = " + testOID + ")  =>  " + newName);
+            //System.out.println("DEE **** Adding original: " +  attributeName +  " ( oid = " + testOID + ")  =>  " + newName);
             return newName;
         }
         catch (Exception e)
@@ -1206,13 +1208,21 @@ public class DXAttributes implements Attributes
 
                 else if (isNamingAttribute || oldAtt.size() > 1 || newAtt.size() > 1 )
                 {
+                    //bizarre special case; don't delete 'top' objectclass attribute ever... (some entries miss it, but trying to delete it makes directories cry)
+                    if (attributeName.equalsIgnoreCase("objectclass"))
+                        if (newAtt.contains("top")==false && oldAtt.contains("top")==true)
+                            newAtt.add("top");
+
+
                     DXNamingEnumeration valuesToDelete = getMissingValues(newAtt.getAll(), oldAtt.getAll());
                     // check for distinguished value, and ignore it...
                     if (isNamingAttribute)
                     	removeAnyDistinguishedValues(newRDN, attributeName, valuesToDelete);
 
                     if (valuesToDelete.size()>0)
+                    {
                         deletionSet.put(new DXAttribute(attributeName, valuesToDelete));
+                    }
                 }
             }
         }

@@ -6,6 +6,7 @@ import java.util.logging.Logger;
 
 import com.ca.commons.cbutil.*;
 import com.ca.directory.jxplorer.*;
+import com.ca.directory.jxplorer.broker.DataBrokerQueryInterface;
 
 /**
 *	This class saves filters to and reads filters from the property file "search_filters.txt".
@@ -117,9 +118,9 @@ public class SearchModel
     *	Opens the Return Attributes Dialog.
 	*	@param jx JXplorer (main frame).
 	*	@param attrNames the names of the return attributes.
-	*	@param ds the DataSource being used.
+	*	@param ds the DataBrokerQueryInterface being used.
 	*/
-	public void openRetAttrDisplay(JXplorer jx, String[] attrNames, DataSource ds)
+	public void openRetAttrDisplay(JXplorerBrowser jx, String[] attrNames, DataBrokerQueryInterface ds)
 	{
 		rat = new ReturnAttributesDisplay(jx, attrNames);			
 		rat.registerDataSource(ds);

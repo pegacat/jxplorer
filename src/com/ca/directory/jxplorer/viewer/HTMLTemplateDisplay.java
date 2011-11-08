@@ -3,6 +3,7 @@ package com.ca.directory.jxplorer.viewer;
 import com.ca.commons.cbutil.*;
 import com.ca.commons.naming.*;
 import com.ca.directory.jxplorer.*;
+import com.ca.directory.jxplorer.broker.DataBrokerQueryInterface;
 import com.ca.directory.jxplorer.tree.SmartTree;
 
 import javax.naming.NamingEnumeration;
@@ -51,7 +52,7 @@ public class HTMLTemplateDisplay extends JPanel
 {
     JScrollPane scrollDisplay;
 
-    DataSource currentDataSource = null;
+    DataBrokerQueryInterface currentDataSource = null;
 
     JEditorPane editor;
     JViewport viewport; // was CBViewport
@@ -81,8 +82,6 @@ public class HTMLTemplateDisplay extends JPanel
     public static final String ILLEGAL_VALUE = "[ATTRIBUTE TOO LARGE TO DISPLAY]";
 
     public static final String DEFAULT = "defaulttemplate";         // name for default templates...
-
-    Properties myProperties;   	// contains info about default urls and file locations.
 
     JToolBar toolBar;      	// the toolbar containing the list of allowed templates
 
@@ -138,9 +137,9 @@ public class HTMLTemplateDisplay extends JPanel
      *    Default Constructor for HTMLTemplateDisplay
      */
 
-    public HTMLTemplateDisplay(Component owner, Properties props, CBResourceLoader resourceLoader)
+    public HTMLTemplateDisplay(Component owner, CBResourceLoader resourceLoader)
     {
-        commonConstructorCode(owner, props, resourceLoader);
+        commonConstructorCode(owner, resourceLoader);
         setToDefault();
     }
 
@@ -262,7 +261,7 @@ public class HTMLTemplateDisplay extends JPanel
                             }
                             else
                             {   //TE: if the user has set (via advanced options) to launch URLs in a browser...
-                                if ((JXplorer.getProperty("option.url.handling")).equalsIgnoreCase("Launch"))
+                                if ((JXConfig.getProperty("option.url.handling")).equalsIgnoreCase("Launch"))
                                     launchClient(desc);
 //TE: otherwise open it in JXplorer...
                                 else
@@ -312,7 +311,8 @@ public class HTMLTemplateDisplay extends JPanel
         {
             viewport.setView(editor);
         }
-        catch (ArrayIndexOutOfBoundsException e) // XXX sun stuff sometimes throws an exception, claiming the viewport has no existing child??
+//        catch (ArrayIndexOutOfBoundsException e) // XXX sun stuff sometimes throws an exception, claiming the viewport has no existing child??
+        catch (Exception e) // XXX sun stuff sometimes throws an exception, claiming the viewport has no existing child?? Or things stuff up in the flow layout strategy?
         {
             viewport = new JViewport();
             viewport.setView(editor);
@@ -374,36 +374,17 @@ public class HTMLTemplateDisplay extends JPanel
      * <p>This code is run by both constructors.  It sets up the GUI and the template lists, and other
      * housekeeping tasks.</p>
      * @param owner
-     * @param props
      * @param resourceLoader
      */
-    private void commonConstructorCode(Component owner, Properties props, CBResourceLoader resourceLoader)
+    private void commonConstructorCode(Component owner, CBResourceLoader resourceLoader)
     {
-        initMyProperties(props);
-
         this.resourceLoader = resourceLoader;
 
         setupTemplateLists();
 
-/*
-        baseURL = JXplorer.getFileURL(Theme.getInstance().getDirTemplates());
-        try
-        {
-            base = new URL(baseURL);
-        }
-        catch (MalformedURLException e)
-        {
-            log.warning(" unable to parse file url: " + baseURL + "\n ( error was: " + e + " )");
-        }
-
-        localURL = myProperties.getProperty("dir.local"); 							//TE: gets the path of the users local dir.
-*/
         initGUI(owner);
 
         setStartPage();
-
-
-
     }
 
     /**
@@ -548,7 +529,7 @@ public class HTMLTemplateDisplay extends JPanel
         if (!baseTemplateDir.exists())
         {
             log.warning("can't find html template directory " + baseTemplateDir + " - trying to find /templates directory");
-            baseTemplateDir = new File(JXplorer.localDir + "templates" + File.separator);
+            baseTemplateDir = new File(JXConfig.localDir + "templates" + File.separator);
             if (!baseTemplateDir.exists())
             {
                 throw new FileNotFoundException("ERROR - Cannot find backup /template directory in " + baseTemplateDir);
@@ -571,7 +552,7 @@ public class HTMLTemplateDisplay extends JPanel
     {
         String[] zipTemplates = null;		//TE: stores the names of any resourses found in the zip/jar file.
 
-        File pluginDirectory = new File(JXplorer.getProperty("dir.plugins"));
+        File pluginDirectory = new File(JXConfig.getProperty("dir.plugins"));
         if (!pluginDirectory.exists())
             pluginDirectory.mkdirs();
 
@@ -717,17 +698,6 @@ public class HTMLTemplateDisplay extends JPanel
         viewport.setView(editor);
         scrollDisplay.setViewport(viewport);
         display = owner;
-    }
-
-    private void initMyProperties(Properties props)
-    {
-        if (props == null)
-        {
-            CBUtility.error("unable to find html templates", new Exception("Null properties list passed to HTML template display - unable to use templates..."));
-            myProperties = new Properties();
-        }
-        else
-            myProperties = props;
     }
 
     /**
@@ -1078,7 +1048,7 @@ public class HTMLTemplateDisplay extends JPanel
     }
 
 
-    public void displayEntry(DXEntry entry, DataSource formDataSource)
+    public void displayEntry(DXEntry entry, DataBrokerQueryInterface formDataSource)
     {
         if (entry == null || entry.size() == 0)
         {
@@ -1883,7 +1853,7 @@ public class HTMLTemplateDisplay extends JPanel
                  *    See if we've got a naming value to worry about.
                  */
 
-                String[] namingTypes = entry.getRDN().getAtts();
+                String[] namingTypes = entry.getRDN().getAttIDs();
                 if (namingTypes != null)
                 {
                     for (int i = 0; i < namingTypes.length; i++)
@@ -2316,7 +2286,7 @@ public class HTMLTemplateDisplay extends JPanel
             File document = new File(Theme.getInstance().getDirHtmlDocs() + docURL);
             try
             {
-                return openPage(document.toURL());
+                return openPage(document.toURL()); // TODO: refactor to .toURI().toURL() ?
             }
             catch (MalformedURLException e)
             {
@@ -2559,5 +2529,15 @@ public class HTMLTemplateDisplay extends JPanel
         return false;
     }
 
+
+    /**
+     * Whether the editor has unsaved data changes.  This may be used by the GUI to prompt the user when
+     * an editor pane is being navigated away from.
+     * @return
+     */
+
+    public void checkForUnsavedChanges()
+    {
+    }
 
 }

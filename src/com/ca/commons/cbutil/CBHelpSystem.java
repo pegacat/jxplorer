@@ -32,7 +32,7 @@ public class CBHelpSystem
     private static Logger log = Logger.getLogger(CBHelpSystem.class.getName());
 
     /**
-     * fires up the Help Broker, using the passed help file name (which
+     * fires up the Help DataBroker, using the passed help file name (which
      * is checked for localisation).
      *
      * @param helpset_Name name of the help set (and path)
@@ -47,7 +47,7 @@ public class CBHelpSystem
     }
 
     /**
-     * fires up the Help Broker, using the passed help file name (which
+     * fires up the Help DataBroker, using the passed help file name (which
      * is checked for localisation).
      *
      * @param helpset_Name name of the help set (and path)
@@ -145,11 +145,11 @@ public class CBHelpSystem
         }
         catch (NoClassDefFoundError ec)
         {
-            log.log(Level.WARNING, "Help Broker initialization error: couldn't find help set ", ec);
+            log.log(Level.WARNING, "Help DataBroker initialization error: couldn't find help set ", ec);
         }
         catch (ExceptionInInitializerError ex)
         {
-            log.log(Level.WARNING, "Help Broker initialization error: ", ex);
+            log.log(Level.WARNING, "Help DataBroker initialization error: ", ex);
             ex.getException().printStackTrace();  // very rare error - keep for debugging...
         }
         catch (Exception ee)

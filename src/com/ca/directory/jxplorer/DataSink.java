@@ -1,6 +1,7 @@
 package com.ca.directory.jxplorer;
 
 import com.ca.commons.naming.DXEntry;
+import com.ca.directory.jxplorer.broker.DataBrokerQueryInterface;
 
 /**
  *    DataSink defines the interface used by objects that
@@ -25,7 +26,7 @@ public interface DataSink
      *     and no editing will be possible.
      */
      
-    public void displayEntry(DXEntry entry, DataSource ds);
+    public void displayEntry(DXEntry entry, DataBrokerQueryInterface ds);
 
     /**
      *    Indicates whether the editor can create a new entry, given a 

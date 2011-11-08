@@ -10,6 +10,7 @@ import javax.swing.*;
 import javax.naming.*;
 import javax.naming.directory.*;
 
+import com.ca.directory.jxplorer.broker.DataQuery;
 import com.ca.directory.jxplorer.tree.*;
 import com.ca.directory.jxplorer.broker.*;
 import com.ca.commons.naming.*;
@@ -18,7 +19,7 @@ import com.ca.commons.cbutil.*;
 public class LdifExport extends CBDialog
 {
     JTextArea rootDN, newRootDN;
-    DataSource dataSource;
+    DataBrokerQueryInterface dataSource;
     SmartTree searchTree;
     SmartTree schemaTree;
 
@@ -53,7 +54,7 @@ public class LdifExport extends CBDialog
      *                       list of DNs to save from the tree, rather than
      *                       directly from the directory...
      */
-    public LdifExport(DN D, DataSource broker, SmartTree searchTree, boolean usingSearch, Frame owner)
+    public LdifExport(DN D, DataBrokerQueryInterface broker, SmartTree searchTree, boolean usingSearch, Frame owner)
     {
         this(D, broker, searchTree, usingSearch, owner, HelpIDs.LDIF_EXPORT_TREE);
     }
@@ -79,7 +80,7 @@ public class LdifExport extends CBDialog
      *                       directly from the directory...
      *    @param helpID the ID of the help page to attach to the Help button.
      */
-    public LdifExport(DN D, DataSource broker, SmartTree searchTree, boolean usingSearch, Frame owner, String helpID)
+    public LdifExport(DN D, DataBrokerQueryInterface broker, SmartTree searchTree, boolean usingSearch, Frame owner, String helpID)
     {
         super(owner, CBIntText.get("LDIF Export"), helpID);
 
@@ -145,7 +146,7 @@ public class LdifExport extends CBDialog
 
         setVisible(false);
 
-        JFileChooser chooser = new JFileChooser(JXplorer.getProperty("ldif.homeDir"));
+        JFileChooser chooser = new JFileChooser(JXConfig.getProperty("ldif.homeDir"));
 
         chooser.addChoosableFileFilter(new CBFileFilter(new String[] {"ldif", "ldi"},"Ldif Files (*.ldif, *.ldi)"));
 
@@ -175,7 +176,7 @@ public class LdifExport extends CBDialog
 					}
 				}
 
-                JXplorer.setProperty("ldif.homeDir", readFile.getParent());
+                JXConfig.setProperty("ldif.homeDir", readFile.getParent());
                 doFileWrite(readFile);
             }
         }
@@ -234,7 +235,7 @@ public class LdifExport extends CBDialog
 
         dataSource.extendedRequest(new DataQuery(DataQuery.EXTENDED)
         {
-            public void doExtendedRequest(Broker b)
+            public void doExtendedRequest(DataBroker b)
             {
                 try
                 {
@@ -242,8 +243,8 @@ public class LdifExport extends CBDialog
 
                     pbar = new CBpbar(LdifExport.this, CBIntText.get("Saving LDIF file"), CBIntText.get("Saving Data"));
 
-//XXX  SCHEMA-FIX; what's happening here?                  if (b instanceof SchemaBroker)
-//                        ((SchemaBroker)b).setRaw(true);
+//XXX  SCHEMA-FIX; what's happening here?                  if (b instanceof SchemaDataBroker)
+//                        ((SchemaDataBroker)b).setRaw(true);
 
                     myFileWriter.write("version: 1\n");
 
@@ -270,8 +271,8 @@ public class LdifExport extends CBDialog
                     setException(e);
                 }
 
-//XXX                if (b instanceof SchemaBroker)
-//                   ((SchemaBroker)b).setRaw(false);
+//XXX                if (b instanceof SchemaDataBroker)
+//                   ((SchemaDataBroker)b).setRaw(false);
 
 				if(pbar.isCanceled())	//TE: delete the file if the user cancels the export.
 					myFile.delete();
@@ -297,7 +298,7 @@ public class LdifExport extends CBDialog
      *    @return number of entries written
      */
 
-    public boolean saveLdifTree(DN treeApex, FileWriter saveFile, String origPrefix, String newPrefix, Broker broker)
+    public boolean saveLdifTree(DN treeApex, FileWriter saveFile, String origPrefix, String newPrefix, DataBroker broker)
     {
         // sanity checks...
         if (treeApex==null) return false;
@@ -366,7 +367,7 @@ public class LdifExport extends CBDialog
      *    @param replacementPrefix another DN to replace the originalPrefix.
      */
 
-    public void saveLdifList(Vector dns, FileWriter saveFile, String originalPrefix, String replacementPrefix, Broker broker)
+    public void saveLdifList(Vector dns, FileWriter saveFile, String originalPrefix, String replacementPrefix, DataBroker broker)
     {
         if (replacementPrefix==null) originalPrefix = null;                        // sanity check.
         if ((originalPrefix!=null)&&(originalPrefix.equals(replacementPrefix)))   // sanity check.

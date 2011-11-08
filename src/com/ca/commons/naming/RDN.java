@@ -360,16 +360,16 @@ public class RDN
      *    Gets the first attribute name.
      */
 
-    public String getAtt()
+    public String getAttID()
     {
-        return getAtt(0);
+        return getAttID(0);
     }
 
     /**
      *    gets the attribute name from a particular indexed rdn element.
      */
 
-    public String getAtt(int i)
+    public String getAttID(int i)
     {
         if (status == UNTESTED)
             checkForMultiValued();
@@ -398,7 +398,7 @@ if (debug)
      *    @return an array of attribute types as a string; e.g. {'cn', 'uid'}
      */
 
-    public String[] getAtts()
+    public String[] getAttIDs()
     {
         if (status == UNTESTED)
             checkForMultiValued();
@@ -437,7 +437,7 @@ if (debug)
             return false;
 
         for (int i=0; i<size(); i++)
-            if (attributeType.equalsIgnoreCase(getAtt(i)))
+            if (attributeType.equalsIgnoreCase(getAttID(i)))
                 return true;
 
         return false;
@@ -463,7 +463,7 @@ if (debug)
             return null;
 
         for (int i=0; i<size(); i++)
-            if (attributeType.equalsIgnoreCase(getAtt(i)))
+            if (attributeType.equalsIgnoreCase(getAttID(i)))
                 return getRawVal(i);
 
         return null;
@@ -622,9 +622,9 @@ if (debug)
 
             // el hack.
 
-            String[] atts = getAtts();
+            String[] atts = getAttIDs();
             String[] vals = getRawVals();               // get unescaped unicode value
-            String[] testAtts = test.getAtts();
+            String[] testAtts = test.getAttIDs();
             String[] testVals = test.getRawVals();      // get unescaped unicode value
 
             for (int i=0; i<size(); i++)
@@ -635,7 +635,7 @@ if (debug)
         }
         else
         {
-            return elementsEqual(getAtt(), test.getAtt(), getRawVal(), test.getRawVal());  // use unescaped unicode value
+            return elementsEqual(getAttID(), test.getAttID(), getRawVal(), test.getRawVal());  // use unescaped unicode value
         }
     }
 
@@ -809,7 +809,7 @@ if (debug) e.printStackTrace();
             int noElements = size();
             for (int i=0; i<noElements; i++)
             {
-                String att = getAtt(i);
+                String att = getAttID(i);
                 String val = getRawVal(i);
 
                 if (att == null || att.length()==0)

@@ -338,7 +338,9 @@ System.out.println("ended up with: '" + rawName + "'");
     }
 
     /**
-     * Update an entry with the designated DN.
+     * Update a new entry with the designated DN with the values of the old entry.
+     * If the old entry is null, this becomes an 'add'; if the new entry is null, this becomes a 'delete',
+     * otherwise it effectively copies.
      *
      * @param oldEntry the old entry containing the old set of attributes.
      * @param newEntry the new entry containing the replacement set of attributes.
@@ -363,7 +365,7 @@ System.out.println("ended up with: '" + rawName + "'");
         }
         else if (oldEntry.getDN() == null || newEntry.getDN() == null)
         {
-            throw new NamingException("Internal Error: Entry with null DN passed to JNDIBroker unthreadedModify.  Modify Request Cancelled.");
+            throw new NamingException("Internal Error: Entry with null DN passed to JNDIDataBroker unthreadedModify.  Modify Request Cancelled.");
         }
         else
         {
@@ -416,191 +418,46 @@ System.out.println("ended up with: '" + rawName + "'");
      * @param newEntry the new entry containing the replacement set of attributes.
      */
 
-    private void handleAnyNameChange(DXEntry oldEntry, DXEntry newEntry)
+    public void handleAnyNameChange(DXEntry oldEntry, DXEntry newEntry)
             throws NamingException
     {
         // check for 'simple' rename from the tree, with no attributes involved.
         RDN oldRDN = oldEntry.getRDN();
-        RDN newRDN = newEntry.getRDN();
 
         DN oldDN = oldEntry.getDN();
         DN newDN = newEntry.getDN();
-
-        //System.out.println("oldDN & newDN " + oldDN.toString() + " :  " + newDN.toString());
 
         if (oldDN.equals(newDN))
             return;                     // nothing to see here, just move along.
 
-        if (oldEntry.size() == 0 && newEntry.size() == 0) // a very simple rename, probably from the tree
+        if (exists(newDN))
+        {
+            throw new NamingException(CBIntText.get("The name: \"{0}\" already exists - please choose a different name", new String[] {newDN.getLowestRDN() .toString()}));
+        }
+        else
         {
             moveTree(oldDN, newDN);
-        }
-        else if (oldRDN.isMultiValued() == false && newRDN.isMultiValued() == false)
-        {
-            //System.out.println("renaming: " + oldDN.toString() + " to " + newDN.toString());
-            renameSingleValuedRDNS(oldEntry, newEntry);
-        }
-        else
-        {
-            renameComplexMultiValuedRDNs(oldEntry, newEntry);
-        }
-    }
 
-    /**
-     * do complex multi-valued RDN rename
-     * WARNING - this assumes that the size and the values of the RDNs will not
-     * BOTH CHANGE AT THE SAME TIME!
-     */
-    private void renameComplexMultiValuedRDNs(DXEntry oldEntry, DXEntry newEntry)
-            throws NamingException
-    {
-        String[] oldRDNs = oldEntry.getRDN().getElements();
-        String[] newRDNs = newEntry.getRDN().getElements();
-
-        DN oldDN = oldEntry.getDN();
-        DN newDN = newEntry.getDN();
-
-        /*
-         *  Create a list of 'lost RDNs' -> one's that are in the old RDN set but not in the new one.
-         */
-
-        Object[] temp = CBArray.difference(oldRDNs, newRDNs);
-        String[] lostRDNs = new String[temp.length];
-        for (int i = 0; i < temp.length; i++)
-            lostRDNs[i] = temp[i].toString();
-
-
-
-        /*
-         *  Cycle through the list of 'lost' RDNs, working out whether
-         *  they are *all* missing from the new Entry (in which case we
-         *  can do a rename with 'deleteOldRDNs=true'), or they are *all*
-         *  in the new Entry (in which case we can do a rename with
-         *  'deleteOldRDNs=false').  If some are and some aren't, throw
-         *  a hopefully useful error message.
-         */
-        final int NOT_SET = 0;
-        final int IN_NEW_ENTRY = 1;
-        final int NOT_IN_NEW_ENTRY = -1;
-
-        int deleteRDNState = NOT_SET;
-
-        for (int i = 0; i < lostRDNs.length; i++)
-        {
-            String RDN = lostRDNs[i];  // get Attribute Value Assertions from lostRDNs
-            String type = RDN.substring(0, RDN.indexOf('='));
-            String value = RDN.substring(RDN.indexOf('=') + 1);
-
-            if (newEntry.get(type).contains(value) == true)
+            for (int i=0; i<oldRDN.size(); i++)
             {
-                if (deleteRDNState == NOT_SET)      // first time through
-                    deleteRDNState = IN_NEW_ENTRY;
-                if (deleteRDNState != IN_NEW_ENTRY)
-                {
-                    setWierdoRDNError(oldDN, newDN);
-                }
-            }
-            else
-            {
-                if (deleteRDNState == NOT_SET)      // first time through
-                    deleteRDNState = NOT_IN_NEW_ENTRY;
+                // clean up the naming attribute so that general entry modify doesn't try to delete the changed naming attribute from the entry...
+                 String type = oldRDN.getAttID(i);
+                 String value = oldRDN.getRawVal(i);
 
-
-                if (deleteRDNState != NOT_IN_NEW_ENTRY)
-                {
-                    setWierdoRDNError(oldDN, newDN);
-                }
-            }
-        }
-
-        /*
-         *  perform the actual rename operation, followed by any entry
-         *  tweaking that is required to make everything consistant.
-         */
-
-        if (deleteRDNState == NOT_SET || deleteRDNState == IN_NEW_ENTRY)
-        {
-            renameEntry(oldDN, newDN, false);
-        }
-        else
-        {
-            renameEntry(oldDN, newDN, true);
-            for (int i = 0; i < lostRDNs.length; i++)
-            {
-                String RDN = lostRDNs[i];  // get Attribute Value Assertions from lostRDNs
-                String type = RDN.substring(0, RDN.indexOf('='));
-                String value = RDN.substring(RDN.indexOf('=') + 1);
-                oldEntry.get(type).remove(value);   // remove old value so it doesn't get double deleted...
+                 Attribute oldNamingAttInNewEntry = newEntry.get(type);
+                 // if the old naming value does not exist in the new entry, remove it from the old entry, so it doesn't get 'deleted' when the diff is done!
+                 if (oldNamingAttInNewEntry!=null && (oldNamingAttInNewEntry.contains(value)==false))
+                     oldEntry.get(type).remove(value);   // remove old value so it doesn't get double deleted...
             }
         }
     }
 
 
-    private void renameSingleValuedRDNS(DXEntry oldEntry, DXEntry newEntry)
-            throws NamingException
-    {
-        RDN oldRDN = oldEntry.getRDN();
-
-        String type = oldRDN.getAtt();
-        String value = oldRDN.getRawVal();
-
-        Attribute oldNamingAttInNewEntry = newEntry.get(type);
-        // if the old naming value does not exist in the new entry, drop it!
-        if (!oldNamingAttInNewEntry.contains(value))
-        {
-            renameEntry(oldEntry.getDN(), newEntry.getDN(), true);
-            oldEntry.get(type).remove(value);   // remove old value so it doesn't get double deleted...
-        }
-        // if it *does* exist in the new entry, keep it.
-        else
-        {
-            renameEntry(oldEntry.getDN(), newEntry.getDN(), false);
-        }
-    }
-
-
-    /**
-     * This creates and throws a naming exception when the user has attempted a fiendishly complex
-     * and stoopid request that requires a mixture of 'deleteOldRDN=false' and
-     * 'deleteOldRDN=true'.  Since JX does not handle indeterminate quantum
-     * states, we throw an error instead.
-     *
-     * @param oldDN
-     * @param newDN
-     * @throws NamingException a detailed error - this is ALWAYS thrown when the method is called.
-     */
-
-    private void setWierdoRDNError(DN oldDN, DN newDN)
-            throws NamingException
-    {
-        throw new NamingException(CBIntText.get("The rename operation is too complex to proceed.  Try to break it up into smaller stages.") +
-                "\n    " + oldDN.toString() + "\n => " + newDN.toString());
-    }
-
-
-
-    /*
-     *    See if the name has changed, and make required mods if it has.
-     */
-
-    //XXX - note case sensitive string compare to allow user to change capitalization...
-    //TE: XXX can't change case in RDNs????  IF delete RDN = false changing case will fail b/c in the
-    //TE: XXX dir the cn's are case insensitive so renaming from cn=A to cn=a is asking the dir to
-    //TE: XXX have two cn's in the entry that are the same because the old cn will not be deleted i.e the
-    //TE: XXX can't rename to an existing entry...
-/*        if (oldEntry.getDN().equals(newEntry.getDN()) == false)
-        {
-            //Do the rename!
-
-            moveTree(oldEntry.getDN(), newEntry.getDN());
-        }
-    }
-*/
 
     /**
      * Update an entry with the designated DN.
      *
-     * @param oldSet the old entry containing teh old set of attributes.
+     * @param oldSet the old entry containing the old set of attributes.
      * @param newSet the new entry containing the replacement set of attributes.
      * @throws NamingException if the operation fails.
      */
@@ -615,9 +472,9 @@ System.out.println("ended up with: '" + rawName + "'");
         DN nodeDN = newSet.getDN();
         RDN newRDN = nodeDN.getLowestRDN();
 
-        DXAttributes adds = null;    // use modify-add for new attribute values (inc entirely new attribute)
         DXAttributes reps = null;    // use modify-replace for changed attribute values
         DXAttributes dels = null;    // use modify-delete for deleted attribute values (inc deleting entire attribute)
+        DXAttributes adds = null;    // use modify-add for new attribute values (inc entirely new attribute)
 
         reps = DXAttributes.getReplacementSet(newRDN, oldSet, newSet);
         dels = DXAttributes.getDeletionSet(newRDN, oldSet, newSet);

@@ -6,6 +6,7 @@ package com.ca.directory.jxplorer.editor;
 
 import com.ca.commons.cbutil.*;
 import com.ca.directory.jxplorer.HelpIDs;
+import com.ca.directory.jxplorer.JXConfig;
 import com.ca.directory.jxplorer.JXplorer;
 
 import java.security.SecureRandom;
@@ -69,7 +70,7 @@ public class userpasswordeditor extends JDialog
 
         display = new CBPanel();
 
-        if (JXplorer.getProperty("mask.raw.passwords").equalsIgnoreCase("false"))
+        if (JXConfig.getProperty("mask.raw.passwords").equalsIgnoreCase("false"))
         {
             oldPwd = new JTextField();
             newPwd = new JTextField();

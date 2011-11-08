@@ -3,6 +3,7 @@ package com.ca.directory.jxplorer;
 import java.awt.Cursor;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -57,7 +58,7 @@ public class AdvancedOptions extends JDialog
     private final String[] logMethodVal = new String[]{CBIntText.get("None"), CBIntText.get("Console"), CBIntText.get("File"), CBIntText.get("Console & File")};
 
     private MainMenu mainMenu;
-    private final JXplorer jx;
+    private final JXplorerBrowser browser;
 
     // Utility constants for look and feel stuff..
     private static final int WINDOWS = 0;
@@ -82,13 +83,13 @@ public class AdvancedOptions extends JDialog
      * @param jxplorer a JXplorer object to update changes with the log level, log method & LDAP values.
      * @param mainMenu a MainMenu object to update the gui when the L&F is changed.
      */
-    public AdvancedOptions(JXplorer jxplorer, MainMenu mainMenu)
+    public AdvancedOptions(JXplorerBrowser jxplorer, MainMenu mainMenu)
     {
         super(jxplorer);
         setModal(true);
 
         this.mainMenu = mainMenu;
-        jx = jxplorer;
+        browser = jxplorer;
 
         setTitle(CBIntText.get("JXplorer Advanced Options"));
 
@@ -283,7 +284,7 @@ public class AdvancedOptions extends JDialog
 
         for (int i = 0; i < lookAndFeelVal.length; i++)
         {
-            if (String.valueOf(lookAndFeelVal[i]).equalsIgnoreCase(JXplorer.getProperty("gui.lookandfeel")))
+            if (String.valueOf(lookAndFeelVal[i]).equalsIgnoreCase(JXConfig.getProperty("gui.lookandfeel")))
                 lookAndFeel[i].setSelected(true);
         }
     }
@@ -298,7 +299,7 @@ public class AdvancedOptions extends JDialog
         // Used for exception info...
         JRadioButton rb = null;    //TE: used for exception info.
 
-        String currentLF = JXplorer.getProperty("gui.lookandfeel");
+        String currentLF = JXConfig.getProperty("gui.lookandfeel");
 
         try
         {
@@ -355,7 +356,7 @@ public class AdvancedOptions extends JDialog
                 rb.setEnabled(false);
                 log.warning("Unsupported LookAndFeel: " + rb.getText());
             }
-            JOptionPane.showMessageDialog(jx, "That 'look and feel' isn't supported on your computer.","Unsupported Look and Feel",  JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(browser, "That 'look and feel' isn't supported on your computer.","Unsupported Look and Feel",  JOptionPane.ERROR_MESSAGE);
             return;
 
         }
@@ -379,7 +380,7 @@ public class AdvancedOptions extends JDialog
         getOwner().setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
 
         // Force a refresh of the attribute display...so that the fields don't disappear (bug 367)...
-		(jx.getAttributeDisplay()).refreshEditors();
+		(browser.getAttributeDisplay()).refreshEditors();
     }
 
     /**
@@ -399,7 +400,7 @@ public class AdvancedOptions extends JDialog
         UIManager.setLookAndFeel(lf);
 
         // Updates the 'gui.lookandfeel' value in the dxconfig property file with the windows L&F...
-        JXplorer.setProperty("gui.lookandfeel", lf);
+        JXConfig.setProperty("gui.lookandfeel", lf);
         //return rb;
     }
 
@@ -416,25 +417,39 @@ public class AdvancedOptions extends JDialog
      */
     private void updateLookAndFeel()
     {
-        if ((getOwner() instanceof JXplorer) == false)
+        if ((getOwner() instanceof JXplorerBrowser) == false)
         {
             SwingUtilities.updateComponentTreeUI(getOwner());
             return;
         }
+        else // multi window magic - need to get *all* browser windows and update them
+        {
+            JXplorerBrowser triggeringBrowser = (JXplorerBrowser) getOwner();
+            JXplorer jxplorer = triggeringBrowser.getRootJXplorer();
+            ArrayList<JXplorerBrowser> browsers = jxplorer.getBrowsers();
+            for (JXplorerBrowser browser:browsers)
+            {
+                updateLookAndFeel(browser);
+            }
+        }
 
-        JXplorer jx = (JXplorer) getOwner();
+
+    }
+
+    private void updateLookAndFeel(JXplorerBrowser browser)
+    {
 
 //TE XXXXXXXXXX this produces bug 2578..........
         // Update the bulk of JXplorer with the new L&F...
-        SwingUtilities.updateComponentTreeUI(jx);
+        SwingUtilities.updateComponentTreeUI(browser);
 
         // Make sure this window gets the new L&F too...
         SwingUtilities.updateComponentTreeUI(this);
 
         // Get the trees...
-        SmartTree explore = jx.getTree();
-        SmartTree search = jx.getSearchTree();
-        SmartTree schema = jx.getSchemaTree();
+        SmartTree explore = browser.getTree();
+        SmartTree search = browser.getSearchTree();
+        SmartTree schema = browser.getSchemaTree();
 
         // To stop the truncation of tree nodes esp in Java L&F...what a joke....
         SwingUtilities.updateComponentTreeUI(explore);
@@ -490,7 +505,7 @@ public class AdvancedOptions extends JDialog
      */
     private void getLogMethod()
     {
-        String logHandlers = (JXplorer.getProperty("handlers")); // java logging standard property
+        String logHandlers = (JXConfig.getProperty("handlers")); // java logging standard property
 
         if (logHandlers.indexOf("ConsoleHandler") > 0 && logHandlers.indexOf("FileHandler") > 0)
             logMethodCombo.setSelectedItem(logMethodVal[3]);
@@ -533,7 +548,7 @@ public class AdvancedOptions extends JDialog
         Level logLevel;
         try
         {
-            logLevel = Level.parse(JXplorer.getProperty(".level"));
+            logLevel = Level.parse(JXConfig.getProperty(".level"));
         }
         catch (Exception e) // IllegalArgumentException, or possibly a null pointer exception
         {
@@ -588,8 +603,8 @@ public class AdvancedOptions extends JDialog
     private void getLdapLevels()
     {
         // Gets the values from the property file...
-        String limit = JXplorer.getProperty("option.ldap.limit");
-        String timeout = JXplorer.getProperty("option.ldap.timeout");
+        String limit = JXConfig.getProperty("option.ldap.limit");
+        String timeout = JXConfig.getProperty("option.ldap.timeout");
 
         ldapLimit.setText(limit);
         ldapLimit.setToolTipText(CBIntText.get("Enter the new limit level."));
@@ -626,7 +641,7 @@ public class AdvancedOptions extends JDialog
     private void getURLHandling()
     {
         // Gets the value from the property file...
-        String urlHandling = JXplorer.getProperty("option.url.handling");
+        String urlHandling = JXConfig.getProperty("option.url.handling");
 
         int index = 0;
 
@@ -665,7 +680,7 @@ public class AdvancedOptions extends JDialog
     private void getPasswordCachingOption()
     {
         // Gets the value from the property file...
-        String pwdCaching = JXplorer.getProperty("jxplorer.cache.passwords");
+        String pwdCaching = JXConfig.getProperty("jxplorer.cache.passwords");
 
         int index = 0;
 
@@ -702,30 +717,30 @@ public class AdvancedOptions extends JDialog
         {
             int logMethod = logMethodCombo.getSelectedIndex();
 
-            String original = JXplorer.getProperty("handlers");
+            String original = JXConfig.getProperty("handlers");
 
             switch (logMethod)
             {
                 case 0:
-                    JXplorer.setProperty("handlers", "");
+                    JXConfig.setProperty("handlers", "");
                     break;
                 case 1:
-                    JXplorer.setProperty("handlers", "java.util.logging.ConsoleHandler");
+                    JXConfig.setProperty("handlers", "java.util.logging.ConsoleHandler");
                     break;
                 case 2:
-                    JXplorer.setProperty("handlers", "java.util.logging.FileHandler");
+                    JXConfig.setProperty("handlers", "java.util.logging.FileHandler");
                     break;
                 case 3:
-                    JXplorer.setProperty("handlers", "java.util.logging.ConsoleHandler,java.util.logging.FileHandler");
+                    JXConfig.setProperty("handlers", "java.util.logging.ConsoleHandler,java.util.logging.FileHandler");
                     break;
                 default:
-                    JXplorer.setProperty("handlers", "java.util.logging.ConsoleHandler,java.util.logging.FileHandler");
+                    JXConfig.setProperty("handlers", "java.util.logging.ConsoleHandler,java.util.logging.FileHandler");
             }
 
-            if (original.equals(JXplorer.getProperty("handlers")) == false)
+            if (original.equals(JXConfig.getProperty("handlers")) == false)
             {
-                JXplorer.writePropertyFile();
-                JXplorer.setupLogger();
+                JXConfig.writePropertyFile();
+                JXConfig.setupLogger();
             }
 
 
@@ -745,62 +760,62 @@ public class AdvancedOptions extends JDialog
      */
     private void checkLogLevel()
     {
-        String original = JXplorer.getProperty(".level");
+        String original = JXConfig.getProperty(".level");
 
         switch (logLevelCombo.getSelectedIndex())
         {
             case 0:
                 {
-                    JXplorer.setProperty(".level", "SEVERE");
-                    JXplorer.setProperty("com.ca.level", "SEVERE");
+                    JXConfig.setProperty(".level", "SEVERE");
+                    JXConfig.setProperty("com.ca.level", "SEVERE");
                     break;
                 }     //TE: Errors Only option.
             case 1:
                 {
-                    JXplorer.setProperty(".level", "WARNING");
-                    JXplorer.setProperty("com.ca.level", "WARNING");
+                    JXConfig.setProperty(".level", "WARNING");
+                    JXConfig.setProperty("com.ca.level", "WARNING");
                     break;
                 }    //TE: Basic option.
             case 2:
                 {
-                    JXplorer.setProperty(".level", "INFO");
-                    JXplorer.setProperty("com.ca.level", "INFO");
+                    JXConfig.setProperty(".level", "INFO");
+                    JXConfig.setProperty("com.ca.level", "INFO");
                     break;
                 }       //TE: Tree Operations option.
             case 3:
                 {
-                    JXplorer.setProperty(".level", "FINE");
-                    JXplorer.setProperty("com.ca.level", "FINE");
+                    JXConfig.setProperty(".level", "FINE");
+                    JXConfig.setProperty("com.ca.level", "FINE");
                     break;
                 }       //TE: Extensive option.
             case 4:
                 {
-                    JXplorer.setProperty(".level", "FINEST");
-                    JXplorer.setProperty("com.ca.level", "FINEST");
+                    JXConfig.setProperty(".level", "FINEST");
+                    JXConfig.setProperty("com.ca.level", "FINEST");
                     break;
                 }     //TE: All option.
             case 5:
                 {
-                    JXplorer.setProperty(".level", "ALL");
-                    JXplorer.setProperty("com.ca.level", "ALL");
+                    JXConfig.setProperty(".level", "ALL");
+                    JXConfig.setProperty("com.ca.level", "ALL");
                     break;
                 }        //TE: All + BER Trace option.
             default:
                 {
-                    JXplorer.setProperty(".level", "WARNING");
-                    JXplorer.setProperty("com.ca.level", "WARNING");
+                    JXConfig.setProperty(".level", "WARNING");
+                    JXConfig.setProperty("com.ca.level", "WARNING");
                     break;
                 }   //TE: Errors Only option.
         }
 
-        if (original.equals(JXplorer.getProperty(".handlers")) == false)
+        if (original.equals(JXConfig.getProperty(".handlers")) == false)
         {
-            JXplorer.writePropertyFile();
-            JXplorer.setupLogger();
+            JXConfig.writePropertyFile();
+            JXConfig.setupLogger();
         }
 
         // Set the values for immediate use...
-        jx.checkSpecialLoggingActions();
+        browser.checkSpecialLoggingActions();
     }
 
     /**
@@ -825,12 +840,12 @@ public class AdvancedOptions extends JDialog
         }
 
         // Set the values in the property file...
-        JXplorer.setProperty("option.ldap.limit", limit);
-        JXplorer.setProperty("option.ldap.timeout", timeout);
+        JXConfig.setProperty("option.ldap.limit", limit);
+        JXConfig.setProperty("option.ldap.timeout", timeout);
 
         // Sets the values in searchBroker for immediate use...
-        jx.searchBroker.setTimeout(Integer.parseInt(timeout));
-        jx.searchBroker.setLimit(Integer.parseInt(limit));
+        browser.searchBroker.setTimeout(Integer.parseInt(timeout));
+        browser.searchBroker.setLimit(Integer.parseInt(limit));
     }
 
     /**
@@ -843,9 +858,9 @@ public class AdvancedOptions extends JDialog
         int index = urlCombo.getSelectedIndex();
 
         if (index == 1)
-            JXplorer.setProperty("option.url.handling", "Launch");
+            JXConfig.setProperty("option.url.handling", "Launch");
         else
-            JXplorer.setProperty("option.url.handling", "JXplorer");
+            JXConfig.setProperty("option.url.handling", "JXplorer");
     }
 
    /**
@@ -858,9 +873,9 @@ public class AdvancedOptions extends JDialog
         int index = cachePwdCombo.getSelectedIndex();
 
         if(index == 1)
-            JXplorer.setProperty("jxplorer.cache.passwords", "false");
+            JXConfig.setProperty("jxplorer.cache.passwords", "false");
         else
-            JXplorer.setProperty("jxplorer.cache.passwords", "true");
+            JXConfig.setProperty("jxplorer.cache.passwords", "true");
     }
 
    /**

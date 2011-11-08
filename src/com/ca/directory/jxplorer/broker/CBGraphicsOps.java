@@ -5,7 +5,7 @@ import com.ca.commons.cbutil.*;
 import com.ca.commons.jndi.*;
 import com.ca.commons.naming.*;
 import com.ca.commons.security.JXSSLSocketFactory;
-import com.ca.directory.jxplorer.JXplorer;
+import com.ca.directory.jxplorer.JXConfig;
 
 import javax.naming.*;
 import javax.naming.directory.*;
@@ -97,7 +97,7 @@ public class CBGraphicsOps extends DXOps
     {
 		super.modifyAttributes(dn, modList);
 		
-		if ("true".equalsIgnoreCase(JXplorer.getProperty("option.confirmTableEditorUpdates")))
+		if ("true".equalsIgnoreCase(JXConfig.getProperty("option.confirmTableEditorUpdates")))
         {
 	        CBUtility.confirm(CBIntText.get("Entry: {0} was successfully updated", new String[] {dn.toString()}));	//TE: confirmation dialog.
         }
@@ -112,7 +112,7 @@ public class CBGraphicsOps extends DXOps
 
     public void startOperation(String heading, String operationName)
     {
-        setPbar(new CBpbar(CBUtility.getDefaultDisplay(), heading, operationName));
+        this.pbar = new CBpbar(CBUtility.getDefaultDisplay(), heading, operationName);
     }
 
 
@@ -124,12 +124,12 @@ public class CBGraphicsOps extends DXOps
     public void stopOperation()
 	{
         super.stopOperation();
-		if (getPbar()==null)
+        if (pbar ==null)
 			return;
-			
-		getPbar().close();
-		setPbar(null);
-	}
+
+        pbar.close();
+        this.pbar = null;
+    }
 	
 	
 
@@ -137,7 +137,9 @@ public class CBGraphicsOps extends DXOps
      * overload this method for progress tracker.
      */
 
-    public void pop() { if (getPbar() != null) getPbar().pop();}
+    public void pop() {
+        if (pbar != null) pbar.pop();
+    }
 
     /**
      * overload this method for progress tracker.  Note that elements
@@ -150,7 +152,7 @@ public class CBGraphicsOps extends DXOps
     {
         DXNamingEnumeration DXelements = new DXNamingEnumeration(elements);
         int size = DXelements.size();  // this *doesn't* use up the enumeration - it gets refreshed...
-        if (getPbar()!=null) getPbar().push(size);
+        if (pbar !=null) pbar.push(size);
         return DXelements;
     }
 
@@ -164,14 +166,16 @@ public class CBGraphicsOps extends DXOps
     public void push(ArrayList elements)
     {
         int size = elements.size();
-        if (getPbar()!=null) getPbar().push(size);
+        if (pbar !=null) pbar.push(size);
     }
 
     /**
      * overload this method for progress tracker.
      */
 
-    public void inc() { if (getPbar()!=null) getPbar().inc();}
+    public void inc() {
+        if (pbar !=null) pbar.inc();
+    }
 
 
     /**
@@ -205,7 +209,7 @@ public class CBGraphicsOps extends DXOps
                                             connectionData.caKeystorePwd, connectionData.clientKeystorePwd,
                                             connectionData.caKeystoreType, connectionData.clientKeystoreType, CBUtility.getDefaultDisplay());
 
-                    JXSSLSocketFactory.setDebug(JXplorer.debugLevel >= 9);
+                    JXSSLSocketFactory.setDebug(JXConfig.debugLevel >= 9);
 
                     connectionData.sslSocketFactory = "com.ca.commons.security.JXSSLSocketFactory";
                 }
@@ -222,16 +226,6 @@ public class CBGraphicsOps extends DXOps
 
 
         return connectionData;
-    }
-
-    public CBpbar getPbar()
-    {
-        return pbar;
-    }
-
-    public void setPbar(CBpbar pbar)
-    {
-        this.pbar = pbar;
     }
 
 }

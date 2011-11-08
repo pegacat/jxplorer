@@ -87,10 +87,10 @@ public class KeystoreOptions extends CBDialog
          *    Read the existing values from the properties list
          */
             
-        String caType = (String) properties.get(JXplorer.CA_TYPE_PROPERTY);
-        String clientType = (String) properties.get(JXplorer.CLIENT_TYPE_PROPERTY);
-        caStore = (String) properties.get(JXplorer.CA_PATH_PROPERTY);
-        clientStore = (String) properties.get(JXplorer.CLIENT_PATH_PROPERTY);
+        String caType = (String) properties.get(JXConfig.CA_TYPE_PROPERTY);
+        String clientType = (String) properties.get(JXConfig.CLIENT_TYPE_PROPERTY);
+        caStore = (String) properties.get(JXConfig.CA_PATH_PROPERTY);
+        clientStore = (String) properties.get(JXConfig.CLIENT_PATH_PROPERTY);
 
         keyTypes.add(caType);
         if (keyTypes.contains(clientType) == false)
@@ -217,10 +217,10 @@ public class KeystoreOptions extends CBDialog
      
     public void doOK()
     {
-        properties.setProperty(JXplorer.CA_TYPE_PROPERTY, (String)caTypeCombo.getSelectedItem());
-        properties.setProperty(JXplorer.CLIENT_TYPE_PROPERTY, (String)clientTypeCombo.getSelectedItem());
-        properties.setProperty(JXplorer.CA_PATH_PROPERTY, caKeystoreLocationText.getText());
-        properties.setProperty(JXplorer.CLIENT_PATH_PROPERTY, clientKeystoreLocationText.getText());
+        properties.setProperty(JXConfig.CA_TYPE_PROPERTY, (String)caTypeCombo.getSelectedItem());
+        properties.setProperty(JXConfig.CLIENT_TYPE_PROPERTY, (String)clientTypeCombo.getSelectedItem());
+        properties.setProperty(JXConfig.CA_PATH_PROPERTY, caKeystoreLocationText.getText());
+        properties.setProperty(JXConfig.CLIENT_PATH_PROPERTY, clientKeystoreLocationText.getText());
     
         super.doOK();
     }    

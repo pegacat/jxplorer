@@ -8,11 +8,11 @@ import java.awt.print.*;
 import java.util.*;
 import java.util.logging.Logger;
 import java.util.logging.Level;
-import java.io.*;
 
 import com.ca.directory.jxplorer.*;
 import com.ca.commons.cbutil.*;
 import com.ca.commons.naming.*;
+import com.ca.directory.jxplorer.broker.DataBrokerQueryInterface;
 
 import javax.naming.directory.*;
 import javax.naming.NamingException;
@@ -63,7 +63,7 @@ public class AttributeDisplay extends JTabbedPane
      *    the source of directory data for all editors
      */
      
-    protected DataSource           dataSource;        
+    protected DataBrokerQueryInterface dataSource;
     
     /**
      *    the currently viewed entry (may be null)
@@ -93,18 +93,6 @@ public class AttributeDisplay extends JTabbedPane
      */
      
     protected TableAttributeEditor tableDisplay;                   
-
-    /**
-     *    A convenience link to schema.
-     */
-     
-//XXX?    protected DirContext schemaInfo;                               // used to discover schema
-
-    /**
-     *    A convenience link to the global JX properties list.
-     */
-     
-    protected Properties myProperties;
 
     /**
      *    The printing preferences used to print the currently visible entry editor.
@@ -217,21 +205,20 @@ public class AttributeDisplay extends JTabbedPane
      *    about default file directories and urls.  These are passed
      *    in via a Properties object, that should contain values for
      *    'dir.templates', 'dir.htmldocs', and 'dir.local'.
-     *    @param props list of defaults for file and url locations.
      *    @param owner the parent frame, used for gui sanity and L&F propogation
      *    @param resourceLoader the resource loader used to load HTML templates from zip/jar files
      */
 
-    public AttributeDisplay(Properties props, JFrame owner, CBResourceLoader resourceLoader) 
+    public AttributeDisplay(JFrame owner, CBResourceLoader resourceLoader) 
     {
         super();
 
 
-        myProperties = props;
+        //myProperties = props;
 
-        if (myProperties.containsKey("plugins.package"))
+        if (JXConfig.getProperty("plugins.package") != null)
         {
-            setPackagePrefix(myProperties.getProperty("plugins.package"));
+            setPackagePrefix(JXConfig.getProperty("plugins.package"));
             log.fine("SETTING PLUGIN PREFIX TO: " + PACKAGEPREFIX);
         }
         else
@@ -296,7 +283,7 @@ public class AttributeDisplay extends JTabbedPane
     {
         if (templateDisplay != null) return;
 
-        templateDisplay = new HTMLTemplateDisplay(this, myProperties, resourceLoader);
+        templateDisplay = new HTMLTemplateDisplay(this, resourceLoader);
         
         /*
          *    HTML editor is placed in the hashtable associated with the object
@@ -450,7 +437,7 @@ public class AttributeDisplay extends JTabbedPane
      *   @param editorName the name to display in the editor tab.
      */
      
-	public void displaySpecialEntry(DXEntry entry, DataSource ds, String editorName)
+	public void displaySpecialEntry(DXEntry entry, DataBrokerQueryInterface ds, String editorName)
 	{
 
         PluggableEditor ed = getEditor(editorName);
@@ -490,7 +477,7 @@ public class AttributeDisplay extends JTabbedPane
 // XXX requirements are worked out; if they stabilise we'll want to revisit this
 // XXX code and neaten it up (and the calling code from smart tree).
 
-    public void displayEntry(DXEntry dxentry, DataSource ds)
+    public void displayEntry(DXEntry dxentry, DataBrokerQueryInterface ds)
     {
         // Set the local data variables.
         
@@ -580,7 +567,7 @@ public class AttributeDisplay extends JTabbedPane
              
 
             // now that the editor set we're using has been sorted out,
-            // actually go and update the editors!
+            // actually go and update the editors!  (Nb. this triggers an usaved changes check)
             refreshEditors(entry, ds);
         }
     }
@@ -706,7 +693,7 @@ public class AttributeDisplay extends JTabbedPane
      *    @param ocs the object classes (in order) to find editors for.
      */
 
-    protected void setEditors(DXEntry entry, DataSource ds, Vector ocs)
+    protected void setEditors(DXEntry entry, DataBrokerQueryInterface ds, Vector ocs)
     {
     
         try
@@ -715,7 +702,7 @@ public class AttributeDisplay extends JTabbedPane
     
             // search for unique structural editors...
     
-            if ("false".equalsIgnoreCase(JXplorer.getProperty("plugins.ignoreUniqueness")))
+            if ("false".equalsIgnoreCase(JXConfig.getProperty("plugins.ignoreUniqueness")))
             {
                 if(ocs==null)		//TE: may happen if virtual entry.
 					return;
@@ -973,7 +960,7 @@ public class AttributeDisplay extends JTabbedPane
 			if (e instanceof InvocationTargetException) // rare exception - an error was encountered in the plugin's constructor.
 			{
                 log.warning("unable to load special editor for: '" + ocName + "' " + e);
-                if (JXplorer.debugLevel >= 1)
+                if (JXConfig.debugLevel >= 1)
                 {
                     log.warning("Error loading plugin class: ");
 				    ((InvocationTargetException)e).getTargetException().printStackTrace();
@@ -1062,14 +1049,14 @@ public class AttributeDisplay extends JTabbedPane
      *    Refreshes the currently visible editor with new info.
      */
 
-    public void refreshEditors(DXEntry entry, DataSource ds)
+    public void refreshEditors(DXEntry entry, DataBrokerQueryInterface ds)
     {
         if (currentEditor != null)
         {
         	this.entry = entry;	//TE: make sure everything is in sink.
 			dataSource = ds;
 			
-            currentEditor.getDataSink().displayEntry(entry, ds);
+            currentEditor.getDataSink().displayEntry(entry, ds);  // checks for unsaved changes...
 
             // check that the editor hasn't changed display component
             JComponent display = currentEditor.getDisplayComponent();
@@ -1136,4 +1123,14 @@ public class AttributeDisplay extends JTabbedPane
 
         super.removeAll();  // XXX this really shouldn't be necessary.
     }
+
+    /* not necessary?  cf refreshEditors() handling
+    public void checkForUnsavedChanges()
+    {
+            if (currentEditor != null)
+            {
+                currentEditor.checkForUnsavedChanges();
+            }
+     }
+     */
 }

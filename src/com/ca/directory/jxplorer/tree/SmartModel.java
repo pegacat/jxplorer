@@ -27,6 +27,12 @@ public class SmartModel extends DefaultTreeModel
     
     public SmartModel(TreeNode root, boolean asksAllowsChildren) { super(root, asksAllowsChildren); }
 
+    public void nodeChanged(javax.swing.tree.TreeNode treeNode)
+    {
+        super.nodeChanged(treeNode);
+    }
+
+
     /**
      *    A conversion function.  It takes a path and
      *    returns it as the corresponding DN.
@@ -185,7 +191,7 @@ public class SmartModel extends DefaultTreeModel
     {
         RDN testRDN =   copyDN.getLowestRDN();
         String testValue = copyDN.getLowestRDN().getRawVal();
-        String testClass = copyDN.getLowestRDN().getAtt();
+        String testClass = copyDN.getLowestRDN().getAttID();
 
         // XXX translation of this is ugly!  Can't see how to improve it off hand however.
         String copyPrefix = testClass + "=" + CBIntText.get("Copy");
@@ -276,18 +282,16 @@ public class SmartModel extends DefaultTreeModel
 
 
     /**
-    *   This method checks if a node that is represented by a DN exists
-    *   below its parent.  In otherwords it gets this DNs parent then gets
-    *   all the parent's children and sees if the RDN of the DN exists.
-    *   NOTE: if the new DN has already been added to the parent - there will
-    *   be two copies of it.  This method checks for two copies of the RDN.
+    *   When we change the name of a node to one that already exists, the tree will
+     * actually have two nodes with the same name.  This checks to see if this has
+     * occurred so we can catch the problem before bothering the directory.
     *
     *   @param nodeDN the full DN of the node to be found
     *   @return true if the node exists, false otherwise (or if there is an error).
     *   .
     */
 
-    public boolean exists(DN nodeDN)
+    public boolean checkForAnotherNodeWithSameRDN(DN nodeDN)
     {
         if ((nodeDN==null)) return false;
 
@@ -307,13 +311,32 @@ public class SmartModel extends DefaultTreeModel
 
             if (child.rdnEquals(nodeRDN))
             {
-                matchCount++;
+                //return true;
+
+                matchCount++;    // WTF???
 
                 if(matchCount==2)
                     return true;
+                
             }
         }
 
         return false;
     }
+
+    /**
+     * Does a node corresponding to the DN exist in the tree...
+     * @param nodeDN
+     * @return
+     */
+    
+    public boolean exists(DN nodeDN)
+    {
+        if ((nodeDN==null)) return false;
+
+        if (nodeDN.size()==0) return false;
+
+        return getNodeForDN(nodeDN)!=null;
+    }
+
 }

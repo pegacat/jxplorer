@@ -30,7 +30,8 @@ import com.ca.commons.cbutil.CBUtility;
 import com.ca.commons.cbutil.Theme;
 import com.ca.commons.naming.DN;
 import com.ca.directory.jxplorer.HelpIDs;
-import com.ca.directory.jxplorer.JXplorer;
+import com.ca.directory.jxplorer.JXConfig;
+import com.ca.directory.jxplorer.JXplorerBrowser;
 
 /**
 *	This class creates a dialog that has currently three tabs on it.  The first one is for 
@@ -45,7 +46,7 @@ import com.ca.directory.jxplorer.JXplorer;
 */
 public class SearchGUI extends CBDialog
 {
-	final JXplorer				jx;
+	final JXplorerBrowser browser;
     protected JTabbedPane		tabbedPane;  
 	JCheckBox					aliasSearchCheckBox, aliasFindingCheckBox;
 	JTextField					baseDNTextField, filterNameTextField;
@@ -65,20 +66,20 @@ public class SearchGUI extends CBDialog
 
     private static Logger log = Logger.getLogger(SearchGUI.class.getName());
 
-	//private static ReturnAttributesDisplay rat = null;
+    //private static ReturnAttributesDisplay rat = null;
 
    /**
     *	Contructor that sets up the display and initiates the main search objects: SearchModel,
 	*	BuildFilterPanel, JoinFilterPanel and TextFilterPanel.
 	*	@param	baseDN the DN of the currently selected entry (i.e. unless changed is where the search will be conducted from).
-	*	@param jxplorer JXplorer.
+	*	@param browser JXplorer.
 	*/
-	public SearchGUI(DN baseDN, JXplorer jxplorer)
+	public SearchGUI(DN baseDN, JXplorerBrowser browser)
 	{
-		super(jxplorer, CBIntText.get("Search"), HelpIDs.SEARCH);  	
-		jx = jxplorer;
+		super(browser, CBIntText.get("Search"), HelpIDs.SEARCH);
+		this.browser = browser;
 
-		build = new	BuildFilterPanel(jx);
+		build = new	BuildFilterPanel(browser);
 		join = new JoinFilterPanel(getEditButton());
 		text = new TextFilterPanel();
 		
@@ -104,13 +105,13 @@ public class SearchGUI extends CBDialog
 		CBButton btnAttrs = new CBButton(CBIntText.get("Return Attrs"), CBIntText.get("Select Returning Attributes."));
 		btnAttrs.addActionListener(new ActionListener(){
 				public void actionPerformed(ActionEvent e){
-					ArrayList list = CBListSelector.getSelectedValues(jx, build.getAttributes(), CBIntText.get("Select Returning Attributes"), HelpIDs.SEARCH);
+					ArrayList list = CBListSelector.getSelectedValues(SearchGUI.this.browser, build.getAttributes(), CBIntText.get("Select Returning Attributes"), HelpIDs.SEARCH);
 					if(list!=null)
 						returnAttrs = (String[])list.toArray(new String[list.size()]);
 		}});		
 				
 		setSize(550, 400);
-		CBUtility.center(this, jx);
+		CBUtility.center(this, this.browser);
 		
         /**
          *  This change listener is intended to listen for tab changes.
@@ -514,7 +515,7 @@ public class SearchGUI extends CBDialog
 		if(!exists)										//TE: update the filter combo if the filter doesn't exist.  Otherwise you would need to close the search dialog to see any changes??
 			join.updateFilterCombo(name);
 		
-		jx.getMainMenu().updateSearchMenu();			//TE: updates the Search menu items.			
+		browser.getMainMenu().updateSearchMenu();			//TE: updates the Search menu items.
 		
 		showMessage(CBIntText.get("Your filter ''{0}'' was saved successfully.", new String[] {name}), CBIntText.get("Successful Save."));
 	}
@@ -526,7 +527,7 @@ public class SearchGUI extends CBDialog
 	*/
 	protected void save(String name)
 	{
-		String baseDN = ((baseDNTextField.getText()).trim()).length()<=0 ? ((jx.getTree()).getRootDN()).toString() : baseDNTextField.getText(); 
+		String baseDN = ((baseDNTextField.getText()).trim()).length()<=0 ? ((browser.getTree()).getRootDN()).toString() : baseDNTextField.getText();
 		searchModel.saveValue(name, SearchModel.BASEDN, baseDN);
 		searchModel.saveValue(name, SearchModel.RETATTRS, (returnAttributesCombo.getSelectedItem()).toString());
 		searchModel.saveSearchLevel(name, searchLevelCombo.getSelectedIndex());
@@ -804,16 +805,16 @@ public class SearchGUI extends CBDialog
 			{
 				closeSearchGUI();
 				String[] attrNames = ReturnAttributesDialog.getReturnAttributes(returnAttrs);
-				searchModel.openRetAttrDisplay(jx, attrNames, (jx.getSearchTree()).getDataSource());														
-				SearchExecute.run(jx.getSearchTree(), new DN(baseDNTextField.getText()), getLDAPFilter(), attrNames, searchLevelCombo.getSelectedIndex(), jx.getSearchBroker());	//TE: the search details.				
+				searchModel.openRetAttrDisplay(browser, attrNames, (browser.getSearchTree()).getDataSource());
+				SearchExecute.run(browser.getSearchTree(), new DN(baseDNTextField.getText()), getLDAPFilter(), attrNames, searchLevelCombo.getSelectedIndex(), browser.getSearchBroker());	//TE: the search details.
 			}			
 			else
 			{
 				closeSearchGUI();
-				SearchExecute.run(jx.getSearchTree(), new DN(baseDNTextField.getText()), getLDAPFilter(),
-                        new String[] {"objectClass"}, searchLevelCombo.getSelectedIndex(), jx.getSearchBroker());	//TE: the search details.			SearchExecute.run(jx.getSearchTree(), new DN(baseDNTextField.getText()), getLDAPFilter(), attrNames, searchLevelCombo.getSelectedIndex(), jx.getSearchBroker());	//TE: the search details.
+				SearchExecute.run(browser.getSearchTree(), new DN(baseDNTextField.getText()), getLDAPFilter(),
+                        new String[] {"objectClass"}, searchLevelCombo.getSelectedIndex(), browser.getSearchBroker());	//TE: the search details.			SearchExecute.run(jx.getSearchTree(), new DN(baseDNTextField.getText()), getLDAPFilter(), attrNames, searchLevelCombo.getSelectedIndex(), jx.getSearchBroker());	//TE: the search details.
 			}	
-			jx.getTreeTabPane().setSelectedComponent(jx.getResultsPanel());	
+			browser.getTreeTabPane().setSelectedComponent(browser.getResultsPanel());
 		}		
 		else
 		{
@@ -862,7 +863,7 @@ public class SearchGUI extends CBDialog
 			aliasOption = "finding";
 		
 		log.fine("Setting search alias option to: ["+aliasOption+"]");
-		JXplorer.setProperty("option.ldap.searchAliasBehaviour", aliasOption);
+		JXConfig.setProperty("option.ldap.searchAliasBehaviour", aliasOption);
 	}
 
    /**

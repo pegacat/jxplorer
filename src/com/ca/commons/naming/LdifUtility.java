@@ -1,14 +1,18 @@
 package com.ca.commons.naming;
 
-import javax.naming.*;
-import javax.naming.directory.*;
+import com.ca.commons.cbutil.CBBase64;
+import com.ca.commons.cbutil.CBParse;
 
-import java.util.*;
-import java.util.logging.Logger;
-import java.util.logging.Level;
+import javax.naming.NamingEnumeration;
+import javax.naming.NamingException;
+import javax.naming.directory.Attribute;
+import javax.naming.directory.Attributes;
+import javax.naming.directory.BasicAttribute;
 import java.io.*;
-
-import com.ca.commons.cbutil.*;
+import java.util.Enumeration;
+import java.util.Hashtable;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 
 /**
@@ -104,14 +108,7 @@ public class LdifUtility
     }
 
     /**
-     * This is used to write a value that is *probably* normal
-     * string encoded, but *may* need to be base64 encoded.
-     * It also takes a boolean parameter that forces base64 encoding.
-     * Otherwise, it
-     * checks the string against the requirements of draft-good-ldap-ldif-04
-     * (initial character sane, subsequent characters not null, CR or LF),
-     * and returns the appropriate string, with appropriate ': ' or ':: '
-     * prefix.
+     * This writes a value as an ldif base64 encoded string.
      *
      * @param attributeValue the object to be ldif encoded
      * @return the ldif encoding (possibly base64) with appropriate colons.
@@ -125,6 +122,8 @@ public class LdifUtility
             try
             {
                 byte b[] = (byte[]) attributeValue;
+
+
                 ldifData.append(CBBase64.binaryToString(b, offset)).append("\n");
                 return ldifData.toString();
             }
@@ -415,7 +414,6 @@ public class LdifUtility
             return "";
         }
 
-        //saveFile.write("DN" + ldifEncode(DN, 2) + "\n");
         ldifData.append("DN" + ldifEncode(DN, 2) + "\n");
 
         NamingEnumeration ocs = oc.getAll();
@@ -434,48 +432,43 @@ public class LdifUtility
         {
             currentAtt = (Attribute) allAtts.next();
 
-            // XXX Binary handling dodgy - we don't really use them in GroupMind yet...
-
-            boolean binary = !(currentAtt.get() instanceof String);
-            /*
-
-
-            boolean binary = false;
-            if (currentAtt instanceof DXAttribute)
-                binary = !((DXAttribute) currentAtt).isString();
-            */
-
-            attName = currentAtt.getID();
-
-            /*
-             *    Make sure we don't print out 'DN' or objectclass attributes again
-             */
-
-            if ((attName.equals("DN") == false) && (attName.equals(oc.getID()) == false))
+            if (currentAtt.size() > 0)    // only write out attributes that have values...
             {
-                NamingEnumeration values = currentAtt.getAll();
 
-                while (values.hasMore())
+                // XXX Binary handling dodgy - we don't really use them in GroupMind yet...
+
+                boolean binary = !(currentAtt.get() instanceof String);
+
+                attName = currentAtt.getID();
+
+                /*
+                *    Make sure we don't print out 'DN' or objectclass attributes again
+                */
+
+                if ((attName.equals("DN") == false) && (attName.equals(oc.getID()) == false))
                 {
+                    NamingEnumeration values = currentAtt.getAll();
 
-                    Object value = values.next();
-
-                    if (value != null)
+                    while (values.hasMore())
                     {
+
+                        Object value = values.next();
+
+                        if (value != null)
+                        {
 //BY THE TIME IT GETS HERE THE UTF-8 IS HISTORY...
-                        if (debug)
-                        {
-                            System.out.println("value class = " + value.getClass().toString() + "   : " + value);
-                            System.out.println(attName + ": " + value.toString());
-                        }
-                        else
-                        {
-                            if (binary)
-//                                saveFile.write(attName + ldifEncode(value, attName.length(), true) + "\n");
-                                ldifData.append(ldifEncodeAsBinary(attName, value));
+                            if (debug)
+                            {
+                                System.out.println("value class = " + value.getClass().toString() + "   : " + value);
+                                System.out.println(attName + ": " + value.toString());
+                            }
                             else
-//                                saveFile.write(attName + ldifEncode(value, attName.length()) + "\n");
-                                ldifData.append(ldifEncode(attName, value));
+                            {
+                                if (binary)
+                                    ldifData.append(ldifEncodeAsBinary(attName, value));
+                                else
+                                    ldifData.append(ldifEncode(attName, value));
+                            }
                         }
                     }
                 }

@@ -3,7 +3,7 @@ package com.ca.directory.jxplorer.viewer;
 import java.awt.*;
 import javax.swing.*;
 
-import com.ca.directory.jxplorer.DataSource;
+import com.ca.directory.jxplorer.broker.DataBrokerQueryInterface;
 import com.ca.directory.jxplorer.DataSink;
 import com.ca.commons.naming.DXEntry;
 import com.ca.commons.cbutil.CBIntText;
@@ -54,7 +54,7 @@ public class BasicPluggableEditor extends JPanel
      *    Displays the data in an entry as a plain text list.
      */
      
-    public void displayEntry(DXEntry entry, DataSource ds)  
+    public void displayEntry(DXEntry entry, DataBrokerQueryInterface ds)
     {   
         String bloop = entry.toString();
         initDefaultEditor(bloop);                        
@@ -230,5 +230,16 @@ public class BasicPluggableEditor extends JPanel
     {
         CBHelpSystem.addToDefaultHelpSystem(name, getClass().getClassLoader());
     }
+    
+    /**
+     * Whether the editor has unsaved data changes.  This may be used by the GUI to prompt the user when
+     * an editor pane is being navigated away from.
+     * @return
+     */
+
+    public void checkForUnsavedChanges()
+    {
+    }
+
 
 }

@@ -37,6 +37,7 @@ public class ButtonRegister
     public final String PASTE_ALIAS     = "PASTE_ALIAS";
     public final String DELETE          = "DELETE";
     public final String NEW             = "NEW";
+    public final String NEW_WINDOW      = "NEW_WINDOW";
     public final String RENAME          = "RENAME";
     public final String REFRESH         = "REFRESH";
     public final String REFRESH_TREE    = "REFRESH_TREE";
@@ -55,6 +56,7 @@ public class ButtonRegister
                                                    PASTE_ALIAS,
                                                    DELETE,
                                                    NEW,
+                                                   NEW_WINDOW,
                                                    RENAME,
                                                    REFRESH,
                                                    REFRESH_TREE,
@@ -62,7 +64,6 @@ public class ButtonRegister
                                                    SEARCH,
                                                    STOP,
                                                    LDIF};
-
 
 
     /**
@@ -93,6 +94,21 @@ public class ButtonRegister
      */
     public void setItemEnabled(String key, boolean enabled)
     {
+        if (key.equals(COPY_DN))
+        {
+            //System.out.println("bloop");
+        }
+
+        if (key.equals(COPY))
+        {
+            //System.out.println("bloop");
+        }
+
+        if (key.equals(SEARCH))
+        {
+            //System.out.println("bloop " + enabled);
+        }
+
         if(bc != null)
         {
             ArrayList temp = bc.get(key);
@@ -110,6 +126,7 @@ public class ButtonRegister
     public void setCommonState(boolean state)
     {
         setItemEnabled(COPY, state);
+        setItemEnabled(COPY_DN, state);
         setItemEnabled(CUT, state);
         setItemEnabled(DELETE, state);
         setItemEnabled(NEW, state);
@@ -142,11 +159,27 @@ public class ButtonRegister
      */
     public void setConnectedState()
     {
+        /*
         for(int i=0;i<components.length; i++)
+        {
             if(i==6 || i==7 || i==15)
                 setItemEnabled(components[i], false);   //TE: disable stop, paste & paste alias.
             else
                 setItemEnabled(components[i], true);
+        }
+        */
+
+        for (String component:components)
+        {
+            if (component.equals(STOP))
+                setItemEnabled(component, false);
+            else if (component.equals(PASTE))
+                setItemEnabled(component, false);
+            else if (component.equals(PASTE_ALIAS))
+                setItemEnabled(component, false);
+            else
+                setItemEnabled(component, true);
+        }
     }
 
     /**

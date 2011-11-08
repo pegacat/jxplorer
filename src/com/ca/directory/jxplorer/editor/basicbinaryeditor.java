@@ -1,6 +1,7 @@
 package com.ca.directory.jxplorer.editor;
 
 import com.ca.commons.cbutil.*;
+import com.ca.directory.jxplorer.JXConfig;
 import com.ca.directory.jxplorer.JXplorer;
 import com.ca.directory.jxplorer.HelpIDs;
 import com.ca.commons.naming.DN;
@@ -267,11 +268,11 @@ public class basicbinaryeditor extends JDialog
 
 		CBCache.cleanCache(currentDN.toString());    //TE: delete any temporary files associates with this entry.
 
-        JFileChooser chooser = new JFileChooser(JXplorer.getProperty("binary.homeDir"));
+        JFileChooser chooser = new JFileChooser(JXConfig.getProperty("binary.homeDir"));
         if (chooser.showOpenDialog(frame) != JFileChooser.APPROVE_OPTION)
             return;
         File file = chooser.getSelectedFile();
-        JXplorer.setProperty("binary.homeDir", chooser.getSelectedFile().getParent());
+        JXConfig.setProperty("binary.homeDir", chooser.getSelectedFile().getParent());
 
         try
         {

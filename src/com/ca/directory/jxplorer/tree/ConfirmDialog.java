@@ -1,6 +1,7 @@
 package com.ca.directory.jxplorer.tree;
 
 import com.ca.commons.cbutil.*;
+import com.ca.directory.jxplorer.JXConfig;
 
 import javax.swing.*;
 import java.awt.*;
@@ -45,7 +46,7 @@ public class ConfirmDialog extends JDialog implements ActionListener
     public ConfirmDialog(String Msg, String binaryProperty, Frame parent)
     {
         super(parent);
-        this.myProperties = com.ca.directory.jxplorer.JXplorer.myProperties;
+        this.myProperties = JXConfig.myProperties;
         this.binaryProperty = binaryProperty;
         //XXX should really check Msg string length...
         setSize(new Dimension(300,120));

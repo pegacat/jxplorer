@@ -19,17 +19,17 @@ public class SearchBar extends JToolBar
      * This sets up the quick search tool bar.  It acts as a quick GUI to allow common, simple searches to be entered,
      * and calls SearchExecute to do the real work.
      */
-    JXplorer jxplorer;
+    JXplorerBrowser browser;
     StopMonitor stopMonitor;
 
     int lastQuickSearchSelection = 0;
 
     private static Logger log = Logger.getLogger(SearchBar.class.getName());
 
-    public SearchBar(JXplorer jxplorer)
+    public SearchBar(JXplorerBrowser browser)
     {
         super();
-        this.jxplorer = jxplorer;
+        this.browser = browser;
 
         setFloatable(false);
 
@@ -40,10 +40,10 @@ public class SearchBar extends JToolBar
         final CBButton search = new CBButton(CBIntText.get("Quick Search"), CBIntText.get("Click here to perform the search."));
         search.setPreferredSize(new Dimension(90, 20));
 
-        ButtonRegister br = JXplorer.getButtonRegister();
+        ButtonRegister br = browser.getButtonRegister();
         br.registerItem(br.SEARCH, search);
 
-        jxplorer.getRootPane().setDefaultButton(search);	//TE: Sets the search button as the default - i.e for when the user hits the 'enter' key.
+        browser.getRootPane().setDefaultButton(search);	//TE: Sets the search button as the default - i.e for when the user hits the 'enter' key.
 
         final CBJComboBox searchAttribute;   // the attribute to search on
         final CBJComboBox searchFtn;         // the search function to use
@@ -99,7 +99,7 @@ public class SearchBar extends JToolBar
 //XXX        jxplorer.jndiBroker.setStopMonitor(stopMonitor);
 //        jxplorer.mainPane.add(searchBar, BorderLayout.NORTH);
 
-        final JXplorer jx = jxplorer;
+        final JXplorerBrowser jx = browser;
 
         search.addActionListener(new ActionListener()
         {
@@ -121,7 +121,7 @@ public class SearchBar extends JToolBar
 
                 String aliasOption = "always";
                 log.info("Setting search alias option to: [" + aliasOption + "]");
-                JXplorer.setProperty("option.ldap.searchAliasBehaviour", aliasOption);
+                JXConfig.setProperty("option.ldap.searchAliasBehaviour", aliasOption);
 
                 SearchExecute.run(jx.getSearchTree(), base, filter, new String[]{"objectClass"}, 2, jx.getSearchBroker());
                 jx.getTreeTabPane().setSelectedComponent(jx.getResultsPanel());

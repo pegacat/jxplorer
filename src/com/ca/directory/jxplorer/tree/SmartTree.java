@@ -3,6 +3,7 @@ package com.ca.directory.jxplorer.tree;
 import com.ca.commons.cbutil.*;
 import com.ca.commons.naming.*;
 import com.ca.directory.jxplorer.*;
+import com.ca.directory.jxplorer.broker.*;
 import com.ca.directory.jxplorer.event.JXplorerEvent;
 import com.ca.directory.jxplorer.event.JXplorerEventGenerator;
 import com.ca.directory.jxplorer.search.SearchGUI;
@@ -56,7 +57,7 @@ public class SmartTree extends JTree
 
     //final JTree           tree;            // the main JTree over which everything is built.
 
-    Frame owner;           // used for Swing/graphics L&F continuity
+    JXplorerBrowser browser;           // used for Swing/graphics L&F continuity
 
     SmartNode root;            // the node representing the first RDN of the rootDN
     SmartNode rootDNBase;      // the node representing the lowest RDN of the rootDN (may = top if only 1 rdn in rootDN)
@@ -71,13 +72,12 @@ public class SmartTree extends JTree
 
     DefaultTreeCellEditor treeEditor;      // widget that allows user to edit node names
 
-    TreeCellEditor innerEditor;     // the custom widget that actually creates the editor component.
-
     SmartTreeCellRenderer treeRenderer;    // widget that display the nodes (text + icons)
 
     public boolean rootSet = false; // whether the root node is set.
 
-    DataSource treeDataSource;               // where the tree obtains its data
+    DataBroker treeDataSource;  // where the tree obtains its data
+
     Vector treeDataSinks = new Vector(); // a list of objects interested in tree changes
 
     //int                   treeCapabilities; // a bit mask of DataQueries to respond to.
@@ -118,10 +118,10 @@ public class SmartTree extends JTree
      * @param resourceLoader - a resource Loader used to get extra tree icons.  May be null.
      */
 
-    public SmartTree(Frame Owner, String name, CBResourceLoader resourceLoader)
+    public SmartTree(JXplorerBrowser Owner, String name, CBResourceLoader resourceLoader)
     {
         treeNo++;
-        owner = Owner;
+        browser = Owner;
 
         this.name = name;
 
@@ -142,7 +142,6 @@ public class SmartTree extends JTree
          *    custom editor, allows editing of multi-valued rdn.
          */
 
-        //treeEditor = new SmartTreeCellEditor(this, new DefaultTreeCellRenderer());  
         treeEditor = new SmartTreeCellEditor(this, treeRenderer);
 
         setCellEditor(treeEditor);
@@ -150,7 +149,7 @@ public class SmartTree extends JTree
         treeModel = new SmartModel(root);
         setModel(treeModel);
 
-        registerPopupTool(new SmartPopupTool(this));
+        registerPopupTool(new SmartPopupTool(this, browser));
         // disallow multiple selections...
         getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
         addTreeSelectionListener(this);
@@ -386,12 +385,12 @@ public class SmartTree extends JTree
 
     /**
      * registers the data source the tree is to use to read its
-     * data (e.g. a JNDIBroker).  There can be only one of these.
+     * data (e.g. a JNDIDataBroker).  There can be only one of these.
      *
      * @param s the source of data for initialising SmartNodes etc.
      */
 
-    public void registerDataSource(DataSource s)
+    public void registerDataSource(DataBroker s)
     {
         if (s == null) return;    // sanity check
 
@@ -410,7 +409,7 @@ public class SmartTree extends JTree
      * @return the data source used by the tree.
      */
 
-    public DataSource getDataSource()
+    public DataBroker getDataSource()
     {
         return treeDataSource;
     }
@@ -726,7 +725,6 @@ public class SmartTree extends JTree
 
     public void refreshEditorPane()
     {
-        //TE: was...	if(entry!=null && treeDataSource!=null)
         pluggableEditorSource.refreshEditors(entry, treeDataSource);
     }
 
@@ -897,6 +895,7 @@ public class SmartTree extends JTree
         parent.sort();
         // signal a change to the tree for a display update...
         treeModel.nodeStructureChanged(parent);
+
     }
 
     /**
@@ -977,7 +976,7 @@ public class SmartTree extends JTree
     {
         if (treeDataSource.getSchemaOps() == null)
         {
-            JOptionPane.showMessageDialog(owner, CBIntText.get("Because there is no schema currently published by the\ndirectory, adding a new entry is unavailable."), CBIntText.get("No Schema"), JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(browser, CBIntText.get("Because there is no schema currently published by the\ndirectory, adding a new entry is unavailable."), CBIntText.get("No Schema"), JOptionPane.INFORMATION_MESSAGE);
             return;
         }
         else
@@ -1033,10 +1032,10 @@ public class SmartTree extends JTree
 // step 3: open a NewEntryWin (see) and pass the found child to it.
 
 
-            NewEntryWin userData = new NewEntryWin(parentDN, childDN, treeDataSource, editor, owner);
+            NewEntryWin userData = new NewEntryWin(parentDN, childDN, treeDataSource, editor, browser);
 
             userData.setSize(400, 300);
-            CBUtility.center(userData, owner);    // TE: centres window.
+            CBUtility.center(userData, browser);    // TE: centres window.
             userData.setVisible(true);
         }
     }
@@ -1062,6 +1061,11 @@ public class SmartTree extends JTree
     public SmartPopupTool getPopupTool()
     {
         return popupTreeTool;
+    }
+
+    public boolean popupToolVisible()
+    {
+        return popupTreeTool.isVisible();
     }
 
     public void registerEventPublisher(JXplorerEventGenerator gen)
@@ -1138,6 +1142,77 @@ public class SmartTree extends JTree
         treeDataSource.copyTree(oldNodeDN, newNodeDN);  // queue directory request
     }
 
+    public void copyTreeFromExternalDirectory(DN oldNodeDN, DN newNodeDN, SmartTree fromTree)
+    {
+        // 'copy'ing a tree means placing the old tree *under*
+        // the newly selected tree... hence deepen 'activeDN' by
+        // one new level.  (i.e. copying ou=eng,o=uni,c=au moved
+        // to o=biz,c=au requires activeDN extended to ou=eng,o=biz,c=au before move
+
+        // * first check name is not already there; if it is, create a
+        //   unique name of the form "copy [(n)] of ..." first.
+        // * if adding this to the *display* tree fails display error message.
+        // * if directory mod fails, clean up display tree...
+
+        DN testTargetDN = new DN(oldNodeDN.getLowestRDN().toString() + "," + newNodeDN.toString());
+
+        boolean overwriteExistingData = true;
+
+        try
+        {
+            // check for name clash, and ask user for what to do if there is one...
+//            if (targetRDN.equals(oldRDN))    // see if we're trying to copy over a node with the same name...
+            if (treeModel.exists(testTargetDN))    // see if we're trying to copy over a node with the same name...
+            {
+                // ask user whether to a) copy to new branch (copy of...), replace (delete + paste) or overwrite (merge and splat?)
+                Object[] possibleValues = { CBIntText.get("Copy"), CBIntText.get("Replace"), CBIntText.get("Merge") };
+                Object selectedValue = JOptionPane.showInputDialog(browser,
+                        CBIntText.get("There is already a branch with that name.\nDo you want to:\n a) create a new copy,\n" +
+                                "b) replace the existing tree,\nc) merge the new data with the old?"),
+                        "Input", JOptionPane.INFORMATION_MESSAGE, null,possibleValues, possibleValues[0]);
+
+
+                if (selectedValue.equals(CBIntText.get("Copy")))
+                {
+                    String uniqueRDN = treeModel.getUniqueCopyRDN(newNodeDN, oldNodeDN);
+                    newNodeDN.addChildRDN(uniqueRDN);
+                }
+                else if (selectedValue.equals(CBIntText.get("Replace")))
+                {
+                    newNodeDN.addChildRDN(oldNodeDN.getLowestRDN());
+
+                }
+                else if (selectedValue.equals(CBIntText.get("Merge")))
+                {
+                    newNodeDN.addChildRDN(oldNodeDN.getLowestRDN());
+                    overwriteExistingData = false; // we'll try to merge just the new values and entries over the top...
+                }
+                else
+                {
+                    log.warning("Unexpected Error determining value - reverting to 'Copy'");
+                    String uniqueRDN = treeModel.getUniqueCopyRDN(newNodeDN, oldNodeDN);
+                    newNodeDN.addChildRDN(uniqueRDN);
+                }
+            }
+            else
+            {
+                // equivalent handling to replace, but we're not replacing anything...
+                String uniqueRDN = treeModel.getUniqueCopyRDN(newNodeDN, oldNodeDN);
+                newNodeDN.addChildRDN(uniqueRDN);
+            }
+
+        // check not recursively pasting
+        }
+        catch (javax.naming.InvalidNameException e)
+        {
+            CBUtility.error(this, CBIntText.get("Unable to add {0} due to bad name", new String[]{newNodeDN.toString()}), e);
+            return;
+        }
+
+        treeDataSource.copyTreeBetweenWindows(oldNodeDN, newNodeDN, fromTree.treeDataSource, overwriteExistingData);  // queue directory request
+        refresh(newNodeDN);
+
+    }
 
     /**
      * Displays the result of a expand result, triggered from the data listener.
@@ -1146,7 +1221,7 @@ public class SmartTree extends JTree
      * @param result the directory read result
      */
 
-    protected void displayExpandedNodeResult(DataQuery result)
+    protected void displayExpandedNodeResult(com.ca.directory.jxplorer.broker.DataQuery result)
     {
         // 1) Find node for result
 
@@ -1189,7 +1264,7 @@ public class SmartTree extends JTree
 
             if (node == getLowestRootNode() && node.getChildCount() == 0)
             {
-                pluggableEditorSource.displaySpecialEntry(null, treeDataSource, JXplorer.getProperty("null.entry.editor"));
+                pluggableEditorSource.displaySpecialEntry(null, treeDataSource, JXConfig.getProperty("null.entry.editor"));
             }
 
 
@@ -1229,7 +1304,7 @@ public class SmartTree extends JTree
         {
             //TE: only display the entry if the dn is below the root DN (baseDN) and if the prefix is the same.
 
-            JOptionPane.showMessageDialog(owner, CBIntText.get("The entry {0}\nwill not be displayed because it is either above the baseDN\n{1}\n" +
+            JOptionPane.showMessageDialog(browser, CBIntText.get("The entry {0}\nwill not be displayed because it is either above the baseDN\n{1}\n" +
                     "that you are connected with or it has a different prefix.", new String[]{dn.toString(), rootDN.toString()}),
                     CBIntText.get("Display Error"), JOptionPane.ERROR_MESSAGE);
             return;
@@ -1292,7 +1367,7 @@ public class SmartTree extends JTree
      *             be shown.
      */
 
-    public void displayReadNodeResult(DataQuery node)
+    public void displayReadNodeResult(com.ca.directory.jxplorer.broker.DataQuery node)
     {
         // sanity check
         if (treeDataSinks.size() == 0)
@@ -1374,7 +1449,7 @@ public class SmartTree extends JTree
      * @param dataSource the datasource to use for further info/operations.
      *                   Null indicates no available data source.
      */
-    public void publishData(DXEntry entry, DataSource dataSource)
+    public void publishData(DXEntry entry, DataBrokerQueryInterface dataSource)
     {
         for (int i = 0; i < treeDataSinks.size(); i++)
         {
@@ -1387,7 +1462,7 @@ public class SmartTree extends JTree
      * This is called when a modify request has been completed.
      */
 
-    protected void displayModifyResult(DataQuery result)
+    protected void displayModifyResult(com.ca.directory.jxplorer.broker.DataQuery result)
     {
 
         try
@@ -1417,7 +1492,10 @@ public class SmartTree extends JTree
                 }
                 else if (newEntry == null) // delete
                 {
+                    DN parentDN = oldEntry.getDN().parentDN();
                     deleteTreeNode(treeModel.getNodeForDN(oldEntry.getDN()));
+                    if (parentDN != null && parentDN.size()>rootDN.size())
+                        setSelectionPath(treeModel.getPathForDN(parentDN));
                 }
                 else if (oldEntry.getDN().equals(newEntry.getDN()) == false) // check for a change of name
                 {
@@ -1480,13 +1558,14 @@ public class SmartTree extends JTree
      *               be shown.
      */
 
-    protected void displayCopyResult(DataQuery result)
+    protected void displayCopyResult(com.ca.directory.jxplorer.broker.DataQuery result)
     {
         try
         {
             if (result.getStatus() == true)
             {
                 copyTreeNode(treeModel.getNodeForDN(result.oldDN()), result.requestDN());
+                this.setSelectionPath(treeModel.getPathForDN(result.requestDN()));
             }
         }
         catch (NamingException e)
@@ -1495,6 +1574,49 @@ public class SmartTree extends JTree
         }
     }
 
+
+    /**
+     * Displays a copy result, triggered from the data listener.
+     * This (should) run from the directory connection thread.
+     *
+     * @param result the directory copy result.
+     *               be shown.
+     */
+
+    protected void displayXWinCopyResult(com.ca.directory.jxplorer.broker.DataQuery result)
+    {
+        setNumOfResults(0);
+
+        try
+        {
+            NamingEnumeration results = result.getEnumeration();
+
+            while (results.hasMoreElements())
+            {
+                SearchResult sr = (SearchResult) results.nextElement();
+                String search = sr.getName();
+                if (search == null || search.length() == 0)
+                {
+                    addNode(new DN(SmartTree.NODATA));
+                }
+                else
+                {
+                    DN searchDN = new DN(search);
+                    addNode(searchDN);
+                    numOfResults++;
+                }
+            }
+
+            this.setSelectionPath(treeModel.getPathForDN(result.requestDN()));
+
+            //expandAll();
+
+        }
+        catch (NamingException e)
+        {
+            result.setException(e);  // XXX set the exception on the result object, let someone else handle it.
+        }
+    }
     /**
      * Displays a search result, triggered from the data listener.
      * This (should) run from the directory connection thread.
@@ -1503,7 +1625,7 @@ public class SmartTree extends JTree
      *               be shown.
      */
 
-    protected void displaySearchResult(DataQuery result)
+    protected void displaySearchResult(com.ca.directory.jxplorer.broker.DataQuery result)
     {
 
 // XXX Currently search results aren't sorted: do want to make them sorted?
@@ -1532,8 +1654,8 @@ public class SmartTree extends JTree
                 }
             }
             //TE: task 4648...
-            if (owner instanceof JXplorer)
-                ((JXplorer) owner).setStatus("Number of search results: " + String.valueOf(numOfResults));
+            if (browser instanceof JXplorerBrowser)
+                ((JXplorerBrowser) browser).setStatus("Number of search results: " + String.valueOf(numOfResults));
 
             expandAll();
 
@@ -1567,7 +1689,7 @@ public class SmartTree extends JTree
     /**
      *    By default the tree can handle dataQueries of type LIST, COPY, MODIFY, and READENTRY.
      *    This method allows these capabilities to be modified (for example to include SEARCH).
-     *    @see com.ca.directory.jxplorer.DataQuery .
+     *    @see com.ca.directory.jxplorer.broker.DataQuery .
      */
 /*
     public void setCapabilities(int cap)
@@ -1608,6 +1730,8 @@ public class SmartTree extends JTree
                 changeDN();
             }
 
+     
+
             /**
              * This method is called when the user has changed the name of an
              * entry directly, using a tree cell editor or the multi-valued
@@ -1632,9 +1756,9 @@ public class SmartTree extends JTree
 
                 //TE: Bug 3172 - if the name exists in the tree, don't attempt a rename...
 
-                if (treeModel.exists(newDN))
+                if (treeModel.checkForAnotherNodeWithSameRDN(newDN))
                 {
-                    new CBErrorWin(owner, "The name you are trying to use already exists - " +
+                    new CBErrorWin(browser, "The name you are trying to use already exists - " +
                             "please choose another name or delete the original entry.",
                             "Name already exists");
                     refresh(currentDN.parentDN());
@@ -1652,21 +1776,59 @@ public class SmartTree extends JTree
     /**
      * sets up the mouse listener to monitor mouse clicks.  At
      * the moment, the sole use of this is to check whether the
-     * popup menu has been triggered.
+     * popup menu has been triggered, and to supress 'normal' mouse tree
+     * event handling if it has.
      */
 
     protected void setTreeMouseListener()
     {
-        MouseListener ml = new MouseAdapter()
-        {
+        // hack our mouse listener to come first, so we can trigger the popup tool before the
+        // tree cell editor timer...
+
+        // grab a list of the old listeners (usually just one; the default tree UI listener)
+        MouseListener[] listeners = getMouseListeners();
+
+        // clean out all the old listeners
+        for (MouseListener listener:listeners)
+            removeMouseListener(listener);
+
+        // create new popup listener, incorporating all other listeners
+        PopupMouseListener mouseListener = new PopupMouseListener();
+
+        // make that single listener the new 'uber listener'
+        addMouseListener(mouseListener);
+
+        // add back the old listeners
+        for (MouseListener listener:listeners)
+            addMouseListener(listener);
+    }
+
+    /**
+     * This creates a 'priority' mouse listener, so that popup events
+     * do not trigger tree cell editing.
+     */
+    class PopupMouseListener implements MouseListener
+    {
+            public void mouseClicked(MouseEvent e)
+            {
+            }
+
             public void mousePressed(MouseEvent e)
             {
-                if (!doPopupStuff(e)) super.mousePressed(e);
+                doPopupStuff(e);
             }
 
             public void mouseReleased(MouseEvent e)
             {
-                if (!doPopupStuff(e)) super.mouseReleased(e);
+                doPopupStuff(e);
+            }
+
+            public void mouseEntered(MouseEvent e)
+            {
+            }
+
+            public void mouseExited(MouseEvent e)
+            {
             }
 
             public boolean doPopupStuff(MouseEvent e)
@@ -1682,7 +1844,7 @@ public class SmartTree extends JTree
                 }
 
                 setSelectionPath(path); // make sure highlighting stays around
-
+                
                 // this probably isn't necessary, but just to make sure that currentDN is set
 
                 DN thisDN = treeModel.getDNForPath(path);
@@ -1712,9 +1874,8 @@ public class SmartTree extends JTree
                 }
                 return true;
             }
-        };
-        addMouseListener(ml);
-    }
+        }
+
 
     /**
      * null implementation to satisfy @TreeExpansionListener interface
@@ -1802,11 +1963,11 @@ public class SmartTree extends JTree
 
     /**
      * This is the data listener interface - this method is called when a data query is finished
-     * by a Broker.  The tree listens to these results, and adjusts itself to reflect successfull
+     * by a DataBroker.  The tree listens to these results, and adjusts itself to reflect successfull
      * directory operations.
      */
 
-    public void dataReady(DataQuery result)
+    public void dataReady(com.ca.directory.jxplorer.broker.DataQuery result)
     {
         int type = result.getType();
 
@@ -1814,12 +1975,12 @@ public class SmartTree extends JTree
         {
             String exception = result.getException().toString();	//TE: quick solution to bug 561...if dsa is offine keep the tree but set everything else to disconnected mode.
             if (exception.indexOf("Socket closed") > -1)
-                if (owner instanceof JXplorer)
-                    ((JXplorer) owner).setDisconnectView();
+                if (browser instanceof JXplorerBrowser)
+                    ((JXplorerBrowser) browser).setDisconnectView();
 
             CBUtility.error("Unable to perform " + result.getTypeString() + " operation.", result.getException());
 
-            if (type == DataQuery.LIST)        // clean up failed list result...
+            if (type == com.ca.directory.jxplorer.broker.DataQuery.LIST)        // clean up failed list result...
             {
                 SmartNode node = treeModel.getNodeForDN(result.requestDN());
                 if (!node.isAlwaysRefresh()) // XXX Hack to avoid losing tree when get error reading non-existant base DN node.
@@ -1835,23 +1996,27 @@ public class SmartTree extends JTree
         {
             switch (type)
             {
-                case DataQuery.LIST:
+                case com.ca.directory.jxplorer.broker.DataQuery.LIST:
                     displayExpandedNodeResult(result);
                     break;
 
-                case DataQuery.COPY:
+                case com.ca.directory.jxplorer.broker.DataQuery.COPY:
                     displayCopyResult(result);
                     break;
 
-                case DataQuery.MODIFY:
+                case com.ca.directory.jxplorer.broker.DataQuery.XWINCOPY:
+                    displayXWinCopyResult(result);
+                    break;
+
+                case com.ca.directory.jxplorer.broker.DataQuery.MODIFY:
                     displayModifyResult(result);
                     break;
 
-                case DataQuery.SEARCH:
+                case com.ca.directory.jxplorer.broker.DataQuery.SEARCH:
                     displaySearchResult(result);
                     break;
 
-                case DataQuery.READENTRY:
+                case com.ca.directory.jxplorer.broker.DataQuery.READENTRY:
                     displayReadNodeResult(result);
                     break;
             }
@@ -1885,7 +2050,7 @@ public class SmartTree extends JTree
         if (JXplorer.isSolaris()) return;
 
 // Disable Drag and Drop if the user has set the option to do so... ('true' is default though).
-        if (!JXplorer.getProperty("option.drag.and.drop").equals("true"))
+        if (!JXConfig.getProperty("option.drag.and.drop").equals("true"))
             return;
 
         /*  Custom dragsource object: needed to handle DnD in a JTree.
@@ -2182,7 +2347,7 @@ public class SmartTree extends JTree
      */
     public void openDeleteBookmarkDialog()
     {
-        BookMarks bm = new BookMarks((JXplorer) owner);
+        BookMarks bm = new BookMarks((JXplorerBrowser) browser);
         bm.getDeleteDialog();
     }
 
@@ -2191,7 +2356,7 @@ public class SmartTree extends JTree
      */
     public void openEditBookmarkDialog()
     {
-        BookMarks bm = new BookMarks((JXplorer) owner);
+        BookMarks bm = new BookMarks((JXplorerBrowser) browser);
         bm.getEditDialog();
     }
 
@@ -2202,7 +2367,7 @@ public class SmartTree extends JTree
      */
     public void openAddBookmarkDialog(DN dn)
     {
-        BookMarks bm = new BookMarks((JXplorer) owner);
+        BookMarks bm = new BookMarks((JXplorerBrowser) browser);
         BookMarks.AddDialog addDialog = bm.getAddDialog(dn.toString(), false);
         addDialog.setVisible(true);
     }
@@ -2222,7 +2387,7 @@ public class SmartTree extends JTree
      */
     public void openSearch(DN dn)
     {
-        JXplorer jx = (JXplorer) owner;
+        JXplorerBrowser jx = (JXplorerBrowser) browser;
         if (searchGUI == null)
             searchGUI = new SearchGUI(dn, jx);
 

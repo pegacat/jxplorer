@@ -3,6 +3,7 @@ package com.ca.directory.jxplorer.tree;
 import com.ca.commons.cbutil.*;
 import com.ca.commons.naming.*;
 import com.ca.directory.jxplorer.*;
+import com.ca.directory.jxplorer.broker.*;
 
 import javax.naming.InvalidNameException;
 import javax.naming.NamingException;
@@ -52,7 +53,7 @@ public class NewEntryWin extends CBDialog implements ActionListener, DataListene
     
     Vector suggestedClasses = new Vector();
     
-    DataSource dataSource;
+    DataBrokerQueryInterface dataSource;
     
     /*
      *    Only used in 'new entry' mode.
@@ -112,7 +113,7 @@ public class NewEntryWin extends CBDialog implements ActionListener, DataListene
      */
 
          
-    public NewEntryWin(DN pDN, DN cDN, DataSource dSource, 
+    public NewEntryWin(DN pDN, DN cDN, DataBrokerQueryInterface dSource,
                             DataSink attDisplay, Frame parent)
     {
         this(pDN, cDN, dSource, null, null, attDisplay, parent);
@@ -147,7 +148,7 @@ public class NewEntryWin extends CBDialog implements ActionListener, DataListene
      */
          
     public NewEntryWin(DN pDN, DN cDN, 
-            DataSource dSource, Attributes defaultValues, 
+            DataBrokerQueryInterface dSource, Attributes defaultValues,
             String rdn, DataSink attDisplay, Frame parent)
     {
         super(parent, CBIntText.get("Set Entry Object Classes"), HelpIDs.ENTRY_NEW);
@@ -200,7 +201,7 @@ public class NewEntryWin extends CBDialog implements ActionListener, DataListene
         }    
         else if ((suggest == true)&&(childDN != null))
 		{
-           rdnField.setText(childDN.getLowestRDN().getAtt() + "=");
+           rdnField.setText(childDN.getLowestRDN().getAttID() + "=");
 		}
 		
         setupObjectClassPanels(null);
@@ -229,7 +230,7 @@ public class NewEntryWin extends CBDialog implements ActionListener, DataListene
      *    @param parent the usual parent GUI for swing look and feel propogation etc.
      */
          
-    public NewEntryWin(DataSource dSource, DN entryDN, Attributes defaultValues, 
+    public NewEntryWin(DataBrokerQueryInterface dSource, DN entryDN, Attributes defaultValues,
             DataSink attDisplay, Frame parent)
     {
         super(parent, CBIntText.get("Set Entry Object Classes"), HelpIDs.CLASS_CHANGE);
@@ -278,7 +279,7 @@ public class NewEntryWin extends CBDialog implements ActionListener, DataListene
 	*			be true b/c currently this constructor will only be called under that condition).
 	*/
 	 	
-    public NewEntryWin(DataSource dSource, DN entryDN, DataSink attDisplay, Frame parent, boolean virtualEntry)
+    public NewEntryWin(DataBrokerQueryInterface dSource, DN entryDN, DataSink attDisplay, Frame parent, boolean virtualEntry)
     {
         super(parent, CBIntText.get("Set Entry Object Classes"), HelpIDs.CLASS_CHANGE);
 
@@ -352,7 +353,7 @@ public class NewEntryWin extends CBDialog implements ActionListener, DataListene
 
         else if (childDN != null)
         {
-            DataQuery myQuery = dataSource.getRecommendedObjectClasses(childDN);
+            com.ca.directory.jxplorer.broker.DataQuery myQuery = dataSource.getRecommendedObjectClasses(childDN);
             myQuery.addDataListener(this);
         }
 
@@ -405,7 +406,7 @@ public class NewEntryWin extends CBDialog implements ActionListener, DataListene
      *    Callback from directory request to find possible object classes.
      */
      
-    public void dataReady(DataQuery result)
+    public void dataReady(com.ca.directory.jxplorer.broker.DataQuery result)
     {
         try
         {
@@ -429,7 +430,7 @@ public class NewEntryWin extends CBDialog implements ActionListener, DataListene
 				//possibleList.setListData(allObjectClasses);            
             }
 */
-            if (result.getType() == DataQuery.GETRECOC)
+            if (result.getType() == com.ca.directory.jxplorer.broker.DataQuery.GETRECOC)
             {
                 if (suggestedClasses.size() < 1)  // only add suggestions if none have already been added!
                 {
@@ -694,7 +695,7 @@ public class NewEntryWin extends CBDialog implements ActionListener, DataListene
                 return false;
             }
         
-            String rdnAttribute = rdn.getAtt(0);
+            String rdnAttribute = rdn.getAttID(0);
             String rdnValue = rdn.getRawVal(0);
             
             if (rdn.isMultiValued()==false)
@@ -706,7 +707,7 @@ public class NewEntryWin extends CBDialog implements ActionListener, DataListene
             {
                 for (int i=0; i<rdn.size(); i++)
                 {
-                    BasicAttribute rdnAtt = new BasicAttribute(rdn.getAtt(i), rdn.getRawVal(i));
+                    BasicAttribute rdnAtt = new BasicAttribute(rdn.getAttID(i), rdn.getRawVal(i));
                     attlist.put(rdnAtt);
                 }
             }

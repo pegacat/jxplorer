@@ -19,23 +19,23 @@ import com.ca.commons.cbutil.*;
 */
 public class DeleteFilterGUI extends CBDialog
 {
-	SearchModel searchModel = new SearchModel();
-	JList 		list;
-	MainMenu 	mainMenu;
-	ArrayList 	filterNames;
-    JXplorer    jxplorer = null;
+	SearchModel     searchModel = new SearchModel();
+	JList 		    list;
+	MainMenu 	    mainMenu;
+	ArrayList 	    filterNames;
+    JXplorerBrowser browser = null;
 
     private static Logger log = Logger.getLogger(DeleteFilterGUI.class.getName());
 
-   /**
+    /**
     *	Constructor that sets up a dialog with a scrollable list which is used to display
 	*	all of the filters that can be deleted.
 	*	@param jxplorer JXplorer.	
 	*/
-	public DeleteFilterGUI(JXplorer jxplorer)
+	public DeleteFilterGUI(JXplorerBrowser jxplorer)
 	{
 		super(jxplorer, CBIntText.get("Delete Search Filter"), HelpIDs.SEARCH_DELETE_FILTER);
-		this.jxplorer = jxplorer;
+		this.browser = jxplorer;
         mainMenu = jxplorer.getMainMenu();
 		
 		filterNames = searchModel.getFilterNames(SearchModel.ALLFILTERS);
@@ -214,8 +214,8 @@ public class DeleteFilterGUI extends CBDialog
 		}
 
         // Set the search GUI to null so that it is forced to re-read it's config so it gets updated filter list...
-		jxplorer.getTree().setSearchGUI(null);
-		jxplorer.getSearchTree().setSearchGUI(null);
-		jxplorer.getSchemaTree().setSearchGUI(null);
+		browser.getTree().setSearchGUI(null);
+		browser.getSearchTree().setSearchGUI(null);
+		browser.getSchemaTree().setSearchGUI(null);
 	}
 }

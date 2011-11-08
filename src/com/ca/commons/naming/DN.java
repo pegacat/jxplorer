@@ -36,6 +36,9 @@ import javax.naming.*;
 //
 //
 
+//TODO: 'LdapName' appears to be a suitable 'official' replacement for this class - refactoring opportunity.
+//TODO: suggest step 1; extend LdapName, step 2 check diff and consider removing class completely
+
 public class DN implements Name
 {
     // these variables are all there is!  Basically the magic is in the vector of
@@ -240,7 +243,7 @@ public class DN implements Name
         if (i >= size()) return "";
         if (i < 0) return "";
 
-        return getRDN(i).getAtt();
+        return getRDN(i).getAttID();
     }
 
     /**

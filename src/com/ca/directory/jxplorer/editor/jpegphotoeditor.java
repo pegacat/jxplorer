@@ -1,6 +1,7 @@
 package com.ca.directory.jxplorer.editor;
 
 import com.ca.commons.cbutil.*;
+import com.ca.directory.jxplorer.JXConfig;
 import com.ca.directory.jxplorer.JXplorer;
 import com.ca.directory.jxplorer.HelpIDs;
 
@@ -137,7 +138,7 @@ public class jpegphotoeditor extends basicbinaryeditor
     {
         CBCache.cleanCache(currentDN.toString());    //TE: delete any temporary files associates with this entry.
 
-        JFileChooser chooser = new JFileChooser(JXplorer.getProperty("binary.homeDir"));
+        JFileChooser chooser = new JFileChooser(JXConfig.getProperty("binary.homeDir"));
         chooser.addChoosableFileFilter(new CBFileFilter(new String[]{"jpeg", "jpg"}, "JPEG Files (*.jpeg, *.jpg)"));
 
         ImageAccessory ip = new ImageAccessory();    //TE: sets up the 'play' and 'stop' feature in the JFileChooser.
@@ -148,7 +149,7 @@ public class jpegphotoeditor extends basicbinaryeditor
         if (chooser.showOpenDialog(this) != JFileChooser.APPROVE_OPTION)
             return;
         File file = chooser.getSelectedFile();
-        JXplorer.setProperty("binary.homeDir", chooser.getSelectedFile().getParent());
+        JXConfig.setProperty("binary.homeDir", chooser.getSelectedFile().getParent());
 
         try
         {
@@ -185,7 +186,7 @@ public class jpegphotoeditor extends basicbinaryeditor
     protected void save()
     {
 
-        JFileChooser chooser = new JFileChooser(JXplorer.getProperty("binary.homeDir"));
+        JFileChooser chooser = new JFileChooser(JXConfig.getProperty("binary.homeDir"));
 
         if (chooser.showSaveDialog(frame) != JFileChooser.APPROVE_OPTION)
             return;

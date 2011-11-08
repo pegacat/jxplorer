@@ -1,6 +1,7 @@
 package com.ca.directory.jxplorer.editor;
 
 import com.ca.commons.cbutil.*;
+import com.ca.directory.jxplorer.JXConfig;
 import com.ca.directory.jxplorer.JXplorer;
 import com.ca.directory.jxplorer.HelpIDs;
 import com.ca.commons.naming.DN;
@@ -61,7 +62,7 @@ public class defaultbinaryeditor extends JFileChooser
      */
     public defaultbinaryeditor(Frame owner)
     {
-        super(JXplorer.getProperty("binary.homeDir"));
+        super(JXConfig.getProperty("binary.homeDir"));
         this.owner = owner;
 
         setAccessory(accessory);
@@ -110,7 +111,7 @@ public class defaultbinaryeditor extends JFileChooser
     public void save()
     {
         File file = getSelectedFile();
-        JXplorer.setProperty("binary.homeDir", getSelectedFile().getParent());
+        JXConfig.setProperty("binary.homeDir", getSelectedFile().getParent());
 
         try
         {
@@ -136,7 +137,7 @@ public class defaultbinaryeditor extends JFileChooser
         CBCache.cleanCache(currentDN.toString());    //TE: delete any temporary files associates with this entry.
 
         File file = getSelectedFile();
-        JXplorer.setProperty("binary.homeDir", getSelectedFile().getParent());
+        JXConfig.setProperty("binary.homeDir", getSelectedFile().getParent());
 
         try
         {

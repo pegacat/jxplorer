@@ -3,7 +3,8 @@ package com.ca.directory.jxplorer;
 import com.ca.commons.cbutil.*;
 import com.ca.commons.jndi.ConnectionData;
 import com.ca.commons.naming.CBOpenConWin;
-import com.ca.directory.jxplorer.broker.JNDIBroker;
+import com.ca.directory.jxplorer.broker.*;
+import com.ca.directory.jxplorer.broker.DataQuery;
 
 import javax.swing.*;
 import java.awt.*;
@@ -31,8 +32,8 @@ public class JXOpenConWin extends CBOpenConWin implements DataListener
     // a list of passwords used this session, to allow for reconnection and to save users re-entering them.
     private final static HashMap cachedps = new HashMap(20);
 
-    private JXplorer jxplorer;
-    private JNDIBroker jndiBroker;
+    private JXplorerBrowser browser;
+    private JNDIDataBroker jndiBroker;
     private JTextField dsmlService;
     /**
      * Constant used to add 'DSML' option to combo box.
@@ -56,13 +57,13 @@ public class JXOpenConWin extends CBOpenConWin implements DataListener
      * @param aliasType     the jndi alias handling - whether aliases are searched or not.
      *                      (default is "searching");
      */
-    public JXOpenConWin(JXplorer jx, JLabel statusDisplay, String clientcerts, String cacerts,
+    public JXOpenConWin(JXplorerBrowser jx, JLabel statusDisplay, String clientcerts, String cacerts,
                         String referral, String aliasType)
     {
         super(jx, statusDisplay, clientcerts, cacerts, referral, aliasType, HelpIDs.CONNECT);
 
-        jxplorer = jx;
-        newCon.tracing = jxplorer.jndiBroker.getTracing();
+        browser = jx;
+        newCon.tracing = browser.getJndiBroker().getTracing();
 
         addPasswordHandlingListener();
 
@@ -123,8 +124,8 @@ public class JXOpenConWin extends CBOpenConWin implements DataListener
         super.initGUI(statusDisplay);
 
         // make 'dsml available' the default, but allow it to be turned off for light weight distributions...
-        if (JXplorer.getProperty("dsml") == null ||
-                JXplorer.getProperty("dsml").equalsIgnoreCase("false") == false)
+        if (JXConfig.getProperty("dsml") == null ||
+                JXConfig.getProperty("dsml").equalsIgnoreCase("false") == false)
             version.addItem(DSMLV2);
 
         myTemplater.loadDefault();  // needs to be redone after 'dsml' added to property list
@@ -141,7 +142,7 @@ public class JXOpenConWin extends CBOpenConWin implements DataListener
      */
     private void retrieveCachedPassword()
     {
-        if (!JXplorer.getProperty("jxplorer.cache.passwords").equals("true"))
+        if (!JXConfig.getProperty("jxplorer.cache.passwords").equals("true"))
             return;
 
         // if we have a blank template, there's no point in proceeding
@@ -163,7 +164,7 @@ public class JXOpenConWin extends CBOpenConWin implements DataListener
     private void cachePassword()
     {
 
-        if (!JXplorer.getProperty("jxplorer.cache.passwords").equals("true"))
+        if (!JXConfig.getProperty("jxplorer.cache.passwords").equals("true"))
             return;
 
         String key = makePwdKey();
@@ -257,7 +258,7 @@ public class JXOpenConWin extends CBOpenConWin implements DataListener
 
     private void addExtraEnvironmentProperties()
     {
-        Properties props = JXplorer.getMyProperties();
+        Properties props = JXConfig.getMyProperties();
         Enumeration keys = props.keys();
         while (keys.hasMoreElements())
         {
@@ -293,7 +294,7 @@ public class JXOpenConWin extends CBOpenConWin implements DataListener
         newCon.aliasType = newaliasType;
 
         if (jndiBroker == null)    //TE: bug 3222.
-            newCon.tracing = jxplorer.jndiBroker.getTracing();
+            newCon.tracing = browser.getJndiBroker().getTracing();
         else
             newCon.tracing = jndiBroker.getTracing();
     }
@@ -306,7 +307,7 @@ public class JXOpenConWin extends CBOpenConWin implements DataListener
     {
         this.setTitle(CBIntText.get("Open LDAP/DSML Connection"));
 
-        if (!JXplorer.getProperty("jxplorer.cache.passwords").equals("true"))
+        if (!JXConfig.getProperty("jxplorer.cache.passwords").equals("true"))
             password.setText("");
     }
 
@@ -324,13 +325,13 @@ public class JXOpenConWin extends CBOpenConWin implements DataListener
 
         try
         {
-            jndiBroker = jxplorer.jndiBroker;
+            jndiBroker = browser.getJndiBroker();
 
             // clear the GUI preparatory to the new data appearing.
-            jxplorer.preConnectionSetup();
+            browser.preConnectionSetup();
 
             // create a new data query and put it on the query stack for the connection thread.
-            DataQuery query = jndiBroker.connect(connectData);
+            com.ca.directory.jxplorer.broker.DataQuery query = jndiBroker.connect(connectData);
 
             query.addDataListener(this);
 
@@ -360,7 +361,7 @@ public class JXOpenConWin extends CBOpenConWin implements DataListener
     //XXX so it can use unthreaded jndiBroker directory methods with impunity.
     public void dataReady(DataQuery request)
     {
-        if (!(request instanceof JNDIBroker.DataConnectionQuery))
+        if (!(request instanceof JNDIDataBroker.DataConnectionQuery))
         {
             log.warning("Incorrect data for connection - cannot connect");
             return;
@@ -368,17 +369,17 @@ public class JXOpenConWin extends CBOpenConWin implements DataListener
 
         if (request.hasException() == false)  // apparently we have a valid connection to play with!
         {
-            if (jxplorer.postConnectionSetup((JNDIBroker.DataConnectionQuery) request))
+            if (browser.postConnectionSetup((JNDIDataBroker.DataConnectionQuery) request))
             {
                 setVisible(false);
 
-                ((JNDIBroker.DataConnectionQuery) request).conData.clearPasswords();
+                ((JNDIDataBroker.DataConnectionQuery) request).conData.clearPasswords();
 
                 dispose();
             }
             else
             {
-                jxplorer.disconnect();
+                browser.disconnect();
             }
         }
         else    // request registered an error in jdniBroker
@@ -392,7 +393,7 @@ public class JXOpenConWin extends CBOpenConWin implements DataListener
             dispose();	//TE: don't remove this...for some reason if an incorrect port etc is entered on Linux - JX crashes!
             setVisible(true);
             userMessage.setText(CBIntText.get("Couldn't Open") + " " + request.getExtendedData("url"));
-            jxplorer.disconnect();
+            browser.disconnect();
             request.squelch();  // we're done here.
         }
     }

@@ -5,7 +5,8 @@ import com.ca.commons.cbutil.CBUtility;
 import com.ca.commons.cbutil.Theme;
 import com.ca.commons.naming.*;
 import com.ca.directory.jxplorer.ButtonRegister;
-import com.ca.directory.jxplorer.JXplorer;
+import com.ca.directory.jxplorer.JXConfig;
+import com.ca.directory.jxplorer.JXplorerBrowser;
 import com.ca.directory.jxplorer.event.JXplorerEvent;
 
 import javax.swing.*;
@@ -40,6 +41,7 @@ public class SmartPopupTool extends JPopupMenu
 
     private static Logger log = Logger.getLogger(SmartPopupTool.class.getName());
 
+    public static GlobalCopyClipboard globalClipboard = new GlobalCopyClipboard();
 
     /**
      * Constructor initialises the drop down menu and menu items,
@@ -47,8 +49,9 @@ public class SmartPopupTool extends JPopupMenu
      * component as being the listener for all the menu items.
      * @param owningTree
      */
-    public SmartPopupTool(SmartTree owningTree)
+    public SmartPopupTool(SmartTree owningTree, JXplorerBrowser browser)
     {
+               
         tree = owningTree;
 
         add(bookmark = new JMenuItem(CBIntText.get("Add to Bookmarks"), new ImageIcon(Theme.getInstance().getDirImages() + "plus.gif")));
@@ -103,7 +106,7 @@ public class SmartPopupTool extends JPopupMenu
         setVisible(false);
         cutDN = null; copyDN = null; //activeDN = null;
 
-        br = JXplorer.getButtonRegister();
+        br = browser.getButtonRegister();
 
         br.registerItem(br.PASTE, paste);
         br.registerItem(br.PASTE_ALIAS, pasteAlias);
@@ -136,7 +139,13 @@ public class SmartPopupTool extends JPopupMenu
         SmartTree tree = (SmartTree) invoker;
         SmartNode node = tree.getSelectedNode();
 
-        boolean modifiable = (node != null && (node.isStructural() == false) && !tree.getName().equalsIgnoreCase("Schema"));
+        boolean modifiable = true;
+
+        if (node == null) modifiable = false;
+
+
+        if (node.isStructural()) modifiable = false;   // would be nice to allow this for offline (LDIF) work...
+        if (tree.getName().equalsIgnoreCase("Schema")) modifiable = false;
 
         br.setItemEnabled(br.RENAME, modifiable);
 
@@ -207,10 +216,11 @@ public class SmartPopupTool extends JPopupMenu
 
     public void setModifiable(boolean canModify)
     {
-        if (canModify == false)
+        if (canModify == false)  // e.g. schema...   
         {
             br.setItemEnabled(br.CUT, false);
             br.setItemEnabled(br.COPY, false);
+            br.setItemEnabled(br.COPY_DN, false);
             br.setItemEnabled(br.DELETE, false);
             br.setItemEnabled(br.RENAME, false);
             br.setItemEnabled(br.NEW, false);
@@ -223,6 +233,7 @@ public class SmartPopupTool extends JPopupMenu
         {
             br.setItemEnabled(br.CUT, true);
             br.setItemEnabled(br.COPY, true);
+            br.setItemEnabled(br.COPY_DN, true);
             br.setItemEnabled(br.DELETE, true);
             br.setItemEnabled(br.RENAME, true);
             br.setItemEnabled(br.NEW, true);
@@ -230,21 +241,6 @@ public class SmartPopupTool extends JPopupMenu
             br.setItemEnabled(br.BOOKMARKS, true);
         }
     }
-
-
-
-    /**
-     *
-     * @param enable
-     */
-
-    public void setNewEntryEnabled(boolean enable)
-    {
-        newEnabled = enable;
-        br.setItemEnabled(br.NEW, newEnabled);
-    }
-
-
 
     /**
      *  This handles the menu item actions.  They rely on
@@ -309,6 +305,8 @@ public class SmartPopupTool extends JPopupMenu
 		selectDN = null;
         br.setItemEnabled(br.PASTE, true);
         br.setItemEnabled(br.PASTE_ALIAS, false);
+
+        globalClipboard.arm(cutDN, tree, true);
     }
 
 
@@ -328,6 +326,8 @@ public class SmartPopupTool extends JPopupMenu
         selectDN = null;
         br.setItemEnabled(br.PASTE, true);
         br.setItemEnabled(br.PASTE_ALIAS, true);
+
+        globalClipboard.arm(copyDN, tree, false);
     }
 
 
@@ -342,7 +342,7 @@ public class SmartPopupTool extends JPopupMenu
     protected boolean checkAction(String operationType)
     {
 //        String prop = com.ca.directory.jxplorer.JXplorer.myProperties.getProperty("option.confirmTreeOperations");
-        String prop = JXplorer.getProperty("option.confirmTreeOperations");
+        String prop = JXConfig.getProperty("option.confirmTreeOperations");
 
         if ("false".equalsIgnoreCase(prop))    // the user has wisely decided not to bother with this mis-feature.
             return true;
@@ -361,31 +361,103 @@ public class SmartPopupTool extends JPopupMenu
 
     public void paste()
     {
-        // make sure we're not pasting something into itself...
         DN activeDN = getActiveDN();
 
-        if ((activeDN==null)||(cutDN == null && copyDN == null)) // should never happen...
+        if (activeDN==null) // should never happen...
             return;                          // so ignore it.
 
-        String from = (copyDN==null)?cutDN.toString():copyDN.toString();
-        String to = activeDN.toString();
-        log.fine("pasting: \n" + from + "\n" + to);
+        if (tree != globalClipboard.sourceTree)
+        {
+            System.out.println("WHOO HOO!  INTER-TREE COPY from: " + globalClipboard.sourceDN + " TO: " + activeDN);
+            interDirectoryPaste(activeDN);
+            tree.setSelectionPath(tree.getTreeModel().getPathForDN(activeDN));
+        }
+        else
+        {
+            // make sure we're not pasting something into itself...
 
-        if (to.endsWith(from))
-        {
-            CBUtility.error(this, CBIntText.get("Unable to paste an object into itself!"));
-            return;
-        }
-        if (copyDN != null)
-        {
-            copy(copyDN, activeDN);
-        }
-        else if (cutDN != null)
-        {
-            move(cutDN, activeDN);
+            if (cutDN == null && copyDN == null) // should never happen...
+                return;                          // so ignore it.
+
+            String from = (copyDN==null)?cutDN.toString():copyDN.toString();
+            String to = activeDN.toString();
+            log.fine("pasting: \n" + from + "\n" + to);
+
+            if (to.endsWith(from))
+            {
+                CBUtility.error(this, CBIntText.get("Unable to paste an object into itself!"));
+                return;
+            }
+            if (copyDN != null)
+            {
+                copy(copyDN, activeDN);
+            }
+            else if (cutDN != null)
+            {
+                move(cutDN, activeDN);
+            }
         }
     }
 
+    public void interDirectoryPaste(DN activeDN)
+    {
+            // make sure we're not pasting something into itself...
+
+            if (globalClipboard.sourceDN == null) // should never happen...
+                return;                          // so ignore it.
+
+            String from = globalClipboard.sourceDN.toString();
+            String to = activeDN.toString();
+
+            log.fine("x-dir pasting: \n" + from + "\n" + to);
+
+            if (globalClipboard.isCut)
+            {
+                interDirectoryMove(globalClipboard.sourceDN, activeDN, globalClipboard.sourceTree);
+            }
+            else // ??? if (cutDN != null) ???
+            {
+                interDirectoryCopy(globalClipboard.sourceDN, activeDN, globalClipboard.sourceTree);
+            }
+
+    }
+
+    public void interDirectoryCopy(DN fromDN, DN toDN, SmartTree fromTree)
+    {
+        if (checkAction("paste") == false)
+            return;
+
+        tree.copyTreeFromExternalDirectory(fromDN, toDN, fromTree);
+    };
+
+    //TODO: unfinished...
+    public void interDirectoryMove(DN fromDN, DN toDN, SmartTree fromTree)
+    {
+        if (checkAction("cut") == false)
+           return;
+
+        try
+        {
+            toDN.addChildRDN(fromDN.getLowestRDN().toString());
+        }
+        catch (javax.naming.InvalidNameException e)
+        {
+            CBUtility.error(tree, CBIntText.get("Unable to add {0} to {1} due to bad name", new String[] {fromDN.toString(),toDN.toString()}),e);
+            return;
+        }
+
+        /*
+        tree.modifyEntry(new DXEntry(moveFrom), new DXEntry(moveTo));
+
+        cutDN = null;
+        br.setItemEnabled(br.PASTE, false);
+        br.setItemEnabled(br.PASTE_ALIAS, false);
+
+
+        tree.copyTreeFromExternalDirectory(fromDN, toDN, fromTree);
+        fromTree.deleteTreeNode(new DXEntry(fromDN));
+        */
+    };
 
 
    /**
@@ -640,7 +712,7 @@ public class SmartPopupTool extends JPopupMenu
         oc.add("extensibleObject");
         alias.put(oc);
         alias.put(new DXAttribute("aliasedObjectName", aliasedObject.toString()));
-        alias.put(new DXAttribute(newAliasName.getAtt(), newAliasName.getRawVal()));
+        alias.put(new DXAttribute(newAliasName.getAttID(), newAliasName.getRawVal()));
 
         tree.modifyEntry(null, alias);
     }
@@ -656,8 +728,7 @@ public class SmartPopupTool extends JPopupMenu
     }
 
     /**
-     *   Copies a previously selected entry (and it's children) to
-     *   the new position, <i>under</i> the current selection.
+     *   Copies the DN of the current entry to the clipboard...
      */
 
     public void copyDN()
@@ -672,4 +743,46 @@ public class SmartPopupTool extends JPopupMenu
             br.setItemEnabled(br.PASTE_ALIAS, true);
         br.setItemEnabled(br.PASTE, false);
     }
+
+    /**
+     * This is a clipboard object to allow us to copy data between browser windows.  It is a singleton object
+     * shared between all popup tool menus, that is armed whenever 'cut' or 'copy' is pressed, and disarmed
+     * as soon as a paste or move is completed.
+     *
+     * The idea is to trigger an inter-window copy *only* if a user immediately moves to a new window to
+     * complete that action...
+     */
+    static class GlobalCopyClipboard
+    {
+        public SmartTree sourceTree;
+        public DN sourceDN;
+        public boolean armed = false;
+        public boolean isCut = false; // whether is cut or copy... should use ENUM...
+
+        public GlobalCopyClipboard()
+        {};
+
+        public void arm(DN sourceDN, SmartTree sourceTree, boolean isCut)
+        {
+            this.sourceDN = sourceDN;
+            this.sourceTree = sourceTree;
+            armed = true;
+            this.isCut = isCut;
+
+            sourceTree.browser.getJXplorer().setPopupToolPasteOptions(true);
+        }
+
+        public void disarm()
+        {
+            sourceDN = null;
+            sourceTree = null;
+            armed = false;
+            isCut = false;
+
+            sourceTree.browser.getJXplorer().setPopupToolPasteOptions(false);
+
+        }
+
+    }
+
 }

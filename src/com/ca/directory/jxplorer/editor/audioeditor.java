@@ -1,6 +1,7 @@
 package com.ca.directory.jxplorer.editor;
 
 import com.ca.commons.cbutil.*;
+import com.ca.directory.jxplorer.JXConfig;
 import com.ca.directory.jxplorer.JXplorer;
 import com.ca.directory.jxplorer.HelpIDs;
 
@@ -179,7 +180,7 @@ public class audioeditor extends basicbinaryeditor
 		if (currentDN != null)
 			CBCache.cleanCache(currentDN.toString());
 			
-        JFileChooser chooser = new JFileChooser(JXplorer.getProperty("binary.homeDir"));
+        JFileChooser chooser = new JFileChooser(JXConfig.getProperty("binary.homeDir"));
 
         // Sets up the 'play' and 'stop' feature in the JFileChooser...
         audioAccess = new audioaccessory();
@@ -198,7 +199,7 @@ public class audioeditor extends basicbinaryeditor
 		
         file = chooser.getSelectedFile();            
         
-        JXplorer.setProperty("binary.homeDir", chooser.getSelectedFile().getParent());
+        JXConfig.setProperty("binary.homeDir", chooser.getSelectedFile().getParent());
       
         try
         {    

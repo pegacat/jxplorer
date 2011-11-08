@@ -24,7 +24,7 @@ import com.ca.commons.cbutil.Theme;
 public class ButtonBar extends JToolBar
         implements ActionListener
 {
-    JXplorer jxplorer;
+    JXplorerBrowser browser;
     MainMenu menu;
     JButton connect,disconnect,print,cut,copy,paste,del,newEntry,rename,refresh,stop,pasteAlias,copyDN;
 
@@ -35,16 +35,16 @@ public class ButtonBar extends JToolBar
 
     /**
      * Sets up the button bar and registers these buttons in the ButtonRegister.
-     * @param jxplorer
+     * @param browser
      */
 
-    public ButtonBar(JXplorer jxplorer)
+    public ButtonBar(JXplorerBrowser browser)
     {
         super();
-        this.jxplorer = jxplorer;
+        this.browser = browser;
         setFloatable(false);
 
-        menu = jxplorer.mainMenu;   // the toolbar routes most commands through menu
+        menu = browser.mainMenu;   // the toolbar routes most commands through menu
 
         setSize(750, 20);
 
@@ -105,7 +105,7 @@ public class ButtonBar extends JToolBar
         refresh.setToolTipText(CBIntText.get("Refresh an entry."));
         stop.setToolTipText(CBIntText.get("Cancel queries."));
 
-        br = JXplorer.getButtonRegister();
+        br = browser.getButtonRegister();
 
         br.registerItem(br.PASTE, paste);
         br.registerItem(br.PASTE_ALIAS, pasteAlias);
@@ -123,7 +123,7 @@ public class ButtonBar extends JToolBar
 
         br.setItemEnabled(br.STOP, false);
 
-        jxplorer.getStopMonitor().addWatcher(stop);    // stopMonitor will adjust the enabled status of the stop button.
+        browser.getStopMonitor().addWatcher(stop);    // stopMonitor will adjust the enabled status of the stop button.
 
         setDisconnected();
 
@@ -148,25 +148,25 @@ public class ButtonBar extends JToolBar
         else if (e.getSource() == print)
             menu.print();
         else if (e.getSource() == cut)
-            jxplorer.getActiveTree().getPopupTool().cut();
+            browser.getActiveTree().getPopupTool().cut();
         else if (e.getSource() == copy)
-            jxplorer.getActiveTree().getPopupTool().copy();
+            browser.getActiveTree().getPopupTool().copy();
         else if (e.getSource() == copyDN)
-            jxplorer.getActiveTree().getPopupTool().copyDN();
+            browser.getActiveTree().getPopupTool().copyDN();
         else if (e.getSource() == paste)
-            jxplorer.getActiveTree().getPopupTool().paste();
+            browser.getActiveTree().getPopupTool().paste();
         else if (e.getSource() == pasteAlias)
-            jxplorer.getActiveTree().getPopupTool().pasteAlias();
+            browser.getActiveTree().getPopupTool().pasteAlias();
         else if (e.getSource() == del)
-            jxplorer.getActiveTree().getPopupTool().delete();
+            browser.getActiveTree().getPopupTool().delete();
         else if (e.getSource() == newEntry)
-            jxplorer.getActiveTree().getPopupTool().newEntry();
+            browser.getActiveTree().getPopupTool().newEntry();
         else if (e.getSource() == rename)
-            jxplorer.getActiveTree().getPopupTool().rename();
+            browser.getActiveTree().getPopupTool().rename();
         else if (e.getSource() == refresh)
-            jxplorer.getActiveTree().getPopupTool().refresh();
+            browser.getActiveTree().getPopupTool().refresh();
         else if (e.getSource() == stop)
-            jxplorer.getStopMonitor().show();
+            browser.getStopMonitor().show();
         else
             log.warning("error - unknown option in ButtonBar: " + e.getSource().toString());
 

@@ -78,7 +78,7 @@ public class AttributeTableModelTest extends TestCase
     public void testRemoveNamingComponent()
     {
         AttributeTableModel model = getStandardTestModel();
-        model.removeNamingComponent(new AttributeType("sn", true),new AttributeValue("sn", "smith"));
+        model.removeNamingComponent(new AttributeType("sn", true), new AttributeValue(new DXAttribute("sn", "smith"), "smith"));
         assertEquals("test getRDN after removing 'sn=fred' using cn=john", "cn=john", model.getRDN().toString());
         assertEquals(model.namingTypes.length, 1);
         assertEquals(model.namingRawValues.length, 1);
@@ -140,7 +140,7 @@ public class AttributeTableModelTest extends TestCase
     {
         AttributeTableModel model = getStandardTestModel();
 
-        model.removeNamingComponent(new AttributeType("sn", true),new AttributeValue("sn", "smith"));
+        model.removeNamingComponent(new AttributeType("sn", true), new AttributeValue(new DXAttribute("sn", "smith"), "smith"));
         // find which row is 'cn=john', and change it...
         int row = -1;
         for (int i=0; i<model.attributeValues.size(); i++)

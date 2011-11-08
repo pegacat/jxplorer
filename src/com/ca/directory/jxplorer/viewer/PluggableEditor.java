@@ -154,7 +154,14 @@ public interface PluggableEditor
       */
       
       public boolean hideSubEntries(String rdn);
-     
 
+
+    /**
+     * Checks whether the editor has unsaved data changes.
+     * This may be triggered by the UI when the user navigates away from an editor, and gives the
+     * editor a chance to prompt the user to save those changes...
+     * @return
+     */
+      public void checkForUnsavedChanges();
 
 }

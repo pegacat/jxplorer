@@ -3,6 +3,7 @@ package com.ca.directory.jxplorer.viewer;
 import com.ca.commons.cbutil.*;
 import com.ca.commons.naming.*;
 import com.ca.directory.jxplorer.*;
+import com.ca.directory.jxplorer.broker.DataBrokerQueryInterface;
 import com.ca.directory.jxplorer.tree.NewEntryWin;
 import com.ca.directory.jxplorer.viewer.tableviewer.*;
 import com.ca.directory.jxplorer.viewer.tableviewer.AttributeValue;
@@ -17,7 +18,7 @@ import java.util.logging.Logger;
 import java.util.logging.Level;
 /**
  * This class displays attributes in a table (currently string attributes only).  The user can modify the table values,
- * and submit the results, which are passed to the registered DataSource (obtained from the registered DataSource)...
+ * and submit the results, which are passed to the registered DataBrokerQueryInterface (obtained from the registered DataBrokerQueryInterface)...
  */
 
 
@@ -54,10 +55,17 @@ public class TableAttributeEditor extends JPanel
      */
     DN currentDN = null;
 
+    /*
+     * Experimental - tracks the DN of a page with unsaved changes, as part of a check when the user moves
+     * away by accident...
+     */
+
+    DN entryWithPendingChanges = null;
+
     /**
      * The data source directory data is read from.
      */
-    public DataSource dataSource;
+    public DataBrokerQueryInterface dataSource;
 
     /**
      * A rare operation is for the user to change the classes of an entry.  This backs up the original state of that
@@ -95,7 +103,7 @@ public class TableAttributeEditor extends JPanel
         attributeTable = new JTable(tableData);
         //attributeTable.setRowHeight(20);	// This may be needed, depends on how fussy people get about the bottom of letters like 'y' getting cut off when the cell is selected - bug 3013.
 
-        popupTableTool = new SmartPopupTableTool(attributeTable, tableData, (JXplorer) owner);
+        popupTableTool = new SmartPopupTableTool(attributeTable, tableData, (JXplorerBrowser) owner);
 
         // Set the renderer for the attribute type...
         final AttributeTypeCellRenderer typeRenderer = new AttributeTypeCellRenderer();
@@ -156,7 +164,6 @@ public class TableAttributeEditor extends JPanel
             public void actionPerformed(ActionEvent e)
             {
                 myEditor.stopCellEditing();
-                //XXX??? if (attributeTable.isEditing()) myEditor.stopCellEditing();
                 tableData.reset();
             }
         });
@@ -250,7 +257,9 @@ public class TableAttributeEditor extends JPanel
          */
         if (newDN.equals(classChangedOriginalEntry.getDN()) == false)
         {
-            if (promptForSave(false) == false)  // we may need to reset the 'newEntry' data
+            checkForUnsavedChanges();
+            /*
+            if (promptForSave() == false)  // we may need to reset the 'newEntry' data
             {                                   // if the user discards their changes.
 
                 tableData.reset();              // resets the table before going on.
@@ -259,10 +268,12 @@ public class TableAttributeEditor extends JPanel
                 newDN = newEntry.getDN();
             }
             else // user has saved data - so now we need to reset the 'classChangedOriginalEntry'
-            {    // to the changed (and hopefully saved!) data.
+            {
+            */
+                // to the changed (and hopefully saved!) data.
                 // NB: If the directory write fails, then the change classes will also fail...
                 classChangedOriginalEntry = tableData.getNewEntry();
-            }
+
         }
 
         /*
@@ -305,7 +316,7 @@ public class TableAttributeEditor extends JPanel
         myEditor.stopCellEditing();
 
         // If schema checking is on, make sure that all mandatory attributes are filled in.
-        if ("false".equalsIgnoreCase(JXplorer.getProperty("option.ignoreSchemaOnSubmission"))
+        if ("false".equalsIgnoreCase(JXConfig.getProperty("option.ignoreSchemaOnSubmission"))
                 && (tableData.checkMandatoryAttributesSet() == false))
         {
             CBUtility.error(TableAttributeEditor.this, CBIntText.get("All Mandatory Attributes must have values!"), null);
@@ -320,10 +331,10 @@ public class TableAttributeEditor extends JPanel
      */
     public void displayOperationalAttributes()
     {
-        JXplorer jx = null;
+        JXplorerBrowser jx = null;
 
-        if (owner instanceof JXplorer)
-            jx = (JXplorer) owner;
+        if (owner instanceof JXplorerBrowser)
+            jx = (JXplorerBrowser) owner;
         else
             return;
 
@@ -370,58 +381,6 @@ public class TableAttributeEditor extends JPanel
         }
     }
 
-    /**
-     * This notifies the user that they are about to lose entered data (i.e. they've made changes and are about to a)
-     * change classes or b) go to another entry).
-     * @param reset usually prompt for save keeps an internal check to prevent the user being prompted twice for the
-     * same entry.  If this parameter is true, that prompt is reset.
-     * @return true if data is saved, false if discarded.
-     */
-    public boolean promptForSave(boolean reset)
-    {
-        return false;
-/* TEMPORARY REMOVAL
-        if (dataSource == null || dataSource.isActive() == false)
-        {
-            return false;  // no point prompting - nothing to save with!
-        }
-*/
-        /*
-         *    Only ever check the entry once (sometimes promptForSave can be called
-         *    multiple time - remember that the 'save' function gets called by a
-         *    separate thread).
-         */
-/* TEMPORARY REMOVAL
-        if (reset)
-            checkedDN = null;  // force the prompt to be used.
-
-        if (checkedDN == null || checkedDN.equals(tableData.getOldEntry().getDN()) == false)
-        {
-            checkedDN = tableData.getOldEntry().getDN();
-
-            //Thread.currentThread().dumpStack();
-
-            String save = CBIntText.get("Save");
-            String discard = CBIntText.get("Discard");
-
-            int result = JOptionPane.showOptionDialog(CBUtility.getDefaultDisplay(),
-                                                 CBIntText.get("Submit changes to the Directory?"),
-                                                 CBIntText.get("Save Data"), JOptionPane.DEFAULT_OPTION,
-                                                 JOptionPane.QUESTION_MESSAGE, null,
-                                                 new Object[] {save, discard}, save);
-            if (result == 0)
-            {
-                writeTableData();  // nb - this queues a request to the directory
-                return true;
-            }
-        }
-        else
-        {
-            // do nothing - don't prompt, don't save...
-        }
-        return false;
-*/
-    }
 
     /**
      * Opens a dialog that asks the user if they want to make a virtual entry a non virtual entry.  If the user clicks
@@ -538,11 +497,17 @@ public class TableAttributeEditor extends JPanel
 
     /**
      * <p>Displays data that can be modified by the user in a table.</p>
+     *
+     * Refactor: this is a complex method with many side effects, including checks for
+     * previously unsaved changes...
      * @param entry the entry to be displayed by all the editors
      * @param ds the datasource the editors may use for more info
      */
-    public void displayEntry(DXEntry entry, DataSource ds)
+    public void displayEntry(DXEntry entry, DataBrokerQueryInterface ds)
     {
+        myEditor.stopCellEditing();
+
+
 //        checkedDN = null; // hack - resets promptForSave.
 
         // Set the globals...
@@ -641,18 +606,14 @@ public class TableAttributeEditor extends JPanel
 
                 if (prompt)    // yes, there is a risk of data loss - prompt the user.
                 {
-                    if (promptForSave(false))                // see if the user wants to save their data
-                    {
-                        //dataSource.getEntry(entry.getDN());  // queue a request to redisplay
-                        return;                              // this entry (but don't show it this time around).
-                    }
+                    checkForUnsavedChanges();                // see if the user wants to save their data
                 }
             }
         }
 
-        myEditor.setDataSource(ds);    // Sets the DataSource in AttributeValueCellEditor used to get the syntax of attributes.
+        myEditor.setDataSource(ds);    // Sets the DataBrokerQueryInterface in AttributeValueCellEditor used to get the syntax of attributes.
 
-        // only enable buttons if DataSource
+        // only enable buttons if DataBrokerQueryInterface
         // is valid *and* we can modify data...
 
         if (dataSource == null || entry == null)
@@ -672,7 +633,7 @@ public class TableAttributeEditor extends JPanel
                 changeClass.setEnabled(true);      // some to start with!
         }
 
-        myEditor.stopCellEditing();
+//        myEditor.stopCellEditing();
 
         if (entry != null)
         {
@@ -784,7 +745,7 @@ public class TableAttributeEditor extends JPanel
                 }
             }
         }
-
+        
         dataSource.modifyEntry(oldEntry, newEntry);
     }
 
@@ -881,7 +842,53 @@ public class TableAttributeEditor extends JPanel
              *    The setVisible() method may be called multiple time.  Only prompt
              *    the user the first time.
              */
-            promptForSave(false);
+            checkForUnsavedChanges();
         }
     }
+
+
+    /**
+     * Whether the editor has unsaved data changes.  This may be used by the GUI to prompt the user when
+     * an editor pane is being navigated away from.
+     * @return
+     */
+    /*
+    public void checkForUnsavedChanges()
+    {
+        tableData.changedByUser();
+    }
+    */
+
+    /**
+     * This notifies the user that they are about to lose entered data (i.e. they've made changes and are about to a)
+     * change classes or b) go to another entry), and allows them to save their data if they so choose...
+     */
+    public void checkForUnsavedChanges()
+    {
+        if (dataSource == null || dataSource.isActive() == false)
+            return;  // no point prompting - nothing to save with!
+
+        /*
+         *    Only ever check the entry once (sometimes promptForSave can be called
+         *    multiple time - remember that the 'save' function gets called by a
+         *    separate thread).
+         */
+
+        if (tableData.changedByUser())
+        {
+            String save = CBIntText.get("Save");
+            String discard = CBIntText.get("Discard");
+
+            int result = JOptionPane.showOptionDialog(owner,
+                                                 CBIntText.get("Submit changes to the Directory?"),
+                                                 CBIntText.get("Save Data"), JOptionPane.DEFAULT_OPTION,
+                                                 JOptionPane.QUESTION_MESSAGE, null,
+                                                 new Object[] {save, discard}, save);
+            if (result == 0)
+            {
+                writeTableData();  // nb - this queues a request to the directory
+            }
+        }
+    }
+
 }

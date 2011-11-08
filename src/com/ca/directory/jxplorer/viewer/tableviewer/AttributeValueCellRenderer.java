@@ -40,8 +40,13 @@ public class AttributeValueCellRenderer extends DefaultTableCellRenderer
      
     protected void setValue(Object value)  // I wonder what the performance hit here is...
     {
+        /* not actually used???
         if (value instanceof AttributeValue)
         {
+            String id = ((AttributeValue)value).id; 
+            if (id.equals("userPassword"))
+                System.out.println("bloop");
+
             if (((AttributeValue)value).isBinary() && (((AttributeValue)value).isEmpty()==false))
                 value = CBIntText.get("(non string data)");
             else
@@ -55,12 +60,14 @@ public class AttributeValueCellRenderer extends DefaultTableCellRenderer
                     value = " " + stringVal;
             }                    
         }
+        */
         super.setValue(value);
     }
-
-    public String truncateLongString(String truncateMe)
+    // is this really needed?
+    public String truncateLongString(String truncateMe, int len)
     {
-        return truncateMe.substring(0, 100) + "...";    
+        //return truncateMe;
+        return truncateMe.substring(0, len) + "...";
     }        
 
     /**
@@ -73,11 +80,15 @@ public class AttributeValueCellRenderer extends DefaultTableCellRenderer
     {
         if (value instanceof AttributeValue)
         {
-            
             AttributeValue attVal = (AttributeValue)value;
+
+            String id = attVal.getID();
+            if (id.equalsIgnoreCase("userPassword"))
+                System.out.println("pwd va: " + attVal.getStringValue());
+
             String attString = attVal.toString();
-            if (attString.length() > 100)
-                attString = truncateLongString(attString);
+            if (attString.length() > 256)
+                attString = truncateLongString(attString, 256);
             
             Component c = super.getTableCellRendererComponent(table, attString, isSelected, hasFocus, row, column);
             

@@ -42,7 +42,7 @@ public class JXResourceLoader
 
     public JXResourceLoader()
     {
-        debug = (JXplorer.getProperty("debuglevel", "0").compareTo("7") >= 0);
+        debug = (JXConfig.getProperty("debuglevel", "0").compareTo("7") >= 0);
 
         if (debug)
             System.out.println("Started JXResourceLoader");

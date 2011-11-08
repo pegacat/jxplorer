@@ -469,17 +469,6 @@ public class DXAttribute extends BasicAttribute implements Comparable
         }
     }
 
-    /**
-     * Whether the attribute contains isNonString data; ideally found by checking Syntax, but
-     * often set by inspection of the attribute value (whether it is a Byte array).
-     *
-     * @deprecated use isString instead
-     */
-    public boolean isBinary()
-    {
-        return !isString();
-    }
-
 
     /**
      * Whether the attribute contains isNonString data; ideally found by checking Syntax, but

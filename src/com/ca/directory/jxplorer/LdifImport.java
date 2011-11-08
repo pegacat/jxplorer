@@ -2,8 +2,8 @@ package com.ca.directory.jxplorer;
 
 import com.ca.commons.cbutil.*;
 import com.ca.commons.naming.*;
-import com.ca.directory.jxplorer.broker.Broker;
-import com.ca.directory.jxplorer.broker.SchemaBroker;
+import com.ca.directory.jxplorer.broker.*;
+import com.ca.directory.jxplorer.broker.DataQuery;
 import com.ca.directory.jxplorer.tree.SmartTree;
 
 import javax.naming.NamingException;
@@ -16,11 +16,11 @@ import java.util.logging.Logger;
 
 public class LdifImport //extends JDialog implements ActionListener
 {
-    DataSource dataSource;
+    DataBrokerQueryInterface dataSource;
     File readFile;
     SmartTree tree;
     Frame owner;
-    SchemaBroker schema;
+    SchemaDataBroker schema;
     boolean offline = true;
     LdifUtility ldifutil = new LdifUtility();
     
@@ -44,7 +44,7 @@ public class LdifImport //extends JDialog implements ActionListener
      *             (otherwise this may need to be inferred from the data)
      */
      
-    public LdifImport(DataSource dataSource, SmartTree mrTree, Frame owner, SchemaBroker schema)
+    public LdifImport(DataBrokerQueryInterface dataSource, SmartTree mrTree, Frame owner, SchemaDataBroker schema)
     {
         this.owner = owner;
     
@@ -63,6 +63,11 @@ public class LdifImport //extends JDialog implements ActionListener
         openFile();
     }
 
+    public String getFileName()
+    {
+        return (readFile==null)?"<empty>":readFile.getName();
+    }
+
     /**
      *    Constructor for the LdifImport window.  Takes a DN,
      *    a data modifier, and a ldif file name.<p>
@@ -78,7 +83,7 @@ public class LdifImport //extends JDialog implements ActionListener
      *    @param fileName ldif file name to open
      */
      
-    public LdifImport(DataSource dataSource, SmartTree mrTree, Frame owner, SchemaBroker schema, String fileName)
+    public LdifImport(DataBrokerQueryInterface dataSource, SmartTree mrTree, Frame owner, SchemaDataBroker schema, String fileName)
     {
         this.owner = owner;
     
@@ -100,7 +105,7 @@ public class LdifImport //extends JDialog implements ActionListener
 
     public void openFile()
     {        
-        JFileChooser chooser = new JFileChooser(JXplorer.getProperty("ldif.homeDir"));
+        JFileChooser chooser = new JFileChooser(JXConfig.getProperty("ldif.homeDir"));
         chooser.addChoosableFileFilter(new CBFileFilter(new String[] {"ldif", "ldi"},"Ldif Files (*.ldif, *.ldi)"));
         
         int option = chooser.showOpenDialog(owner);
@@ -112,14 +117,14 @@ public class LdifImport //extends JDialog implements ActionListener
                 CBUtility.error(CBIntText.get("Please select a file"));
             else
             {    
-                JXplorer.setProperty("ldif.homeDir", chooser.getSelectedFile().getParent());
+                JXConfig.setProperty("ldif.homeDir", chooser.getSelectedFile().getParent());
                 ldifutil.setFileDir(chooser.getSelectedFile().getParent());
                 doFileRead(readFile);
             }
 
-            if(owner instanceof JXplorer  && offline)
+            if(owner instanceof JXplorerBrowser  && offline)
             {
-                ((JXplorer)owner).getMainMenu().setConnected(false);
+                ((JXplorerBrowser)owner).getMainMenu().setConnected(false);
             }
         }
     }
@@ -131,13 +136,13 @@ public class LdifImport //extends JDialog implements ActionListener
         else
         {
             readFile = new File(fileName);
-                JXplorer.setProperty("ldif.homeDir", readFile.getParent());
+                JXConfig.setProperty("ldif.homeDir", readFile.getParent());
                 ldifutil.setFileDir(readFile.getParent());
                 doFileRead(readFile);
 
-                if(owner instanceof JXplorer  && offline)
+                if(owner instanceof JXplorerBrowser  && offline)
                 {
-                    ((JXplorer)owner).getMainMenu().setConnected(false);
+                    ((JXplorerBrowser)owner).getMainMenu().setConnected(false);
                 }
         }
     }
@@ -149,9 +154,10 @@ public class LdifImport //extends JDialog implements ActionListener
 
         final File myFile = readFile;
 
-        dataSource.extendedRequest(new DataQuery(DataQuery.EXTENDED) 
+
+        DataQuery ldifQuery = new DataQuery(com.ca.directory.jxplorer.broker.DataQuery.EXTENDED)
         {
-            public void doExtendedRequest(Broker b) 
+            public void doExtendedRequest(DataBroker offlineDataBroker)
             {
                 try
                 {
@@ -170,7 +176,16 @@ public class LdifImport //extends JDialog implements ActionListener
                 ldifutil.resetErrorReportingInformation(myFile.toString());
                 try
                 {
-                    readLdifTree("", pmonitor, "", "", b, this);
+                    try
+                    {   // future expansion point - allow offline broker knowledge of ldif file to allow saving on submit...
+                        ((OfflineDataBroker)offlineDataBroker).setLdifFile(myFile);
+                    }
+                    catch (ClassCastException e)
+                    {
+                        //unlikely, but doesn't really matter}
+                    }
+
+                    readLdifTree("", pmonitor, "", "", offlineDataBroker, this);
                 }
                 catch (NamingException e)
                 {
@@ -183,8 +198,10 @@ public class LdifImport //extends JDialog implements ActionListener
                 }
                 closeDown();
             }
-        });
-        
+        };
+
+        dataSource.extendedRequest(ldifQuery);
+
     }    
 
     
@@ -208,7 +225,7 @@ public class LdifImport //extends JDialog implements ActionListener
      * @throws NamingException if there is an error reading the ldif file
      */
     
-    public void readLdifTree(String treeApex, InputStream textStream, String origPrefix, String newPrefix, Broker b, DataQuery query)
+    public void readLdifTree(String treeApex, InputStream textStream, String origPrefix, String newPrefix, DataBroker b, DataQuery query)
             throws NamingException
     {
         DN newDN = null;                   // a DN to be added to be read from the data source
@@ -338,7 +355,7 @@ public class LdifImport //extends JDialog implements ActionListener
 
     }
 
-    private String getRoot(Broker b, DN lastKnownDN)
+    private String getRoot(DataBroker b, DN lastKnownDN)
     {
         if (b==null)
         {

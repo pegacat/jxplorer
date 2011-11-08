@@ -1,7 +1,5 @@
 package com.ca.directory.jxplorer;
 
-import com.ca.commons.naming.*;
-
 /**
  *    This interface handles 
  *
@@ -17,5 +15,5 @@ import com.ca.commons.naming.*;
 
 public interface DataListener
 {
-    public void dataReady(DataQuery result);
+    public void dataReady(com.ca.directory.jxplorer.broker.DataQuery result);
 }

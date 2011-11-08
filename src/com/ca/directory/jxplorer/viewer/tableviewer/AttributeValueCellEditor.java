@@ -6,7 +6,7 @@ import com.ca.commons.cbutil.CBUtility;
 import com.ca.commons.jndi.SchemaOps;
 import com.ca.commons.naming.DN;
 import com.ca.commons.security.cert.CertViewer;
-import com.ca.directory.jxplorer.DataSource;
+import com.ca.directory.jxplorer.broker.DataBrokerQueryInterface;
 import com.ca.directory.jxplorer.editor.*;
 
 import javax.naming.NamingException;
@@ -14,7 +14,6 @@ import javax.naming.directory.Attribute;
 import javax.naming.directory.Attributes;
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.lang.reflect.Constructor;
 import java.security.cert.X509Certificate;
@@ -47,7 +46,7 @@ public class AttributeValueCellEditor extends AbstractCellEditor
     boolean binaryEditFlag = false;            // handle binary editing separately
     boolean specialStringEditor = false;       // handle special string stuff like postal address
     protected ClassLoader myLoader = null;     // optional extended class loader
-    public DataSource datasource = null;       //TE: The syntax of the attribute.
+    public DataBrokerQueryInterface datasource = null;       //TE: The syntax of the attribute.
     public DN currentDN = null;                //TE: The dn of the entry being modified.
 
     int lastSelectedRow = 0;                    //TE: The last selected row - which is used to set the height back to normal (16).
@@ -71,6 +70,7 @@ public class AttributeValueCellEditor extends AbstractCellEditor
 
 	//	textField.setFont(new Font("Tahoma", Font.PLAIN,11)); //TE: makes the textField same as the label - bug 3013.
 
+/*
 		editorComponent.addMouseListener(new MouseAdapter()
         {
             public void mousePressed(MouseEvent e)
@@ -80,6 +80,9 @@ public class AttributeValueCellEditor extends AbstractCellEditor
 //                    cancelCellEditing();
             }
         });
+*/
+
+
     }
 
     //
@@ -120,7 +123,7 @@ public class AttributeValueCellEditor extends AbstractCellEditor
 
             if (hasSyntax(att, CERTIFICATE_SYNTAX))			    //TE: a syntax check for Certificate.
                 setCertificateEditor(att);
-            else if (att.isBinary())						    //TE: binary check.
+            else if (att.isNonStringData())						    //TE: binary check.
                 setBinaryEditor(att);
             else if (hasSyntax(att, POSTAL_ADDRESS_SYNTAX))	    //TE: postalAddress syntax check.
                 setPostalAddressEditor(att);
@@ -493,7 +496,7 @@ public class AttributeValueCellEditor extends AbstractCellEditor
             return;                                          //TE: do nothing...there is already an editor open.
         }
 
-        if (att.isBinary()==false)  // should never happen!
+        if (att.isNonStringData()==false)  // should never happen!
             {log.warning("Error: non binary value passed to binary editor!"); return; }
 
         String attName = att.getID();
@@ -595,7 +598,7 @@ public class AttributeValueCellEditor extends AbstractCellEditor
     *   Returns the datasource.
     *   @param ds the datasource.
     */
-    public void setDataSource(DataSource ds)
+    public void setDataSource(DataBrokerQueryInterface ds)
     {
         datasource = ds;
     }

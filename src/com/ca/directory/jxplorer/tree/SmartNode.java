@@ -4,7 +4,7 @@ import com.ca.commons.cbutil.CBResourceLoader;
 import com.ca.commons.cbutil.CBUtility;
 import com.ca.commons.cbutil.Theme;
 import com.ca.commons.naming.*;
-import com.ca.directory.jxplorer.JXplorer;
+import com.ca.directory.jxplorer.JXConfig;
 
 import javax.naming.NamingEnumeration;
 import javax.swing.*;
@@ -316,7 +316,7 @@ public class SmartNode extends DefaultMutableTreeNode implements  Transferable, 
         }
 
         if (nodeObjectClass == null)  // in extremis, grab the ldap rdn attribute and use that for icons...
-            nodeObjectClass = rdn.getAtt(0);  // use root 'cause DN has only one element...
+            nodeObjectClass = rdn.getAttID(0);  // use root 'cause DN has only one element...
 
         // create a collation key for fast language-sensitive sorting...
         // (note toLowerCase() for case insensitive sorting - remove for case sensitive...
@@ -325,7 +325,7 @@ public class SmartNode extends DefaultMutableTreeNode implements  Transferable, 
         // XXX put...
 
         // 'false' is the default
-        boolean sortByNamingAttribute = ("true".equals(JXplorer.getProperty("sort.by.naming.attribute")));
+        boolean sortByNamingAttribute = ("true".equals(JXConfig.getProperty("sort.by.naming.attribute")));
 
         if (rdn.isMultiValued())
         {
@@ -333,9 +333,9 @@ public class SmartNode extends DefaultMutableTreeNode implements  Transferable, 
             for (int i=0; i<rdn.size(); i++)
             {
                 if (sortByNamingAttribute)
-                    key.append(rdn.getRawVal(i)).append(rdn.getAtt(i));
+                    key.append(rdn.getRawVal(i)).append(rdn.getAttID(i));
                 else
-                    key.append(rdn.getAtt(i)).append(rdn.getRawVal(i));
+                    key.append(rdn.getAttID(i)).append(rdn.getRawVal(i));
             }
             collationKey = myCollator.getCollationKey(key.toString().toLowerCase());
         }

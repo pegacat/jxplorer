@@ -65,6 +65,8 @@ public class CBpbar
         pbar = new ProgressMonitor(C, uberTitle, notePrefix + " 0", 0, 100);
         level = 0;
         fanout[level] = 1;      // the root node is unitary.
+
+        System.out.println("starting pbar (" + pbar.getNote() + ") " + Thread.currentThread().toString());
     }
 
     /**
@@ -101,16 +103,24 @@ public class CBpbar
 
             if (pcntg != oldpcntg)
             {
+                pbar.setProgress(pcntg);
+                pbar.setNote(notePrefix + " " + count);
+//                System.out.println("curious:  pbar (" + pbar.getNote() + ") " + Thread.currentThread().toString());
+/*  progress bars suck.  Sticking the updates in a separate thread *appeared* to result in a problem where
+//  orphaned progress bars were hanging around...
                 SwingUtilities.invokeLater(new Runnable()
                 {
                     public void run()
                     {
                         pbar.setProgress(pcntg);
                         pbar.setNote(notePrefix + " " + count);
+                        System.out.println("curious:  pbar (" + pbar.getNote() + ") " + Thread.currentThread().toString());
                     }
                 });
+*/                
             }
         }
+        System.out.println("incrementing pbar (" + pbar.getNote() + ") " + Thread.currentThread().toString());
     }
 
     /**
@@ -145,6 +155,8 @@ public class CBpbar
 
     public void close()
     {
+        System.out.println("closing pbar (" + pbar.getNote() + ") " + Thread.currentThread().toString());
+
         pbar.close();
     }
 

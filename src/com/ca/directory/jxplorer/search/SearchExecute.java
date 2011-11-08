@@ -1,14 +1,7 @@
 package com.ca.directory.jxplorer.search;
 
-import com.ca.commons.cbutil.*;
-
-import java.util.*;
 import java.util.logging.Logger;
 
-import javax.naming.*;
-import javax.naming.directory.*;
-
-import com.ca.directory.jxplorer.*;
 import com.ca.directory.jxplorer.tree.*;
 import com.ca.directory.jxplorer.broker.*;
 import com.ca.commons.naming.*;
@@ -36,7 +29,7 @@ public class SearchExecute
 	*	.
 	*/
     
-	public static void run(SmartTree searchTree, DN baseDN, String filter, String[] attribs, int searchLevel, JNDIBroker searchBroker)
+	public static void run(SmartTree searchTree, DN baseDN, String filter, String[] attribs, int searchLevel, JNDIDataBroker searchBroker)
     {
 		switch (searchLevel)	//TE: info messages...
 		{

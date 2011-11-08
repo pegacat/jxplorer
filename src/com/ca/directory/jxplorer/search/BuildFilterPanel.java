@@ -9,7 +9,6 @@ import javax.swing.*;
 import javax.naming.NamingException;
 
 import com.ca.directory.jxplorer.*;
-import com.ca.commons.naming.*;
 import com.ca.commons.cbutil.*;
 import com.ca.commons.jndi.SchemaOps;
 
@@ -42,20 +41,20 @@ public class BuildFilterPanel extends CBPanel
 	String[] 				attrs;
 	
 	generalizedtimeeditor 	gte;
-	JXplorer 				jxplorer;
+	JXplorerBrowser browser;
 
     private static Logger log = Logger.getLogger(BuildFilterPanel.class.getName());
 
-   /**
+    /**
     * Constructor that sets up the Build tab with a not check box, and the first row e.g an attribute combo,
 	* a function combo and a text field.
 	* @param jx JXplorer, used to get the search broker.
 	*/
-	public BuildFilterPanel(JXplorer jx)
+	public BuildFilterPanel(JXplorerBrowser jx)
 	{   		
 		schema = jx.getSearchBroker().getSchemaOps();
  		attrs = getAttributes();									//TE: get all attributes available.				
-		jxplorer = jx;
+		browser = jx;
 		
 		notCheckBox = new JCheckBox(CBIntText.get("Not"));
 		notCheckBox.setToolTipText(CBIntText.get("Not this filter"));
@@ -506,8 +505,8 @@ public class BuildFilterPanel extends CBPanel
 	{
 		if(schema.getAttributeSyntax(attrName).indexOf("121.1.24")>-1)
 		{
-			gte = new generalizedtimeeditor(jxplorer, field.getText(), false);
-			CBUtility.center(gte, jxplorer);    	//TE: centres the attribute editor.
+			gte = new generalizedtimeeditor(browser, field.getText(), false);
+			CBUtility.center(gte, browser);    	//TE: centres the attribute editor.
 			gte.setVisible(true);
 			try
 			{

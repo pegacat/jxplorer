@@ -56,7 +56,7 @@ class MyFormView extends FormView
         DN  dn  = oldEntry.getDN();                             // Get the original DN
         RDN rdn = new RDN(oldEntry.getRDN());          			//TE: get the rdn of the old entry.
 
-        String [] namingTypes = rdn.getAtts();                  // Read the list of RDN attribute types  
+        String [] namingTypes = rdn.getAttIDs();                  // Read the list of RDN attribute types
         String [] namingRawValues = rdn.getRawVals();           // and values
         boolean nameChanged = false;
     

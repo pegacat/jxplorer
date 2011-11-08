@@ -28,13 +28,13 @@ public class BookMarks
     /**
      *  The parent frame that the dialogs should centre on.
      */
-	JXplorer jxplorer = null;
+	JXplorerBrowser browser = null;
 
     /**
      * The bookmark property file used for reading, writing and deleting
      * bookmarks from and to.
      */
-	Properties propertyList = null;
+	static Properties propertyList = null; // try to share bookmarks across all windows // TODO: tighten this up...
 
     /**
      * The name of the property file.
@@ -64,13 +64,13 @@ public class BookMarks
 
     private static Logger log = Logger.getLogger(BookMarks.class.getName());
 
-   /**
+    /**
     * Sets up the property list.
 	* @param jx jxplorer (parent component).
 	*/
-	public BookMarks(JXplorer jx)
+	public BookMarks(JXplorerBrowser jx)
 	{
-		jxplorer = jx;
+		browser = jx;
         bookmarkPath = CBUtility.getPropertyConfigPath(FILE_NAME);
 		propertyList = CBUtility.readPropertyFile(bookmarkPath);
 	}
@@ -205,9 +205,19 @@ public class BookMarks
 
         CBUtility.writePropertyFile(bookmarkPath, propertyList, null);
 
-        // Updates the Bookmark menu items...
-        jxplorer.getMainMenu().updateBookmarkMenu();
+        updateAllBookmarks();
     }
+
+     public void updateAllBookmarks()
+        {
+            // Updates the Bookmark menu items...
+            ArrayList<JXplorerBrowser> browsers = browser.getAllBrowsers();
+            for (JXplorerBrowser b:browsers)
+            {
+                b.getMainMenu().updateBookmarkMenu();  // remembering that propertyList is global...
+            }
+
+        }
 
     /**
      * Gets the names of all the saved bookmarks
@@ -295,7 +305,7 @@ public class BookMarks
          */
         public AddDialog(String name, boolean edit)
         {
-            super(jxplorer, CBIntText.get("Add Bookmark"), null);
+            super(browser, CBIntText.get("Add Bookmark"), null);
 
             this.edit = edit;
 
@@ -342,7 +352,7 @@ public class BookMarks
             display.addln(detailsPanel);
 
             setSize(480, 200);
-            CBUtility.center(this, jxplorer);
+            CBUtility.center(this, browser);
         }
 
         public JButton getHelpButton()
@@ -454,15 +464,18 @@ public class BookMarks
 			}
 
             // Updates the Bookmark menu items...
-            jxplorer.getMainMenu().updateBookmarkMenu();
+            //browser.getMainMenu().updateBookmarkMenu();
+            updateAllBookmarks();
 
-            JOptionPane.showMessageDialog(jxplorer,
+            JOptionPane.showMessageDialog(browser,
                     CBIntText.get("The bookmark ''{0}'' was successfully saved.",
                             new String[] {name}), CBIntText.get("Save Succeeded"),
                     JOptionPane.INFORMATION_MESSAGE );
 
             super.doOK();
         }
+
+
 
         /**
          * When the user hits 'cancel', the window shuts and the bookmark menu is updated.
@@ -471,7 +484,9 @@ public class BookMarks
         {
             super.doCancel();
             // Updates the Bookmark menu items...
-            jxplorer.getMainMenu().updateBookmarkMenu();
+            //browser.getMainMenu().updateBookmarkMenu();
+            updateAllBookmarks();
+
         }
     }
 
@@ -494,7 +509,7 @@ public class BookMarks
             CBJComboBox combo = makeComboBox(bookmarks);
             combo.setToolTipText(CBIntText.get("Select the bookmark name that you want to edit."));
 
-            int response = JOptionPane.showConfirmDialog(jxplorer, combo,
+            int response = JOptionPane.showConfirmDialog(browser, combo,
                     CBIntText.get("Edit Bookmark"), JOptionPane.OK_CANCEL_OPTION);
 
             if (response != JOptionPane.OK_OPTION)
@@ -526,7 +541,7 @@ public class BookMarks
             CBJComboBox combo = makeComboBox(bookmarks);
             combo.setToolTipText(CBIntText.get("Select the bookmark name that you want to delete."));
 
-            int response = JOptionPane.showConfirmDialog(jxplorer, combo,
+            int response = JOptionPane.showConfirmDialog(browser, combo,
                     CBIntText.get("Delete Bookmark"), JOptionPane.OK_CANCEL_OPTION);
 
             if (response != JOptionPane.OK_OPTION)
@@ -535,7 +550,7 @@ public class BookMarks
             if (combo.getSelectedItem()!=null)
             {
                 String toDelete = combo.getSelectedItem().toString();
-                int res = JOptionPane.showConfirmDialog(jxplorer,
+                int res = JOptionPane.showConfirmDialog(browser,
                         CBIntText.get("Are you sure you want to delete the bookmark called ''{0}''?", new String[] {toDelete}), CBIntText.get("Confirm Delete"), JOptionPane.OK_CANCEL_OPTION);
 
                 if (res != JOptionPane.OK_OPTION)
@@ -543,7 +558,7 @@ public class BookMarks
 
                 deleteBookmark(toDelete);
 
-                JOptionPane.showMessageDialog(jxplorer,
+                JOptionPane.showMessageDialog(browser,
                         CBIntText.get("The bookmark ''{0}'' was successfully deleted.",
                                 new String[] {toDelete}), CBIntText.get("Delete Succeeded"),
                         JOptionPane.INFORMATION_MESSAGE );

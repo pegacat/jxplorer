@@ -15,6 +15,7 @@ import javax.naming.directory.*;
 import com.ca.commons.cbutil.*;
 import com.ca.directory.jxplorer.*;
 import com.ca.commons.naming.*;
+import com.ca.directory.jxplorer.broker.*;
 import com.ca.directory.jxplorer.tree.SmartTree;
 
 /**
@@ -23,7 +24,7 @@ import com.ca.directory.jxplorer.tree.SmartTree;
 *	<p>
 *	The way it is <i>intended</i> to work is the <code>SearchGUI</code> creates a <code>ReturnAttributesDisplay</code> 
 *	object by calling the constructor.  The constructor does nothing more than registers two global variables.  
-*	The creator of the object is expected to register a DataSource via the <code>registerDataSource</code> method  
+*	The creator of the object is expected to register a DataBrokerQueryInterface via the <code>registerDataSource</code> method
 *	so that this object is added to it as a <code>DataListener</code>. 
 *	<p>
 *	When the search returns, all the <code>DataListener</code> objects are notified with the results of the search 
@@ -41,12 +42,12 @@ public class ReturnAttributesDisplay
     /**
      * The owning frame.
      */
-	private JXplorer jx;
+	private JXplorerBrowser browser;
 
     /**
      * Where we get the search results from.
      */
-	private DataSource dataSource = null;
+	private DataBrokerQueryInterface dataSource = null;
 
     /**
      * Returned attribute values (populates the table).
@@ -66,24 +67,24 @@ public class ReturnAttributesDisplay
 	*/
 	private static 	ReturnAttributesGUI gui = null;
 
-   /**
+    /**
     *	Constructor that does nothing more than register the params as global 
 	*	variables.
 	*	@param jx the owing frame.
 	*	@param tableHeader contains a list of attributes that the user wants returned (is used as the table header).
 	*/
-	public ReturnAttributesDisplay(JXplorer jx, String[] tableHeader)
+	public ReturnAttributesDisplay(JXplorerBrowser jx, String[] tableHeader)
 	{			
 		this.tableHeader = tableHeader;		  
-		this.jx = jx;
+		this.browser = jx;
 	}
 
    /**
-    *	Registers a given DataSource and notifies it that this class is
+    *	Registers a given DataBrokerQueryInterface and notifies it that this class is
 	*	a DataListener.
-	*	@param ds the DataSource to be registered.
+	*	@param ds the DataBrokerQueryInterface to be registered.
 	*/
-	public void registerDataSource(DataSource ds)
+	public void registerDataSource(DataBrokerQueryInterface ds)
 	{
 		dataSource = ds;
 		dataSource.addDataListener(this);
@@ -91,10 +92,10 @@ public class ReturnAttributesDisplay
 
    /**
 	*  	This is the data listener interface - this method is called when a (Search) data query is finished
-	*  	by a Broker.  
+	*  	by a DataBroker.
 	*	@param result the search result.
 	*/
-    public void dataReady(DataQuery result)
+    public void dataReady(com.ca.directory.jxplorer.broker.DataQuery result)
     {
         int type = result.getType();
 
@@ -106,7 +107,7 @@ public class ReturnAttributesDisplay
         else
         {
             // Make sure we are dealing with a search result...
-            if (type == DataQuery.SEARCH)
+            if (type == com.ca.directory.jxplorer.broker.DataQuery.SEARCH)
 				displaySearchResult(result); 
         }
     }	
@@ -117,7 +118,7 @@ public class ReturnAttributesDisplay
 	*	array is used to initiate the JTable that is used in the gui.  
 	*	@param result the search result.
 	*/
-    protected void displaySearchResult(DataQuery result)
+    protected void displaySearchResult(com.ca.directory.jxplorer.broker.DataQuery result)
     {	
 		HashMap map = new HashMap(0);		
 		
@@ -258,7 +259,7 @@ public class ReturnAttributesDisplay
 		*/
 		public ReturnAttributesGUI(Object[][] tableData, String[] tableHeader, int num, HashMap map)
 		{
-			super(jx, CBIntText.get(String.valueOf(num) + " " + CBIntText.get("Search Results")), false);
+			super(browser, CBIntText.get(String.valueOf(num) + " " + CBIntText.get("Search Results")), false);
 					
 			this.map = map;
 					
@@ -329,7 +330,7 @@ public class ReturnAttributesDisplay
 			pane.add(display);	
 			
 			setSize(500, 300);
-			CBUtility.center(this, jx);	
+			CBUtility.center(this, browser);
 			setVisible(true);		
 		}	
 		
@@ -440,7 +441,7 @@ public class ReturnAttributesDisplay
 		public void goToEntry(int selectedRow)
 		{
             // Get the Explore tab tree...
-			SmartTree tree = jx.getTree();
+			SmartTree tree = browser.getTree();
 
             // Get the DN from the HashMap store (get the true row number from the sorter)...
 			Object temp = map.get(String.valueOf(sorter.getTrueIndex(selectedRow)));
@@ -448,7 +449,7 @@ public class ReturnAttributesDisplay
 			tree.readAndExpandDN(new DN(temp.toString()));
 
             // Flip to the Explore tab...
-			jx.getTreeTabPane().setSelectedComponent(jx.getExplorePanel());
+			browser.getTreeTabPane().setSelectedComponent(browser.getExplorePanel());
 		}
 
 	   /**
@@ -551,7 +552,7 @@ public class ReturnAttributesDisplay
 		*/
 		public void save()
 		{
-	        chooser = new JFileChooser(JXplorer.getProperty("csv.homeDir"));
+	        chooser = new JFileChooser(JXConfig.getProperty("csv.homeDir"));
 	        
 	        chooser.addChoosableFileFilter(new CBFileFilter(new String[] {"csv"},"CSV Files (*.csv)"));
 	        
@@ -585,7 +586,7 @@ public class ReturnAttributesDisplay
 					}
 
                     // Save the user specified path to dxconfig.txt...
-	                JXplorer.setProperty("csv.homeDir", readFile.getParent());
+	                JXConfig.setProperty("csv.homeDir", readFile.getParent());
 	                doFileWrite(readFile);
 	            }                    
 	        }						

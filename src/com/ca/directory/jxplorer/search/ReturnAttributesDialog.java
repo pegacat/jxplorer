@@ -10,9 +10,9 @@ import javax.naming.NamingException;
 import java.io.*;
 
 import com.ca.commons.cbutil.*;
-import com.ca.directory.jxplorer.JXplorer;
 import com.ca.directory.jxplorer.HelpIDs;
-import com.ca.directory.jxplorer.broker.JNDIBroker;
+import com.ca.directory.jxplorer.JXplorerBrowser;
+import com.ca.directory.jxplorer.broker.JNDIDataBroker;
 
 /**
 *	This class acts as a item selector.  It sets up a dialog that lets you select items
@@ -30,7 +30,7 @@ public class ReturnAttributesDialog extends CBDialog
 	private ArrayList		arrayList = new ArrayList();
 	private Properties 		properties;
 	private String			localDir="";
-	private JXplorer		jx;
+	private JXplorerBrowser browser;
 
     /**
      * Flag for save prompt.
@@ -52,7 +52,7 @@ public class ReturnAttributesDialog extends CBDialog
      */
     public static final String DEFAULT_RETURN_ATTRS = "None";
 
-   /**
+    /**
     *	Static method that should be used rather than creating an object directly if
 	*	you wish to get the user input after the user has finished making selections and
 	*	has closed the window.
@@ -62,7 +62,7 @@ public class ReturnAttributesDialog extends CBDialog
 	*	@param jx the parent frame (JXplorer).
 	*	@return a list of user selections.
 	*/
-	public static ArrayList getSelectedValues(JXplorer jx)
+	public static ArrayList getSelectedValues(JXplorerBrowser jx)
 	{
 		ReturnAttributesDialog listSelector = new ReturnAttributesDialog(jx);
 
@@ -165,11 +165,11 @@ public class ReturnAttributesDialog extends CBDialog
 	*	it or clicking the '<' button.
 	*	@param jx the parent frame (JXplorer).
 	*/
-	public ReturnAttributesDialog(JXplorer jx)
+	public ReturnAttributesDialog(JXplorerBrowser jx)
 	{
 		super(jx, CBIntText.get("Return Attributes"), HelpIDs.SEARCH_RETURN_ATTRIBUTES);
 
-		this.jx = jx;
+		this.browser = jx;
 		setUpPropertyFile();
 
 		CBPanel topPanel = new CBPanel();
@@ -304,7 +304,7 @@ public class ReturnAttributesDialog extends CBDialog
 	{
         try
         {
-            JNDIBroker searchBroker = jx.getSearchBroker();
+            JNDIDataBroker searchBroker = browser.getSearchBroker();
             ArrayList en = searchBroker.getSchemaOps().listEntryNames("schema=AttributeDefinition,cn=schema");
 
             // Check for no schema publishing i.e. LDAP V2...
@@ -467,9 +467,9 @@ public class ReturnAttributesDialog extends CBDialog
                 CBIntText.get("Saved"), JOptionPane.INFORMATION_MESSAGE );
 
         // Set the search GUI to null so that it is forced to re-read it's config and pick up new lists...
-		jx.getTree().setSearchGUI(null);
-		jx.getSearchTree().setSearchGUI(null);
-		jx.getSchemaTree().setSearchGUI(null);
+		browser.getTree().setSearchGUI(null);
+		browser.getSearchTree().setSearchGUI(null);
+		browser.getSchemaTree().setSearchGUI(null);
 	}
 
    /**
@@ -610,9 +610,9 @@ public class ReturnAttributesDialog extends CBDialog
         includeDNCheckBox.setSelected(false);
 
         // Set the search GUI to null so that it is forced to re-read it's config and pick up new lists...
-		jx.getTree().setSearchGUI(null);
-		jx.getSearchTree().setSearchGUI(null);
-		jx.getSchemaTree().setSearchGUI(null);
+		browser.getTree().setSearchGUI(null);
+		browser.getSearchTree().setSearchGUI(null);
+		browser.getSchemaTree().setSearchGUI(null);
 	}
 
    /**

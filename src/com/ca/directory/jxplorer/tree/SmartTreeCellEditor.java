@@ -42,6 +42,14 @@ public class SmartTreeCellEditor extends DefaultTreeCellEditor
         display.add(standard = new TextField("bloop"));
     }
 
+    protected boolean shouldStartEditingTimer(EventObject event)
+    {
+        // supress editing timer when a popup operation is in progress...
+        if (((SmartTree)tree).popupToolVisible() == true)
+            return false;
+        else
+            return super.shouldStartEditingTimer(event);
+    }
 
     /**
      * overload the standard DefaultTreeCellEditor method that

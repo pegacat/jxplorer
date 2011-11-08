@@ -41,11 +41,11 @@ public class StopMonitor
     
     protected class QueryBroker
     {
-        public Broker broker;
+        public DataBroker broker;
         public DataQuery query;
         public int id;
         
-        QueryBroker(Broker b, DataQuery q)
+        QueryBroker(DataBroker b, DataQuery q)
         {
             broker = b;
             query  = q;
@@ -58,7 +58,7 @@ public class StopMonitor
      *    thread that runs each broker.  
      */
           
-    public StopMonitor(Broker[] brokerList, Frame parent)
+    public StopMonitor(DataBroker[] brokerList, Frame parent)
     {
         this.parent = parent;
     
@@ -74,7 +74,7 @@ public class StopMonitor
      *    Add a new broker to the stop monitor.
      */
      
-    public void add(Broker b)
+    public void add(DataBroker b)
     {
         watchList.add(b);
         b.registerStopMonitor(this);
@@ -95,7 +95,7 @@ public class StopMonitor
         // first get the queries currently being executed
         for (i=0; i<noBrokers; i++)
         {
-            Broker broker = (Broker)watchList.get(i);
+            DataBroker broker = (DataBroker)watchList.get(i);
             DataQuery query = broker.getCurrent();
             if (query != null && !query.isCancelled())
                 doublets.add(new QueryBroker(broker, query));
@@ -104,7 +104,7 @@ public class StopMonitor
         // now get all the queries waiting in queues.
         for (i=0; i<noBrokers; i++)
         {
-            Broker broker = (Broker)watchList.get(i);
+            DataBroker broker = (DataBroker)watchList.get(i);
             Vector queries = broker.getRequestQueue();
             for (int j=0; j<queries.size(); j++)
                 doublets.add(new QueryBroker(broker, (DataQuery)queries.get(j)));
@@ -121,7 +121,7 @@ public class StopMonitor
         // now get all the queries waiting in queues.
         for (int i=0; i<watchList.size(); i++)
         {
-            if (  ((Broker)watchList.get(i)).hasRequests() )
+            if (  ((DataBroker)watchList.get(i)).hasRequests() )
                 return true;
         }            
         
@@ -176,7 +176,7 @@ public class StopMonitor
         if (pair == null) return;
     
         DataQuery query = pair.query;
-        Broker broker = pair.broker;
+        DataBroker broker = pair.broker;
         
         //PROG NOTE - danger of contention here.  Remember that a broker thread
         //            may briefly have a lock on the requestQuery queue
@@ -316,7 +316,7 @@ public class StopMonitor
 		
 
         /**
-         *    Updates the list of queries/Broker pairs, maintaining the selection (if possible)
+         *    Updates the list of queries/DataBroker pairs, maintaining the selection (if possible)
          */
         protected void update()
         {
