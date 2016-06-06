@@ -178,11 +178,12 @@ public class ButtonBar extends JToolBar
      * Calls the setConnectedState method in ButtonRegister.
      * @see ButtonRegister
      */
+    /*
     public void setConnected()
     {
         br.setConnectedState();
     }
-
+    */
 
 
     /**

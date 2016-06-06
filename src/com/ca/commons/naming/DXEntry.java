@@ -5,6 +5,7 @@ import com.ca.commons.cbutil.*;
 
 import javax.naming.*;
 import javax.naming.directory.*;
+import javax.naming.ldap.LdapName;
 
 import java.util.*;
 
@@ -57,10 +58,12 @@ public class DXEntry extends DXAttributes
     public DXEntry() { super(); }
     public DXEntry(DN dn) { super(); this.dn = dn;}
     public DXEntry(Attribute a) { super(a); }
-    public DXEntry(Attributes a) { super(a); }   
+    public DXEntry(Attribute a, DN dn) { super(a); this.dn = dn;}
+    public DXEntry(Attributes a) { super(a); }
     public DXEntry(Attributes a, DN dn) { super(a); this.dn = dn;}   
-    public DXEntry(Hashtable newAtts) { super(newAtts); }
+    public DXEntry(HashMap<String, DXAttribute> newAtts) { super(newAtts); }
     public DXEntry(NamingEnumeration newAtts) { super(newAtts); }
+
     public DXEntry(DXEntry copyMe) 
     { 
         super(copyMe); 
@@ -69,9 +72,14 @@ public class DXEntry extends DXAttributes
     }
 
 
-    public DXEntry(Attribute[] atts, DN name)
+    public DXEntry(DN name, Attribute[] atts)
     {
         this(makeAtts(atts), name);
+    }
+
+    public DXEntry(String stringName, Attribute[] atts)
+    {
+        this(makeAtts(atts), new DN(stringName));
     }
 
     /**
@@ -183,7 +191,19 @@ public class DXEntry extends DXAttributes
     {
         return (dn==null)?new DN():dn;
     }
- 
+
+
+    /**
+     *    Returns the DN of this entry, or an empty DN if
+     *    none has been set.
+     *    @return the entry's distinguished name.
+     */
+
+    public DN getName()
+    {
+        return (dn==null)?new DN():dn;
+    }
+
     /**
      *    Provides a string representation of the entry, as a set of
      *    attributes preceeded by a header of form 'entry = <DN>'

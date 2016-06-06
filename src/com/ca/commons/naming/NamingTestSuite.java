@@ -31,10 +31,14 @@ public class NamingTestSuite extends TestCase {
 
 		// The tests...
         suite.addTest(DNTest.suite());
-        suite.addTest(RDNTest.suite());  // why not just 'suite.addTest(RDNTest.class);' ??
+        suite.addTest(RDNTest.suite());
         suite.addTest(DXAttributesTest.suite());
         suite.addTest(DXAttributeTest.suite());
 		suite.addTest(NameUtilityTest.suite());
+        suite.addTest(LdifModifyAttributeTest.suite());
+        suite.addTest(LdifEntryTest.suite());
+        suite.addTest(LdifUtilityTest.suite());
+        suite.addTest(LdifStreamReaderTest.suite());
 
         return suite;
     }

@@ -60,7 +60,9 @@ public class DN implements Name
 
     // the cached root exception.
     NamingException rootException = null;
-//    boolean empty = false;  // whether this is the blank DN "".
+
+    String stringVersion = null;  // cache string version
+    String reversedVersion = null; // cache reversed string version (for quick sorts)
 
     /**
      *    Default constructor creates a DN with no value set.
@@ -192,19 +194,40 @@ public class DN implements Name
 
     public String toString()
     {
+        if (stringVersion != null)
+            return stringVersion;
+
         String ldapDN = "";
         for (int i=0; i<RDNs.size(); i++)
             ldapDN =  get(i) + (i!=0?",":"") + ldapDN;
+
+        //TODO: is this code ever executed???
         if (ldapDN.endsWith(","))
         {
             if (ldapDN.charAt(ldapDN.length()-2) != '\\')
             {
-                ldapDN = ldapDN.substring(0,ldapDN.length()-1);
+                ldapDN = ldapDN.substring(0,ldapDN.length()-1);  // does this ever happen?
             }
         }
+        stringVersion = ldapDN;
+
         return ldapDN;
     }
 
+    /**
+     * Provides a string version of the DN with RDNs in reverse order (useful for sorting)
+     * @return
+     */
+    public String reversedString()
+    {
+        if (stringVersion == null || reversedVersion == null)
+        {
+            reversedVersion = "";
+            for (int i=RDNs.size()-1; i>=0; i--)
+                reversedVersion =  get(i) + (i!=0?",":"") + reversedVersion;
+        }
+        return reversedVersion;
+    }
 
 
     /**
@@ -291,6 +314,7 @@ public class DN implements Name
     {
         if (i<size() && i>= 0)
             RDNs.setElementAt(rdn, i);
+        stringVersion = null;
     }
 
 
@@ -493,7 +517,7 @@ public class DN implements Name
      *    @return the parent of this DN, or an empty DN if this is the top level DN.
      */
 
-    public DN parentDN()
+    public DN getParent()
     {
         // XXX what to do if this is already an empty DN? The same?
 
@@ -501,6 +525,7 @@ public class DN implements Name
 
            DN newDN = new DN(this);
             newDN.RDNs.removeElementAt(size()-1);
+        stringVersion = null;  // reset cached string version
             return newDN;
     }
 
@@ -514,6 +539,7 @@ public class DN implements Name
         for (int i=RDNs.size()-1; i>=0; i--)
             rev.add(RDNs.elementAt(i));
         RDNs = rev;
+        stringVersion = null;  // reset cached string version
     }
 
     /**
@@ -523,6 +549,8 @@ public class DN implements Name
     {
         RDNs.clear();
         errorString = null;
+        stringVersion = null;  // reset cached string version
+
     }
 
     /**
@@ -560,46 +588,6 @@ public class DN implements Name
         return rootException;
     }
 
-    /**
-     *    Prepare a dn for jndi transmission
-     */
-/*
-    public void escape()
-    {
-         for (int i=0; i<size(); i++)
-         {
-             getRDN(i).escape();
-         }
-    }
-*/
-    /**
-     *    Unescape a dn that has been *normally* escaped using ldap v3 (i.e. by the
-     *    preceeding ftn.).
-     */
-/*
-    public void unescape()
-        throws InvalidNameException
-    {
-         for (int i=0; i<size(); i++)
-         {
-             getRDN(i).unescape();
-         }
-    }
-*/
-    /**  (Obsolete)
-     *    Unescape a dn that has been returned by jndi, that may contain either
-     *    ldap v2 escaping, or the multiple-slash wierdness bug.
-     */
-/*
-    public void unescapeJndiReturn()
-        throws InvalidNameException                // shouldn't happen...
-    {
-         for (int i=0; i<size(); i++)
-         {
-             getRDN(i).unescapeJndiReturn();
-         }
-    }
-*/
 
     /**
      *    Add an RDN to the end of the DN.
@@ -621,6 +609,7 @@ public class DN implements Name
     public Name add(int posn, RDN rdn)
     {
         RDNs.insertElementAt(rdn,posn);
+        stringVersion = null;  // reset cached string version
         return this;
     }
 
@@ -699,44 +688,56 @@ public class DN implements Name
 
     /*
      *     Compares this name with another name for order.
-     *     ... for the time being, ordering is alphabetical by rdns ordered
-     *     right to left.  Damn but the ldap rdn ordering system is screwed.
+     *     Ordering is by reverse string order.
+     *     This method can be used to compare to DNs in String form.
      */
 
-    public int compareTo(Object obj)
+    public int compareTo(Object comparisonObject)
     {
         int val = 0;
         int pos = 1;
-        if (obj instanceof Name)
+        if (comparisonObject instanceof DN)
         {
-            Name compareMe = (Name)obj;
-            int size = size();
-            int compSize = compareMe.size();
+            return reversedString().compareTo(((DN)comparisonObject).reversedString());
+        }
+        else // maybe should throw class cast exception?  TODO: allow interop with LdapName (or convert DN to LdapName completely?)
+        {   // XXX not a proper comparision; RDN order not handled correctly (but at least it's consistent hey?)
+            String reversedComparisionString = new StringBuilder(comparisonObject.toString()).reverse().toString();
+            return reversedString().compareTo(reversedComparisionString);
+        }
+            /*
+            Name comparisonName = (Name)comparisonObject;
+            int mySize = size();
+            int comparisonSize = comparisonName.size();
+
             while (val == 0)
             {
-                String RDN = get(size-pos);
-                String compRDN = compareMe.get(compSize-pos);
-                int rdnOrder = RDN.compareTo(compRDN);
+                String myRDN = get(mySize-pos);
+                String comparisonRDN = comparisonName.get(comparisonSize-pos);
+                int rdnOrder = myRDN.compareTo(comparisonRDN);
 
                 if (rdnOrder != 0)
+                {
                     return rdnOrder;  // return alphabetic order of rdn.
+                }
 
                 pos++;
-                if (pos>size || pos>compSize)
+                if (pos>mySize || pos>comparisonSize)
                 {
-                    if (size==compSize)
+                    if (mySize==comparisonSize)
                         return 0;  // names are equal
-                    if (pos>size)
+                    if (pos>mySize)
                         return -1;  // shorter dns first
                     else
                         return 1;
                 }
-            }
-        }
-        else
-            throw new ClassCastException("non Name object in DN.compareTo - object was " + obj.getClass());
 
-        return 0; // never reached.
+            }   */
+
+//        else
+//            throw new ClassCastException("non Name object in DN.compareTo - object was " + comparisonObject.getClass());
+
+//        return 0; // never reached.
     }
 
 
@@ -826,7 +827,10 @@ public class DN implements Name
 
     public Object remove(int posn)
     {
+        stringVersion = null;  // reset cached string version
+
           return RDNs.remove(posn);
+
     }
 
    /*
@@ -858,15 +862,19 @@ public class DN implements Name
 
     public boolean startsWith(Name n)
     {
+        if (n.size()>size()) // if 'n' is larger than this name, we can't start with it. (also, we can now skip index checking below)
+            return false;
+
         int pos = 0;
         Enumeration e = n.getAll();
         while (e.hasMoreElements())
+        {
             if (e.nextElement().toString().equalsIgnoreCase(get(pos++).toString())==false)
                 return false;
+        }
 
         return true;  // falls through - all tested components must be equal!
     }
-
 
 
 }

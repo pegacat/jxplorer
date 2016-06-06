@@ -1,0 +1,4 @@
+Writing Fnord...
+
+#Strings From New Version:
+

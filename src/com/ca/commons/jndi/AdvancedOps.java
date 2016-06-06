@@ -2,6 +2,9 @@ package com.ca.commons.jndi;
 
 import javax.naming.*;
 import javax.naming.directory.*;
+import javax.naming.ldap.LdapContext;
+import javax.naming.ldap.LdapName;
+import javax.naming.ldap.Rdn;
 import java.util.ArrayList;
 import java.util.ListIterator;
 import java.util.logging.Logger;
@@ -35,7 +38,7 @@ public class AdvancedOps extends BasicOps
      *    name spaces.
      */
 
-    public AdvancedOps(DirContext c)
+    public AdvancedOps(LdapContext c)
             throws NamingException
     {
         super(c);
@@ -189,6 +192,12 @@ public class AdvancedOps extends BasicOps
      *
      */
 
+    public void moveTree(Name oldNodeDN, Name newNodeDN)       // may be a single node.
+            throws NamingException
+    {
+        moveTree(oldNodeDN, newNodeDN, false);
+    }
+
     /**
      *    Moves a DN to a new DN, including all subordinate entries.
      *    (nb it is up to the implementer how this is done; e.g. if it is an
@@ -197,9 +206,10 @@ public class AdvancedOps extends BasicOps
      *    @param oldNodeDN the original DN of the sub tree root (may be a single
      *           entry).
      *    @param newNodeDN the new DN of the sub tree to modify the old tree to.
+     *    @param replaceRDNValue whether to replace the old RDN Value with the new RDN from newNodeDN
      */
 
-    public void moveTree(Name oldNodeDN, Name newNodeDN)       // may be a single node.
+    public void moveTree(Name oldNodeDN, Name newNodeDN, boolean replaceRDNValue)       // may be a single node.
             throws NamingException
     {
         try
@@ -213,7 +223,7 @@ public class AdvancedOps extends BasicOps
             log.finer("recursively move tree from " + oldNodeDN.toString() + " to " + newNodeDN.toString());
 
             startOperation("Moving " + oldNodeDN.toString(), "moving");
-            recMoveTree(oldNodeDN, newNodeDN);
+            recMoveTree(oldNodeDN, newNodeDN, replaceRDNValue);
         }
         finally
         {
@@ -239,31 +249,32 @@ public class AdvancedOps extends BasicOps
      *    @param to the root DN of the new tree position
      */
 
-    protected void recMoveTree(Name from, Name to)   // may be a single node.
+    protected void recMoveTree(Name from, Name to, boolean replaceRDNValue)   // may be a single node.
             throws NamingException
     {
-        if (from.size() == to.size() && from.startsWith(to.getPrefix(to.size() - 1))) // DNs are siblings...
-        {
+           // CB - 29/2/12 - try a more robust rename strategy; always try a rename first, fail back to copy/paste if that fails.
+           // (many enterprise directories now seem to support renmae, and copy/paste breaks some (like Novell) that maintain DN links
             try
             {
-                renameEntry(from, to, true);
+                //xxx
+                renameEntry(from, to, replaceRDNValue); // CB - 2/10/13 - don't automatically delete old RDN value?
             }
-            // special purpose hack to get around directories such as openldap that don't support rename of parents.
+            // special purpose hack to get around directories such as openldap that don't support rename of internal nodes.
             catch (javax.naming.ContextNotEmptyException e)
             {
-                if (e.getMessage().indexOf("subtree rename not supported") > -1)
-                {
-                    recCopyAndDeleteTree(from, to);
-                }
+                log.fine("subtree rename not supported: using recursive copy 'n paste to move tree instead");
+                    recCopyAndDeleteTree(from, to, replaceRDNValue);
             }
-        }
-        else                               // DNs are not siblings; so copy them
-        {                                  // from tree, and then delete the original
-            recCopyAndDeleteTree(from, to);
-        }
+            catch (Exception e)
+            {
+                System.out.println("TEST RENAME FAILED: " + e.getMessage());
+                log.severe("exception trying to rename tree: " + e.getMessage());
+                throw new NamingException("unable to rename tree: " + e.getMessage());
+            }
+
     }
 
-    private void recCopyAndDeleteTree(Name from, Name to)
+    private void recCopyAndDeleteTree(Name from, Name to, boolean replaceRDNValue)
             throws NamingException
     {
         //TE:   does the 'from' DN exist? What if someone gets the DNs around the wrong way?  For example
@@ -275,11 +286,15 @@ public class AdvancedOps extends BasicOps
 
         try
         {
-            recCopyTree(from, to, true);
+            recCopyTree(from, to, replaceRDNValue);
         }
         catch (NamingException e)
         {
-            recDeleteTree(to);  // Try to clean up
+            try
+            {
+                recDeleteTree(to);  // Try to clean up
+            }
+            catch (Exception e2) {} // meh... we're interested in the exception that triggered this, not this in itself
             throw e;            // then rethrow exception
         }
 
@@ -302,7 +317,7 @@ public class AdvancedOps extends BasicOps
      *    @param newNodeDN the target DN for the tree to be moved to.
      */
 
-    public void copyTree(Name oldNodeDN, Name newNodeDN)       // may be a single node.
+    public void copyTree(Name oldNodeDN, Name newNodeDN, boolean resetNamingAttribute)       // may be a single node.
             throws NamingException
     {
         try
@@ -316,7 +331,7 @@ public class AdvancedOps extends BasicOps
             log.finer("recursively copy tree from " + oldNodeDN.toString() + " to " + newNodeDN.toString());
 
             startOperation("Copying " + oldNodeDN.toString(), "copying");
-            recCopyTree(oldNodeDN, newNodeDN, true);
+            recCopyTree(oldNodeDN, newNodeDN, resetNamingAttribute);
         }
         finally
         {
@@ -396,6 +411,10 @@ public class AdvancedOps extends BasicOps
             if (rdnNamingValue.equals(val))
                 namingValueFound = true;
         }
+
+        //This is a mess
+
+
 
         // the nub of it... if we can't find the RDN naming value, we replace it.  We assume if we
         // have a single valued we replace that value, if multi-valued we just add it into the pot

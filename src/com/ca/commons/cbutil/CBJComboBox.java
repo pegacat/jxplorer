@@ -62,7 +62,7 @@ public class CBJComboBox extends JComboBox
 
 
     /**
-     * Changes the default key selection manager to allow two character identification
+     * Changes the default key selection manager to allow multi character identification
      * of items within the combo box.  For example if the user presses two keys within two
      * seconds this class checks for a word beginning with the two characters that the keys
      * represent (e.g. c+r = creatorsName).  Normally the key selection manager would jump
@@ -76,10 +76,10 @@ public class CBJComboBox extends JComboBox
     public class CBKeySelectionManager implements KeySelectionManager
     {
         /**
-         * The last keystroke the user entered before the current one.
+         * The keystrokes the user entered before the current one.
          */
 
-        String oldKey = null;
+        String oldKeys = null;
 
         /**
          * The position in combo box that the selection is to be moved to.
@@ -153,18 +153,21 @@ public class CBJComboBox extends JComboBox
                 //TE: if two seconds have passed since the last keystroke...don't
                 //TE: keep the old key.
                 if ((time - oldTime) > 2000)
-                    oldKey = null;
+                    oldKeys = null;
             }
 
 
-            if (oldKey != null)						//TE: if the old key has not previously been
-                key = oldKey + String.valueOf(aKey);	//TE: assigned make the key only equal the keystroke key.
+            if (oldKeys != null)						//TE: if the old key has not previously been
+                key = oldKeys + String.valueOf(aKey);	//TE: assigned make the key only equal the keystroke key.
             else									//TE: if the old key has previously been assigned make
                 key = String.valueOf(aKey);			//TE: the key equal the old key + the keystroke key.
 
             key = key.toLowerCase();
 
             int count = combo.getItemCount();
+
+            oldKeys = (oldKeys==null)?String.valueOf(aKey):oldKeys + String.valueOf(aKey);			//TE: append the current key to list of old key strokes.
+            oldTime = time;							//TE: remember the current time.
 
             for (int i = 0; i < count; i++)
             {
@@ -176,15 +179,15 @@ public class CBJComboBox extends JComboBox
                 {
 
                     position = i;
-                    oldKey = String.valueOf(aKey);	//TE: remember the current key.
-                    oldTime = time;					//TE: remember the current time.
+//                    oldKeys = String.valueOf(aKey);	//TE: remember the current key.
+//                    oldTime = time;					//TE: remember the current time.
 
                     return position;
                 }
             }
 
-            oldKey = String.valueOf(aKey);			//TE: remember the current key.
-            oldTime = time;							//TE: remember the current time.
+//            oldKeys = (oldKeys==null)?String.valueOf(aKey):oldKeys + String.valueOf(aKey);			//TE: append the current key to list of old key strokes.
+//            oldTime = time;							//TE: remember the current time.
 
             return position;
         }

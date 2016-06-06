@@ -9,9 +9,12 @@ package com.ca.commons.jndi;
 import javax.naming.directory.*;
 import javax.naming.NamingException;
 import javax.naming.NamingEnumeration;
+import javax.naming.ldap.LdapContext;
 import java.util.*;
 
 import java.util.logging.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 /**
@@ -23,7 +26,7 @@ import java.util.logging.*;
  */
 public class SchemaOps
 {
-    protected DirContext ctx = null;            // the root jndi context used for all directory queries.
+    protected LdapContext ctx = null;            // the root jndi context used for all directory queries.
     Attributes rawSchemaAttributes = null;      // what is read from the directory subschema subentry
     private String schemaRoot = null;           // the entry in the directory that holds the schema attribute set - usually cn=schema
     HashMap oids = new HashMap(1000);           // a fast lookup list of oids to descriptive names.
@@ -51,7 +54,7 @@ public class SchemaOps
      * expensive operation, that can involve downloading 10-100k from
      * the directory!</p>
      */
-    public SchemaOps(DirContext context)
+    public SchemaOps(LdapContext context)
             throws NamingException
     {
         ctx = context;
@@ -848,20 +851,21 @@ public class SchemaOps
      *
      * @param entryName the full schema name to get the next level of: e.g. "schema=objectClass"
      * @return the undecorated names of the next level (e.g. {'person', 'top', 'organisation'}
+     * @throws NamingException if unable to read attributes from schema
      */
-    public ArrayList listEntryNames(String entryName)
+    public ArrayList<String> listEntryNames(String entryName)
             throws NamingException
     {
         if (rawSchemaAttributes == null)
-            return new ArrayList();
+            return new ArrayList<String>() ;
 
         entryName = mangleEntryName(entryName);
 
-        ArrayList schemaNames;
+        ArrayList<String> schemaNames;
 
         if (entryName == null || entryName.length() == 0 || entryName.equals("cn=schema") || entryName.equals(schemaRoot))  // The 'root node', i.e. the top of the schema tree - returns things like
         {                                                 // 'objectClasses', 'ldapSyntaxes', 'attributeTypes'
-            schemaNames = new ArrayList(10);
+            schemaNames = new ArrayList<String>(10);
             Enumeration schemaTopLevelNames = rawSchemaAttributes.getIDs();
             while (schemaTopLevelNames.hasMoreElements())
             {
@@ -872,7 +876,7 @@ public class SchemaOps
         }
         else if (entryName.indexOf(',') == -1 && entryName.indexOf('/') == -1) // the first layer - returns things like
         {                                                                    // 'person', 'orgunit', 'newPilotPerson' etc...
-            schemaNames = new ArrayList(1000);
+            schemaNames = new ArrayList<String>(1000);
             if (entryName.indexOf('=') > 0)
                 entryName = entryName.substring(entryName.indexOf('=') + 1);
             Attribute rawSyntaxAttribute = rawSchemaAttributes.get(entryName);   // entryName might be 'attributeTypes'
@@ -884,16 +888,16 @@ public class SchemaOps
             while (values.hasMoreElements())
             {
                 names = getNames((String) values.nextElement());
-                for (int i = 0; i < names.length; i++)
+                for (String name : names)
                 {
-                    if (!schemaNames.contains(names[i]))     //TE: don't add duplicates
-                        schemaNames.add(names[i]);
+                    if (!schemaNames.contains(name))     //TE: don't add duplicates
+                        schemaNames.add(name);
                 }
             }
         }
         else // double element, e.g. objectClass/person -> never has children.
         {
-            schemaNames = new ArrayList(0);
+            schemaNames = new ArrayList<String>(0);
         }
 
         return schemaNames;
@@ -992,6 +996,7 @@ public class SchemaOps
      * @return the Name or array of names, as an array of strings 1 or more elements long.
      */
     // package visibility for testing
+    // TODO: rewrite using regexps...
 
     public final String[] getNames(String ldapSyntaxDescription)
     {
@@ -1074,7 +1079,7 @@ public class SchemaOps
      * @return an array list of strings
      * @throws NamingException
      */
-    public ArrayList objectClasses()
+    public ArrayList getKnownObjectClasses()
             throws NamingException
     {
         if (fullObjectClassArray == null)
@@ -1083,6 +1088,9 @@ public class SchemaOps
             if (temp == null)
                 throw new NamingException("unable to read list of object classes from schema");
             String[] OCs = (String[]) temp.toArray(new String[temp.size()]);
+
+            //TODO: is there a cleaner way of sorting an arraylist than dumping it to an array, sorting, and reading it back?
+
             Arrays.sort(OCs, new Comparator()
             {
                 public int compare(Object a, Object b)
@@ -1104,6 +1112,39 @@ public class SchemaOps
         return fullObjectClassArray;
     }
 
+    public ArrayList<String> getKnownAttributeNames()
+            throws NamingException
+    {
+            ArrayList attributeNames = listEntryNames("schema=AttributeDefinition,cn=schema");
+            if(attributeNames==null)		//TE: check for no schema publishing i.e. LDAP V2.
+                return null;
+
+            String[] temp = (String[]) attributeNames.toArray(new String[] {});
+            Arrays.sort(temp, new IgnoreCaseStringComparator());
+
+            ArrayList<String> attList = new ArrayList(Arrays.asList(temp));
+
+            return attList;
+    }
+
+
+    public ArrayList<String> getKnownLowerCaseAttributeNames()
+            throws NamingException
+    {
+            ArrayList attributeNames = listEntryNames("schema=AttributeDefinition,cn=schema");
+            if(attributeNames==null)		//TE: check for no schema publishing i.e. LDAP V2.
+                return null;
+
+            String[] temp = (String[]) attributeNames.toArray(new String[] {});
+            Arrays.sort(temp, new IgnoreCaseStringComparator());
+
+            ArrayList<String> attList = new ArrayList(temp.length);
+
+            for (String att:temp)
+                attList.add(att.toLowerCase());
+
+            return attList;
+    }
 
     /**
      * This returns a sorted list of all known attribute names, as read from the schema
@@ -1199,8 +1240,9 @@ public class SchemaOps
 
     /**
      * Gets a list of all attribute definitions that have a 'binary' syntax
-     * (currently defined as: SYNTAX = 1.3.6.1.4.1.1466.115.121.1.5, 1.3.6.1.4.1.1466.115.121.1.40,
-     * 1.3.6.1.4.1.1466.115.121.1.28 or 1.3.6.1.4.1.1466.115.121.1.8)
+     * (currently defined as: SYNTAX = 1.3.6.1.4.1.1466.115.121.1.{4,5,8,9,10,28,40}
+     *
+     * Note the usual confusion between 'ASN.1' and 'byte array' - this is actually setting non-string 'byte array' atts.
      *
      * @return list of space separated attribute names as a string array - used to set ctx.addToEnvironment("java.naming.ldap.attributes.binary", -String- );
      */
@@ -1209,6 +1251,10 @@ public class SchemaOps
     {
         if (rawSchemaAttributes == null)
             return "";
+
+        // Compile and use regular expression
+        String patternStr = "SYNTAX\\s+(.*?)\\s+";
+        Pattern pattern = Pattern.compile(patternStr);
 
         try
         {
@@ -1220,17 +1266,36 @@ public class SchemaOps
             NamingEnumeration values = rawSyntaxAttribute.getAll();
             while (values.hasMore())
             {
+                //TODO - rewrite to make sure syntax matches are exact, and don't accidently pick up telephone syntaxes etc...
+
                 String attributeDescription = (String) values.next();  // something like "( 1.3.6.1.4.1.453.7.6.2.1 NAME 'mhsX400Domain' SYNTAX 1.3.6.1.4.1.1466.115.121.1.5 )"
-                if ((attributeDescription.indexOf("1.3.6.1.4.1.1466.115.121.1.5 ") > 0) || // binary
-                        (attributeDescription.indexOf("1.3.6.1.4.1.1466.115.121.1.40") > 0) || // octet string
-                        (attributeDescription.indexOf("1.3.6.1.4.1.1466.115.121.1.28") > 0) || // jpeg
-                        (attributeDescription.indexOf("1.3.6.1.4.1.1466.115.121.1.8") > 0))       // certificate
+
+                Matcher matcher = pattern.matcher(attributeDescription);
+                boolean matchFound = matcher.find();
+
+                if (matchFound) 
                 {
-                    String[] names = getNames(attributeDescription);
-                    for (int i = 0; i < names.length; i++)
+                    String attSyntax = matcher.group(1);
+
+                    if (attSyntax.startsWith("1.3.6.1.4.1.1466.115.121.1."))
                     {
-                        binaryAttributeList.append(names[i]);
-                        binaryAttributeList.append(' ');
+                        String attOIDSuffix = attSyntax.substring(27);
+
+                        if ((attOIDSuffix.equals("4"))  ||  // audio
+                            (attOIDSuffix.equals("5"))  ||  // ASN.1
+                            (attOIDSuffix.equals("8"))  ||  // certificate
+                            (attOIDSuffix.equals("9"))  ||  // certificate list
+                            (attOIDSuffix.equals("10")) ||  // certificate pair
+                            (attOIDSuffix.equals("28")) ||  // jpeg
+                            (attOIDSuffix.equals("40")))    // octet string
+                            {
+                                String[] names = getNames(attributeDescription);
+                                for (int i = 0; i < names.length; i++)
+                                {
+                                    binaryAttributeList.append(names[i]);
+                                    binaryAttributeList.append(' ');
+                                }
+                            }
                     }
                 }
             }
@@ -1243,6 +1308,7 @@ public class SchemaOps
         }
 
     }
+
 
      /**
      * Convenience method to get the objectClasses Attribute, which represents the syntax of
@@ -1335,6 +1401,8 @@ public class SchemaOps
 
     public boolean isAttributeSingleValued(String name)
     {/* TE */
+
+        //TODO: there has got to be a more efficient way of doing this check... this is very long winded...
         if (rawSchemaAttributes == null)
             return false;
 
@@ -1359,4 +1427,32 @@ public class SchemaOps
         }
         return false;
     }
+
+    /**
+     * This Comparator compares two strings, ignoring case.
+     *
+     * @author Trudi.
+     */
+
+    public static class IgnoreCaseStringComparator implements Comparator
+    {
+
+        /**
+         * This Comparator compares two strings, ignoring case.
+         *
+         * @param o1 one of the two items to be compared.
+         * @param o2 the other of the items to be compared.
+         * @return the result of the compare (0 if o1 & o2 are equal, -1 if o1 < o2, 1 if o1 > o2).
+         *         NOTE: if o1 is null and o2 is not null, 1 is returned. If o2 is null and o1 is not null, -1 is returned.
+         *         If both o1 and o2 are null, 1 is returned. If an error occurs trying to cast either o1 or o2, 0 is returned.
+         */
+
+        public int compare(Object o1, Object o2)
+        {
+            if (o1 == null || o2 == null) return (o1==null)?1:-1;
+
+            return (o1.toString().toLowerCase()).compareTo(o2.toString().toLowerCase());
+        }
+    }
+
 }

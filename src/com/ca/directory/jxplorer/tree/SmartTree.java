@@ -12,6 +12,7 @@ import com.ca.directory.jxplorer.viewer.PluggableEditor;
 
 import javax.naming.*;
 import javax.naming.directory.*;
+import javax.naming.ldap.LdapContext;
 import javax.swing.*;
 import javax.swing.event.*;
 import javax.swing.tree.*;
@@ -23,7 +24,7 @@ import java.awt.dnd.peer.DragSourceContextPeer;
 import java.awt.event.*;
 import java.io.IOException;
 import java.util.Enumeration;
-import java.util.Vector;
+import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -40,6 +41,8 @@ import java.util.logging.Logger;
 // The drag and drop handling in this code owes a lot to the java world tutorial:
 // http://www.javaworld.com/javaworld/javatips/jw-javatip97.html
 
+//TODO: 'root node' handling is dodgy - how do we handle multiple top level nodes? (e.g c=au and c=us at the same time?)
+
 public class SmartTree extends JTree
         implements TreeSelectionListener, DataListener,
         TreeExpansionListener, JXplorerEventGenerator,
@@ -47,20 +50,17 @@ public class SmartTree extends JTree
 
 {
     boolean setup = false; // whether the delayed graphics constructor has been called.
-    boolean activated = false; // whether the delayed action stuff has been called.
 
 
-    public static String NODATA = CBIntText.get("cn=no entries");
+    public static DN NODATA_DN = new DN(CBIntText.get("cn=no entries"));
 
     JXplorerEventGenerator eventPublisher; // if registered, this object is used to publish external events
     // (to programs that are using JXplorer as an embedded component)
 
-    //final JTree           tree;            // the main JTree over which everything is built.
-
     JXplorerBrowser browser;           // used for Swing/graphics L&F continuity
 
-    SmartNode root;            // the node representing the first RDN of the rootDN
-    SmartNode rootDNBase;      // the node representing the lowest RDN of the rootDN (may = top if only 1 rdn in rootDN)
+    SmartNode rootNode;            // the node representing the first RDN of the rootDN
+    SmartNode rootDNBaseNode;      // the node representing the lowest RDN of the rootDN (may = top if only 1 rdn in rootDN)
 
     DN rootDN;          // the full root DN
 
@@ -70,17 +70,13 @@ public class SmartTree extends JTree
 
     SmartPopupTool popupTreeTool;   // the right-mouse-click tree tools menu
 
-    DefaultTreeCellEditor treeEditor;      // widget that allows user to edit node names
+    DefaultTreeCellEditor treeCellEditor;      // widget that allows user to edit node names
 
-    SmartTreeCellRenderer treeRenderer;    // widget that display the nodes (text + icons)
-
-    public boolean rootSet = false; // whether the root node is set.
+    SmartTreeCellRenderer treeCellRenderer;    // widget that display the nodes (text + icons)
 
     DataBroker treeDataSource;  // where the tree obtains its data
 
-    Vector treeDataSinks = new Vector(); // a list of objects interested in tree changes
-
-    //int                   treeCapabilities; // a bit mask of DataQueries to respond to.
+    ArrayList<DataSink> treeDataSinks = new ArrayList<DataSink>(); // a list of objects interested in tree changes
 
     public DXEntry entry; 			//TE: the current entry.
 
@@ -96,7 +92,6 @@ public class SmartTree extends JTree
 
     /* Variables needed for DnD */
     private DragSource dragSource = null;
-    //private DragSourceContext dragSourceContext = null;
     private Point cursorLocation = null;
 
     /**
@@ -125,31 +120,33 @@ public class SmartTree extends JTree
 
         this.name = name;
 
-        setRoot(NODATA);
+        setRootDN(NODATA_DN);
 
         setup = true;  // one way or another, only do this once!
 
-        SmartNode.init(resourceLoader);
+        SmartNode.initIcons(resourceLoader);
 
         /*
-         *    a custom renderer, shows mutli valued attributes and icons.
+         *    a custom tree cell renderer, shows multi valued attributes and icons.
          */
 
-        treeRenderer = new SmartTreeCellRenderer();
-        setCellRenderer(treeRenderer);
+        treeCellRenderer = new SmartTreeCellRenderer();
+        setCellRenderer(treeCellRenderer);
 
         /*
          *    custom editor, allows editing of multi-valued rdn.
          */
 
-        treeEditor = new SmartTreeCellEditor(this, treeRenderer);
+        treeCellEditor = new SmartTreeCellEditor(this, treeCellRenderer);
 
-        setCellEditor(treeEditor);
+        setCellEditor(treeCellEditor);
 
-        treeModel = new SmartModel(root);
+        treeModel = new SmartModel(rootNode);
         setModel(treeModel);
 
-        registerPopupTool(new SmartPopupTool(this, browser));
+        if (browser != null)  // browser is null during testing...
+            registerPopupTool(new SmartPopupTool(this, browser));
+
         // disallow multiple selections...
         getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
         addTreeSelectionListener(this);
@@ -159,9 +156,10 @@ public class SmartTree extends JTree
         // is operating, and stick special handling in for multi valued rdn editing...
 
         setTreeMouseListener();
+
         setTreeCellEditorListener();
 
-        setEditable(true);                      // make sure the user can edit tree cells.
+        setEditable(true);                        // make sure the user can edit tree cells.
 
         setupDragAndDrop();
     }
@@ -197,19 +195,23 @@ public class SmartTree extends JTree
     /**
      * returns a vector of DNs being the all inclusive list of all DNs
      * in the subtree from the given apex DN.  Used by ldif save ftn.
+     * Includes 'structural' nodes that are simply in there to fill out
+     * a tree of search results (e.g. placeholder org units in a 'people' search).
+     * If you want *just* the results of a search, use 'getAllSearchResultNodes()'
      *
-     * @return a Vector of DNs
+     * @param start the node to start listing search result entries from.
+     * @return a ArrayList of DNs
      */
 
-    public Vector getAllNodes(DN start)
+    public ArrayList <DN> getAllNodes(DN start)
     {
-        if (start == null) return new Vector(0);          // sanity check
-        SmartNode apex = treeModel.getNodeForDN(start);   // need the smart node to find children
-        if (apex == null) return new Vector(0);           // another sanity check
+        if (start == null) return new ArrayList<DN>(0);          // sanity check
+        SmartNode apex = treeModel.getNodeForDN(start);          // need the smart node to find children
+        if (apex == null) return new ArrayList<DN>(0);           // another sanity check
 
         try
         {
-            Vector result = new Vector(10);
+            ArrayList <DN> result = new ArrayList<DN>(10);
 
             result.add(start);                    //
 
@@ -217,7 +219,8 @@ public class SmartTree extends JTree
             while (children.hasMoreElements())
             {
                 DN next = new DN(start);
-                next.addChildRDN(((SmartNode) children.nextElement()).getRDN());
+                SmartNode child = (SmartNode) children.nextElement();
+                next.addChildRDN(child.getRDN());
                 result.addAll(getAllNodes(next));
             }
             return result;
@@ -225,32 +228,51 @@ public class SmartTree extends JTree
         catch (Exception e)
         {
             log.log(Level.WARNING, "error in SmartTree dump: ", e);
-            return new Vector(0);
+            return new ArrayList<DN>(0);
         }
     }
 
     /**
-     * This sets the root of the tree, creating the nodes
-     * necessary to display it.  A small wrinkle: the
-     * 'rootDN' is the base DN as given by the user, e.g.
-     * 'o=Democorp,c=us'.  This may contain multiple RDNs.
-     * the root node, however, is the top level node in the
-     * display tree; it has only a single RDN (i.e. 'c=us'
-     * in the above example.)  The rootDN therefore may be
-     * displayed as a number of nodes in the tree (maybe the
-     * rootDN should be renamed the 'baseDN' or something...)
+     * returns a vector of DNs being the all inclusive list of all DNs
+     * in the subtree created from a search.  This *skips* structural nodes
+     * that are created simply to 'fill out the tree with parent nodes (
+     * e.g. org units created to display a 'person' search).
      *
-     * @param rootString the DN of the root as a string
+     *
+     * @param start the node to start listing search result entries from.
+     * @return a ArrayList of DNs
      */
 
-    public void setRoot(String rootString)
+    public ArrayList <DN> getAllSearchResultNodes(DN start)
     {
-        if (rootString == null)
-            rootString = "";
+        if (start == null) return new ArrayList<DN>(0);          // sanity check
+        SmartNode startNode = treeModel.getNodeForDN(start);              // need the smart node to find children
+        if (startNode == null) return new ArrayList<DN>(0);           // another sanity check
 
-        rootDN = new DN(rootString);   // rootString MAY BE BLANK!
-        setRoot(rootDN);
+        try
+        {
+            ArrayList <DN> result = new ArrayList<DN>(10);
+
+            if (startNode.isStructural() == false)
+                result.add(start);                    // only add 'real' nodes from search results, skip structural nodes used to 'fill out' tree structure
+
+            Enumeration children = startNode.children();  // find children of 'from'
+            while (children.hasMoreElements())
+            {
+                DN next = new DN(start);
+                SmartNode child = (SmartNode) children.nextElement();
+                next.addChildRDN(child.getRDN());
+                result.addAll(getAllSearchResultNodes(next));
+            }
+            return result;
+        }
+        catch (Exception e)
+        {
+            log.log(Level.WARNING, "error in SmartTree dump: ", e);
+            return new ArrayList<DN>(0);
+        }
     }
+
 
     /**
      * This sets the root of the tree, creating the nodes
@@ -263,65 +285,77 @@ public class SmartTree extends JTree
      * displayed as a number of nodes in the tree (maybe the
      * rootDN should be renamed the 'baseDN' or something...)
      *
-     * @param rootDN the DN of the root as a DN object
+     * Set this to null to indicate an empty tree with no data.
+     *
+     * @param newRootDN the DN of the root as a DN object - there is a big difference between 'null' (= no data / empty tree) and an empty DN (= a valid tree, with an empty root node)
      */
 
-    public void setRoot(DN rootDN)
+    public void setRootDN(DN newRootDN)
     {
-        rootSet = true;
-        if (rootDN == null) rootDN = new DN();  // equivalent to empty DN, 'cn=World'
+        //rootSet = true;  instead of separate flag, simply check if rootDN == null or NODATA_DN
+        if (newRootDN == null) newRootDN = NODATA_DN;  // equivalent to empty DN, 'cn=World'
 
         /*
          *    Special handling for 'No Data' trees...
          */
 
-        if (NODATA.equals(rootDN.toString()))
+        if (newRootDN == NODATA_DN)
         {
-            rootDN = new DN(NODATA);
-            root = new SmartNode(NODATA);
-            rootDNBase = root;
-            rootSet = false;
+            rootNode = new SmartNode(NODATA_DN.getLowestRDN());
+            rootDNBaseNode = rootNode;
+            this.rootDN = newRootDN;
+
+            //rootSet = false;
             if (treeModel != null)
             {
-                treeModel.setRoot(root);
+                treeModel.setRoot(rootNode);
                 treeModel.reload();
             }
             return;
         }
 
-        this.rootDN = rootDN;
+        this.rootDN = newRootDN;
 
-        root = new SmartNode("");      	// equivalent to new SmartNode("cn=World")
-        root.setRoot(true);
-        root.setStructural(true);
+        rootNode = new SmartNode("");      	// equivalent to new SmartNode("cn=World")
+        rootNode.setRoot(true);
+        rootNode.setStructural(true);
 
-        treeModel.setRoot(root); 		// reset the tree Model
+        treeModel.setRoot(rootNode); 		// reset the tree Model
 
         // set up the path to the lowest node of the DN, creating smart nodes for each RDN.
 
-        SmartNode parent = root;
-        rootDNBase = root;
+        SmartNode parent = rootNode;
+        rootDNBaseNode = rootNode;
 
-        for (int i = 0; i < rootDN.size(); i++)
+        for (int i = 0; i < newRootDN.size(); i++)
         {
-            SmartNode child = new SmartNode(rootDN.getRDN(i));
+            SmartNode child = new SmartNode(newRootDN.getRDN(i));
             child.setStructural(true);
             parent.add(child);
             parent = child;
         }
-        rootDNBase = parent;
-        rootDNBase.add(new SmartNode());  // stick in a dummy node so there's something to expand to...
+        rootDNBaseNode = parent;
+        rootDNBaseNode.add(new SmartNode());  // stick in a dummy node so there's something to expand to...
 
         treeModel.reload();
 
-        if (rootDN.size() > 0)
-            expandPath(treeModel.getPathForNode(rootDNBase));
-        else
-            collapseRow(0);
 
 
     }
 
+    public void expandRootDN()
+    {
+        if (rootDN.size() > 0)
+            expandPath(treeModel.getPathForNode(rootDNBaseNode));
+        else
+            collapseRow(0);
+    }
+
+
+    public boolean isEmpty()
+    {
+        return (rootNode == null || rootDN == NODATA_DN);
+    }
 
     /**
      * Forces a particular DN that is already in the tree to be displayed.
@@ -344,6 +378,43 @@ public class SmartTree extends JTree
         expandRow(0);
     }
 
+
+    /**
+     * fully expands all nodes of the tree.
+     * (Mainly used for debugging; this could take an
+     * unreasonable time if used on a large production
+     * directory.)
+     */
+
+    public void expandAll()
+    {
+        int row = 0;
+        while (row < getRowCount()) // i.e. tree is still expanding...
+        {
+            expandRow(row);
+            row++;
+        }
+
+    }
+
+        /**
+     * fully expands all nodes of the tree.
+     * (Mainly used for debugging; this could take an
+     * unreasonable time if used on a large production
+     * directory.)
+     */
+
+    public void expandAllExceptRoot()
+    {
+        int row = 1;
+        while (row < getRowCount()) // i.e. tree is still expanding...
+        {
+            expandRow(row);
+            row++;
+        }
+
+    }
+
     /**
      * Get the rootDN of the tree (often the same as the directory DSE
      * naming prefix, e.g. 'o=DemoCorp,c=au'.
@@ -353,7 +424,11 @@ public class SmartTree extends JTree
 
     public DN getRootDN()
     {
-        return (rootSet) ? rootDN : null;
+
+        //return (rootSet) ? rootDN : null;
+        // do we need to return null if rootDN == NO_DATA (which was old behaviour?)
+
+        return rootDN;
     }
 
     /**
@@ -361,7 +436,7 @@ public class SmartTree extends JTree
      */
     public SmartNode getRootNode()
     {
-        return root;
+        return rootNode;
     }
 
     /**
@@ -371,7 +446,7 @@ public class SmartTree extends JTree
      */
     public SmartNode getLowestRootNode()
     {
-        return rootDNBase;
+        return rootDNBaseNode;
     }
 
     /**
@@ -392,14 +467,20 @@ public class SmartTree extends JTree
 
     public void registerDataSource(DataBroker s)
     {
-        if (s == null) return;    // sanity check
+        if (s == null)
+        {
+            treeDataSource = null;
+        }
+        else
+        {
+            log.fine("registering data source for tree " + getName());
+            treeDataSource = s;
 
-        log.fine("registering data source for tree " + getName());
-        treeDataSource = s;
+            // Register ourselves as interested in *all* data events that pass through this data source...
+            treeDataSource.addDataListener(this);
 
-        // Register ourselves as interested in *all* data events that pass through this data source...
-        treeDataSource.addDataListener(this);
-
+            setEditable(treeDataSource.isModifiable()); // disable editing if data source is read only...
+        }
         //setRoot(rootDN);
     }
 
@@ -428,7 +509,7 @@ public class SmartTree extends JTree
 
     public void registerDataSink(DataSink s)
     {
-        treeDataSinks.addElement(s);
+        treeDataSinks.add(s);
         if (s instanceof AttributeDisplay)
             registerPluggableEditorSource((AttributeDisplay) s);
     }
@@ -439,13 +520,19 @@ public class SmartTree extends JTree
      */
     public void clearTree()
     {
-        root.removeAllChildren();
-        setRoot(NODATA);
-        treeModel.setRoot(root);
+        rootNode.removeAllChildren();
+        setRootDN(NODATA_DN);
+        treeModel.setRoot(rootNode);
         treeModel.reload();
         clearEntry();
         for (int i = 0; i < treeDataSinks.size(); i++)
-            ((DataSink) treeDataSinks.elementAt(i)).displayEntry(null, null);
+            ((DataSink) treeDataSinks.get(i)).displayEntry(null, null);
+    }
+
+    public void goOffline(OfflineDataBroker broker)
+    {
+        clearTree();
+        registerDataSource(broker);
     }
 
 
@@ -646,16 +733,19 @@ public class SmartTree extends JTree
 
         SmartNode parent, child = null;
 
-        if (rootDN.toString().equals(NODATA))
+        if (rootDN == null ||rootDN == NODATA_DN)
         {
-            setRoot("");  // the same as 'cn=World'
+            //setRootDN(NODATA_DN);  // is this necessary?  There are side effects from setRoot, but wouldn't they already have been set?
+            // if we don't have a root DN, set it to the very first RDN...
+            // TODO: I don't think this will cope with multiple top level branches??
+            setRootDN(new DN(newDN.getRootRDN().toString()));
         }
 
         // Walk through the current newDN, creating new nodes
         // as necessary until we can add a new node corresponding to
         // the lowest RDN of the newDN.
 
-        parent = root;
+        parent = rootNode;
         RDN rdn;
 
         for (int i = 0; i < newDN.size(); i++)
@@ -765,9 +855,7 @@ public class SmartTree extends JTree
     public void collapse()
     {
 
-        String dn = rootDN.toString();
-
-        if (dn.equals(NODATA)) return;  // don't bother!
+        if (isEmpty()) return;  // don't bother!
 
         try
         {
@@ -776,8 +864,8 @@ public class SmartTree extends JTree
             if (en != null)
             {
                 clearTree();
-                setRoot(dn);
-                addCutting(rootDNBase, en);
+                setRootDN(rootDN);
+                addCutting(rootDNBaseNode, en);
             }
         }
         catch (NamingException e)
@@ -842,7 +930,7 @@ public class SmartTree extends JTree
             node.update(to.getLowestRDN());
 
             // step 3: add it to new position
-            parent = treeModel.getNodeForDN(to.parentDN());
+            parent = treeModel.getNodeForDN(to.getParent());
 
             if (parent.getChildCount() == 1 && ((SmartNode) parent.getChildAt(0)).isDummy())
             {
@@ -868,7 +956,7 @@ public class SmartTree extends JTree
     public void copyTreeNode(SmartNode node, DN to)
     {
         // find the parent corresponding to the target DN
-        SmartNode parent = treeModel.getNodeForDN(to.parentDN());
+        SmartNode parent = treeModel.getNodeForDN(to.getParent());
 
         // sanity check
         if (parent == null)
@@ -934,24 +1022,6 @@ public class SmartTree extends JTree
         return fromCopy;
     }
 
-    /**
-     * fully expands all nodes of the tree.
-     * (Mainly used for debugging; this could take an
-     * unreasonable time if used on a large production
-     * directory.)
-     */
-
-    public void expandAll()
-    {
-        int rows = 0;
-        while (rows != getRowCount()) // i.e. tree is still expanding...
-        {
-            rows = getRowCount();
-            for (int i = 0; i < rows; i++)
-                expandRow(i);
-        }
-
-    }
 
     /**
      * This makes the internal tree object available, in case
@@ -1007,7 +1077,7 @@ public class SmartTree extends JTree
                         log.log(Level.WARNING, "ERROR: makeNewEntry(DN parentDN) " + parentDN, e);
                     }
                 }
-                else  // children are not currently displayed - send of a query to get them...
+                else  // children are not currently displayed - send off a query to get them...
                 {
                     refresh(parentDN);
                 }
@@ -1084,13 +1154,13 @@ public class SmartTree extends JTree
     {
         return treeDataSource.isModifiable();
     }
-
-    public DirContext getDirContext()
+/*
+    public LdapContext getLdapContext()
     {
-        return (treeDataSource == null) ? null : treeDataSource.getDirContext();
+        return (treeDataSource == null) ? null : treeDataSource.getLdapContext();
 
     }
-
+ */
     /**
      * This files a request with the directory broker to modify (move / delete / add)
      * an entry.  If oldEntry is null this is an add, if newEntry is null it is a
@@ -1167,8 +1237,7 @@ public class SmartTree extends JTree
                 // ask user whether to a) copy to new branch (copy of...), replace (delete + paste) or overwrite (merge and splat?)
                 Object[] possibleValues = { CBIntText.get("Copy"), CBIntText.get("Replace"), CBIntText.get("Merge") };
                 Object selectedValue = JOptionPane.showInputDialog(browser,
-                        CBIntText.get("There is already a branch with that name.\nDo you want to:\n a) create a new copy,\n" +
-                                "b) replace the existing tree,\nc) merge the new data with the old?"),
+                        CBIntText.get("There is already a branch with that name.\nDo you want to:\n a) create a new copy,\nb) replace the existing tree,\nc) merge the new data with the old?"),
                         "Input", JOptionPane.INFORMATION_MESSAGE, null,possibleValues, possibleValues[0]);
 
 
@@ -1272,6 +1341,8 @@ public class SmartTree extends JTree
         
             expandPath(treeModel.getPathForDN(result.requestDN()));
 
+            browser.setStatus("   " + node.getDN().toString() + ": (" + node.getChildCount() + ")");
+
         }
         catch (NamingException e)
         {
@@ -1304,8 +1375,7 @@ public class SmartTree extends JTree
         {
             //TE: only display the entry if the dn is below the root DN (baseDN) and if the prefix is the same.
 
-            JOptionPane.showMessageDialog(browser, CBIntText.get("The entry {0}\nwill not be displayed because it is either above the baseDN\n{1}\n" +
-                    "that you are connected with or it has a different prefix.", new String[]{dn.toString(), rootDN.toString()}),
+            JOptionPane.showMessageDialog(browser, CBIntText.get("The entry {0}\nwill not be displayed because it is either above the baseDN\n{1}\nthat you are connected with or it has a different prefix.", new String[]{dn.toString(), rootDN.toString()}),
                     CBIntText.get("Display Error"), JOptionPane.ERROR_MESSAGE);
             return;
         }
@@ -1328,7 +1398,7 @@ public class SmartTree extends JTree
                  */
                 if (node == null)
                 {
-                    treeDataSource.getChildren(ancestor.parentDN());
+                    treeDataSource.getChildren(ancestor.getParent());
                 }
                 /*
                  *  This check shouldn't be called, if the baseDN is skipped.
@@ -1343,7 +1413,7 @@ public class SmartTree extends JTree
                  */
                 else if (node.isDummy())
                 {
-                    treeDataSource.getChildren(ancestor.parentDN());
+                    treeDataSource.getChildren(ancestor.getParent());
                 }
                 /*
                  *  The node already exists in the tree - make sure its visible.
@@ -1351,11 +1421,15 @@ public class SmartTree extends JTree
                 else
                 {
                     //was: expandDN(ancestor);
-                    treeDataSource.getChildren(ancestor.parentDN());
+                    treeDataSource.getChildren(ancestor.getParent());
                 }
             }
         }
+
         treeDataSource.getEntry(dn);
+
+
+
     }
 
 
@@ -1429,6 +1503,10 @@ public class SmartTree extends JTree
             //TE: if the user has connected using a baseDN for example, and then moves
             //TE: up the tree, change the rootDN to the entry that the user has moved to.
                 rootDN = currentDN;
+
+            // scroll to display the new entry
+            int row = this.getRowForPath(current);
+            this.scrollRowToVisible(row);
         }
     }
 
@@ -1453,7 +1531,7 @@ public class SmartTree extends JTree
     {
         for (int i = 0; i < treeDataSinks.size(); i++)
         {
-            ((DataSink) treeDataSinks.elementAt(i)).displayEntry(entry, treeDataSource);
+            treeDataSinks.get(i).displayEntry(entry, treeDataSource);
         }
     }
 
@@ -1492,7 +1570,7 @@ public class SmartTree extends JTree
                 }
                 else if (newEntry == null) // delete
                 {
-                    DN parentDN = oldEntry.getDN().parentDN();
+                    DN parentDN = oldEntry.getDN().getParent();
                     deleteTreeNode(treeModel.getNodeForDN(oldEntry.getDN()));
                     if (parentDN != null && parentDN.size()>rootDN.size())
                         setSelectionPath(treeModel.getPathForDN(parentDN));
@@ -1591,13 +1669,13 @@ public class SmartTree extends JTree
         {
             NamingEnumeration results = result.getEnumeration();
 
-            while (results.hasMoreElements())
+            while (results!= null && results.hasMoreElements())
             {
                 SearchResult sr = (SearchResult) results.nextElement();
                 String search = sr.getName();
                 if (search == null || search.length() == 0)
                 {
-                    addNode(new DN(SmartTree.NODATA));
+                    addNode(NODATA_DN);
                 }
                 else
                 {
@@ -1627,38 +1705,54 @@ public class SmartTree extends JTree
 
     protected void displaySearchResult(com.ca.directory.jxplorer.broker.DataQuery result)
     {
-
-// XXX Currently search results aren't sorted: do want to make them sorted?
-// XXX (easy way is to sort result.getEnumeration() as DXNamingEnumeration,
-// XXX but this may be expensive...
         setNumOfResults(0);
-
+        clearTree();
         try
         {
             NamingEnumeration results = result.getEnumeration();
 
-            while (results.hasMoreElements())
+            if (results.hasMoreElements() == true)
             {
-                SearchResult sr = (SearchResult) results.nextElement();
-                //Attribute obClass = sr.getAttributes().get("objectClass");
-                String search = sr.getName();
-                if (search == null || search.length() == 0)
+                setRootDN(result.getRequestDN());  // reset search tree to use search base as root DN?
+
+                while (results.hasMoreElements())
                 {
-                    addNode(new DN(SmartTree.NODATA));
+                    SearchResult sr = (SearchResult) results.nextElement();
+                    String search = sr.getName();
+                    if (search == null || search.length() == 0) // I think this is redundant? - CB
+                    {
+                        //addNode(NODATA_DN);
+                        log.severe("Unexpected problem getting name of search result: " + sr);
+                    }
+                    else
+                    {
+                        DN searchDN = new DN(search);
+                        addNode(searchDN);
+                        numOfResults++;
+                    }
                 }
-                else
-                {
-                    DN searchDN = new DN(search);
-                    addNode(searchDN);
-                    numOfResults++;
-                }
+                //TE: task 4648...
+                browser.setStatus("   " + result.getRequestDN().toString() + ":+ (" + String.valueOf(numOfResults) + ")");
+    
+                expandAllExceptRoot();
             }
-            //TE: task 4648...
-            if (browser instanceof JXplorerBrowser)
-                ((JXplorerBrowser) browser).setStatus("Number of search results: " + String.valueOf(numOfResults));
 
-            expandAll();
+//            this.setSelectionPath(treeModel.getPathForDN(searchRootDN));
 
+
+
+//            DN searchRootDN = result.getRequestDN();
+/*
+            SwingUtilities.invokeLater(new Runnable()
+            {
+                  public void run()
+                  {
+                    expandAll();
+//            this.setSelectionPath(treeModel.getPathForDN(searchRootDN));
+
+                  }
+            });
+*/
         }
         catch (NamingException e)
         {
@@ -1744,7 +1838,7 @@ public class SmartTree extends JTree
                 if (isActive() == false)
                     return;
 
-                RDN rdn = (RDN) treeEditor.getCellEditorValue();
+                RDN rdn = (RDN) treeCellEditor.getCellEditorValue();
 
                 DN newDN = new DN(currentDN);
 
@@ -1761,7 +1855,7 @@ public class SmartTree extends JTree
                     new CBErrorWin(browser, "The name you are trying to use already exists - " +
                             "please choose another name or delete the original entry.",
                             "Name already exists");
-                    refresh(currentDN.parentDN());
+                    refresh(currentDN.getParent());
                     return;
                 }
 
@@ -1770,7 +1864,7 @@ public class SmartTree extends JTree
             }
         };
 
-        treeEditor.addCellEditorListener(cl);
+        treeCellEditor.addCellEditorListener(cl);
     }
 
     /**
@@ -1914,6 +2008,7 @@ public class SmartTree extends JTree
         }
         catch (java.util.NoSuchElementException err)
         {
+            System.out.println("unexpected exception expanding tree node " + err.getMessage());
         }  // why would it be trying to expand anyway?
     }
 
@@ -1957,9 +2052,13 @@ public class SmartTree extends JTree
     {
         if (treeDataSource == null) return false;
         if (treeDataSource.isActive() == false) return false;
-        if (rootSet == false) return false;
+
+        //not sure about this one - deactivates search tree, is it useful? if (rootSet == false) return false;
+
         return true;
     }
+
+
 
     /**
      * This is the data listener interface - this method is called when a data query is finished
@@ -2047,10 +2146,17 @@ public class SmartTree extends JTree
 // XXX Disable Drag and Drop on Solaris.  Doesn't work worth a damn, and
 // XXX has some *VERY* strange behaviour
 
-        if (JXplorer.isSolaris()) return;
+        if (CBUtility.isSolaris()) return;
 
-// Disable Drag and Drop if the user has set the option to do so... ('true' is default though).
-        if (!JXConfig.getProperty("option.drag.and.drop").equals("true"))
+        // Disable Drag and Drop if the user is in a locked read only mode...
+        if ("true".equals(JXConfig.getProperty("lock.read.only")))
+            return;
+
+        // TODO: disable drag/drop when we have selected read only *for this particular connection*...
+
+
+        // Disable Drag and Drop if the user has set the option to do so... ('true' is default though).
+        if (!"true".equals(JXConfig.getProperty("option.drag.and.drop")))
             return;
 
         /*  Custom dragsource object: needed to handle DnD in a JTree.
@@ -2411,5 +2517,43 @@ public class SmartTree extends JTree
     public void setSearchGUI(SearchGUI searchGUI)
     {
         this.searchGUI = searchGUI;
+    }
+
+    /**
+     * This utility method resets the tree from the top level, using the unthreaded methods of the current data broker.
+     * It is primarily intended for use with offline data brokers that read a large quantity of information from a file,
+     * and then need to reset the top level of the tree to reflect the new data set.
+     * @param topNodes a list of 'top level' nodes to expand.  If null, a single apex node will be searched for
+     * and used.
+     */
+    public void unthreadedRefresh(ArrayList<DN> topNodes)
+    {
+        // quicky check to see if we're working off line, or need to set the
+        // root for some other reason (can't actually think of any...)
+
+        if (isEmpty())
+        {
+            //TE: if there are multiple root DNs this ensures that they are displayed (see bug 529),
+            //    e.g o=CA1 & o=CA2.
+            //	  However, I have a feeling this could make other things fall over...but have no idea
+            //    what at this stage because this only keeps account of the last root DN (e.g. o=CA2)
+            //	  whereas there may be several...
+            //CB: TODO: sort this out; the tree model doesn't really allow for multiple roots, so this is working by accident :-)
+            for(DN root: topNodes)
+            {
+                setRootDN(root);  // bit of a hack; pass the last known real DN
+                expandRootDN();   // this may kick off other read events?
+                getRootNode().setStructural(true);
+            }
+        }
+
+        // give the tree a kick to make it refresh the apex parent, thus displaying
+        // the newly imported nodes.
+
+        for (DN root: topNodes)
+        {
+            if (root.size()>1)
+                refresh(root.getParent());
+        }
     }
 }

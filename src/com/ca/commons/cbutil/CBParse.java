@@ -5,6 +5,40 @@ package com.ca.commons.cbutil;
  */
 public class CBParse
 {
+       /**
+    *   Converts a string to hex then to a byte array.
+    *   @param forConversion value to be converted.
+    *   @return bytesConverted byte representation of the hex.
+    */
+
+    public static byte[] hex2bytes(String forConversion)
+               throws NumberFormatException
+    {
+        char charForConversion[] = forConversion.toCharArray();
+
+        byte[] bytesConverted = new byte[charForConversion.length/2];
+
+        int a = 0;      //TE: loop counter.
+
+        try
+        {
+            for (int i=0;i<charForConversion.length; i=i+2)     //TE: increments by two b/c two chars need to be parsed at a time.
+            {
+                bytesConverted[a] = CBParse.hex2Byte(charForConversion[i], charForConversion[i+1]);
+                a++;
+            }
+        }
+        catch (NumberFormatException e)
+        {
+            throw e;  // rethrow
+        }
+        catch (Exception e)     // what would these be?
+        {
+            CBUtility.error("Problem parsing hex string '" + forConversion + "' to bytes: " + e);
+            throw new NumberFormatException("error parsing hex string '" + forConversion + "' " + e.getMessage());
+        }
+        return bytesConverted;
+    }
 
     public static String bytes2Hex(byte[] bytes)
     {
@@ -45,24 +79,34 @@ public class CBParse
     }
 
     static public byte hex2Byte(char hex1, char hex2)
+            throws NumberFormatException
     {
         byte a = hexChar2Byte(hex1);
         byte b = hexChar2Byte(hex2);
         return (byte) ((a << 4) + b);
     }
 
+
+
     /**
      * Convert a single character to a byte...
      */
 
     static public byte hexChar2Byte(char hex)
+            throws NumberFormatException
     {
-        if (hex <= '9')
+        if (hex < '0')
+            throw new NumberFormatException("invalid character for hex conversion: '" + hex + "'");
+        else if (hex <= '9')
             return ((byte) (hex - 48)); // ('0' -> '9')
         else if (hex <= 'F')
             return ((byte) (hex - 55)); // ('A' -> 'F')
-        else
+        else if (hex < 'a')
+            throw new NumberFormatException("invalid character for hex conversion: '" + hex + "'");
+        else if (hex <='f')
             return ((byte) (hex - 87)); // ('a' -> 'f')
+        else
+            throw new NumberFormatException("invalid character for hex conversion: '" + hex + "'");
     }
 
     /**
@@ -431,4 +475,17 @@ public class CBParse
         }
         return -1;
     }
+
+    public static boolean isPrintableAscii(String str)
+    {
+        if (str == null)
+            return false;
+
+        for (byte b:str.getBytes())
+            if (b < 32 && b > 126)
+                return false;
+
+        return true;
+    }
+
 }

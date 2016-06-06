@@ -1,6 +1,7 @@
 package com.ca.commons.cbutil;
 
 import javax.swing.*;
+import javax.swing.filechooser.FileFilter;
 import javax.swing.text.JTextComponent;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -22,6 +23,13 @@ public class CBFileChooserButton extends CBButton implements ActionListener
 
     JTextComponent myText;
     Component parent;
+
+    FileFilter filter = null;
+    /*
+     *  mode selector for internal JFileChooser object; allowable values are FILES_ONLY, DIRECTORIES_ONLY, and FILES_AND_DIRECTORIES;
+     */
+    int fileSelectionMode = JFileChooser.FILES_AND_DIRECTORIES;
+
 
     /**
      * Constructor takes the JTextComponent it is to be
@@ -105,6 +113,13 @@ public class CBFileChooserButton extends CBButton implements ActionListener
         globalLastDirectory = dirString;
     }
 
+    public void setLocalDirectory(String dirString)
+    {
+        localLastDirectory = dirString;
+        useLocal = true;
+    }
+
+
     public void setStartingDirectory(String dirString)
     {
         if (useLocal)
@@ -116,6 +131,31 @@ public class CBFileChooserButton extends CBButton implements ActionListener
     public String getStartingDirectory()
     {
         return (useLocal ? localLastDirectory : globalLastDirectory);
+    }
+
+
+    /**
+     * Sets a file filter (e.g. to select files with certain .xxx suffixes) such as CBFileFilter.
+     * @param filter
+     */
+    public void addChoosableFileFilter(FileFilter filter)
+    {
+        this.filter = filter;
+    }
+
+    /**
+     * Sets the file selection mode as per JFileChooser selection modes:
+     *
+    <ul>
+     <li>JFileChooser.FILES_ONLY
+    <li>JFileChooser.DIRECTORIES_ONLY
+    <li>JFileChooser.FILES_AND_DIRECTORIES
+    </ul>
+     * @param mode
+     */
+    public void setFileSelectionMode(int mode)
+    {
+        fileSelectionMode = mode;
     }
 
     public void actionPerformed(ActionEvent e)
@@ -140,6 +180,12 @@ public class CBFileChooserButton extends CBButton implements ActionListener
         }
 
         JFileChooser chooser = new JFileChooser(lastDirectory);
+
+        chooser.setFileSelectionMode(fileSelectionMode);
+        
+        if (filter != null)
+            chooser.addChoosableFileFilter(filter);
+
         int option = chooser.showOpenDialog(parent);
 
         if (option == JFileChooser.APPROVE_OPTION) // only do something if user chose 'ok'

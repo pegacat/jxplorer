@@ -5,6 +5,7 @@ import java.awt.*;
 import java.awt.event.*;
 import java.io.File;
 import java.io.IOException;
+import java.util.logging.Logger;
 
 
 /*
@@ -24,6 +25,8 @@ public class CBAbout extends JDialog
     private static final int height = 288;	// the standard CA about window hight
     private JFrame owner;
 
+
+    private static Logger log = Logger.getLogger(CBAbout.class.getName());
 
     /**
      * The url for the CA website.
@@ -151,11 +154,23 @@ public class CBAbout extends JDialog
 
     /**
      * Attempts to launch the CA website in the users default browser.
-     * If the os is not windows it will ask the user to locate the default broswer.
+     * 
      */
 
     public void iAmCa()
     {
+        try
+        {
+            java.awt.Desktop.getDesktop().browse(java.net.URI.create(URL));
+        }
+        catch (IOException e)
+        {
+            log.severe("unable to open browser: " + e.getMessage());
+        }
+
+        /*
+        // this stuff hits security problems these days - use Desktop api instead
+
         if (System.getProperty("os.name").indexOf("Windows") >= 0)
             CBLauncher.launchProgram(".html", URL);
         else
@@ -182,7 +197,10 @@ public class CBAbout extends JDialog
                     try
                     {
                         //Launch the browser and pass it the desired URL
-                        Runtime.getRuntime().exec(new String[]{browserName, URL});
+                        // Runtime.getRuntime().exec(new String[]{browserName, URL});
+
+                        String url = "http://www.google.com";
+                        java.awt.Desktop.getDesktop().browse(java.net.URI.create(url));
                     }
                     catch (IOException exc)
                     {
@@ -190,6 +208,6 @@ public class CBAbout extends JDialog
                     }
                 }
             }
-        }
+        } */
     }
 }

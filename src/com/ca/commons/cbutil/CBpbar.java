@@ -2,6 +2,7 @@ package com.ca.commons.cbutil;
 
 import javax.swing.*;
 import java.awt.*;
+import java.io.Closeable;
 
 /**
  * A component so cunning you could stick a tail on it
@@ -24,7 +25,7 @@ import java.awt.*;
 //    seemed easier to do the SwingUtility.invokeLater()
 //    magic that way...
 
-public class CBpbar
+public class CBpbar implements Closeable
 {
     /**
      * Constructor creates progress bar, and starts it up
@@ -40,7 +41,8 @@ public class CBpbar
     int level;                         // current depth in tree
 
     static int MAXLEVEL = 6;           // not interested in estimating percentage complete
-    // below this level in the tree (percentage pts are integral)
+                                        // below this level in the tree (percentage pts are integral)
+    
     int fanout[] = new int[MAXLEVEL];   // total branches at each level - initialised to zero
 
     int visited[] = new int[MAXLEVEL];  // branches visited at each level - initialised to zero
@@ -52,21 +54,36 @@ public class CBpbar
      *
      * @param C          a graphical 'hook' so the Progress Monitior knows where to
      *                   display itself - usually a Swing Component of some sort...
-     * @param uberTitle  a general desciption that appears in the box
-     * @param notePrefix the active description, that prefixes the changing
+     * @param title  a general desciption that appears in the box
+     * @param prefix the active description, that prefixes the changing
      *                   'count' value that the progress bar reports.
      */
 
-    public CBpbar(Component C, String uberTitle, String notePrefix)
+    public CBpbar(Component C, String title, String prefix)
     {
-        this.notePrefix = notePrefix;
-
-
-        pbar = new ProgressMonitor(C, uberTitle, notePrefix + " 0", 0, 100);
+        pbar = new ProgressMonitor(C, title, prefix + " 0", 0, 100);
+        notePrefix = prefix;
         level = 0;
         fanout[level] = 1;      // the root node is unitary.
 
-        System.out.println("starting pbar (" + pbar.getNote() + ") " + Thread.currentThread().toString());
+        //System.out.println("starting pbar (" + pbar.getNote() + ") " + Thread.currentThread().toString());
+    }
+
+    public void setPrefix(String prefix)
+    {
+        notePrefix = prefix;
+        pbar.setNote(prefix);
+    }
+
+    /**
+     * Set the progress bar back to its starting state.
+     * @param prefix the active description, that prefixes the changing
+     */
+    public void reset(String prefix)
+    {
+        setPrefix(prefix);
+        level = 0;
+        fanout[level] = 1;
     }
 
     /**
@@ -86,11 +103,11 @@ public class CBpbar
         if (level < MAXLEVEL && level >= 0)
         {
 
-// moderate mathematical cunning here.  Attempting (fairly brutaly)
-// to establish what proportion of the tree has been visited, by
-// assuming a perfectly 'balanced' tree, and toting up the bits 
-// that have been visited.  This is computationally inefficient, 
-// but we have CPU cycles to spare, right?
+    // moderate mathematical cunning here.  Attempting (fairly brutaly)
+    // to establish what proportion of the tree has been visited, by
+    // assuming a perfectly 'balanced' tree, and toting up the bits
+    // that have been visited.  This is computationally inefficient,
+    // but we have CPU cycles to spare, right?
 
             visited[level]++;
             pcntg = 0;
@@ -105,22 +122,8 @@ public class CBpbar
             {
                 pbar.setProgress(pcntg);
                 pbar.setNote(notePrefix + " " + count);
-//                System.out.println("curious:  pbar (" + pbar.getNote() + ") " + Thread.currentThread().toString());
-/*  progress bars suck.  Sticking the updates in a separate thread *appeared* to result in a problem where
-//  orphaned progress bars were hanging around...
-                SwingUtilities.invokeLater(new Runnable()
-                {
-                    public void run()
-                    {
-                        pbar.setProgress(pcntg);
-                        pbar.setNote(notePrefix + " " + count);
-                        System.out.println("curious:  pbar (" + pbar.getNote() + ") " + Thread.currentThread().toString());
-                    }
-                });
-*/                
             }
         }
-        System.out.println("incrementing pbar (" + pbar.getNote() + ") " + Thread.currentThread().toString());
     }
 
     /**
@@ -130,7 +133,8 @@ public class CBpbar
 
     public void pop()
     {
-        level--;
+        if (level > 0)
+            level--;
     }
 
     /**
@@ -155,7 +159,7 @@ public class CBpbar
 
     public void close()
     {
-        System.out.println("closing pbar (" + pbar.getNote() + ") " + Thread.currentThread().toString());
+        //System.out.println("closing pbar (" + pbar.getNote() + ") " + Thread.currentThread().toString());
 
         pbar.close();
     }
@@ -171,5 +175,7 @@ public class CBpbar
     {
         return pbar.isCanceled();
     }
+
+    public ProgressMonitor getBaseMonitor() {return pbar;}
 
 }

@@ -27,14 +27,14 @@ import java.util.logging.Logger;
  */
 public class JXOpenConWin extends CBOpenConWin implements DataListener
 {
-    private final static Logger log = Logger.getLogger(CBOpenConWin.class.getName());
+    private final static Logger log = Logger.getLogger(JXOpenConWin.class.getName());
 
     // a list of passwords used this session, to allow for reconnection and to save users re-entering them.
     private final static HashMap cachedps = new HashMap(20);
 
-    private JXplorerBrowser browser;
-    private JNDIDataBroker jndiBroker;
-    private JTextField dsmlService;
+    protected JXplorerBrowser browser;
+    protected JNDIDataBroker jndiBroker;
+    protected JTextField dsmlService;
     /**
      * Constant used to add 'DSML' option to combo box.
      */
@@ -60,13 +60,13 @@ public class JXOpenConWin extends CBOpenConWin implements DataListener
     public JXOpenConWin(JXplorerBrowser jx, JLabel statusDisplay, String clientcerts, String cacerts,
                         String referral, String aliasType)
     {
-        super(jx, statusDisplay, clientcerts, cacerts, referral, aliasType, HelpIDs.CONNECT);
+        super(jx, JXplorer.APPLICATION_NAME, statusDisplay, clientcerts, cacerts, referral, aliasType, HelpIDs.CONNECT);
 
         browser = jx;
-        newCon.tracing = browser.getJndiBroker().getTracing();
+        if (browser != null && browser.getJndiBroker() != null && newCon != null) // possibly null in batch mode
+            newCon.tracing = browser.getJndiBroker().getTracing();
 
         addPasswordHandlingListener();
-
     }
 
     /**
@@ -96,7 +96,7 @@ public class JXOpenConWin extends CBOpenConWin implements DataListener
             {
                 myTemplater.load();
                 checkSecurityLevel();
-                retrieveCachedPassword();
+                loadPasswordHandling();
             }
         });
 
@@ -110,7 +110,7 @@ public class JXOpenConWin extends CBOpenConWin implements DataListener
         {
             public void actionPerformed(ActionEvent e)
             {
-                cachePassword();
+                savePasswordHandling();
             }
         });
     }
@@ -118,29 +118,44 @@ public class JXOpenConWin extends CBOpenConWin implements DataListener
     /**
      * @param statusDisplay
      */
-    protected void initGUI(JLabel statusDisplay)
+    protected void initGUI(String applicationName, JLabel statusDisplay)
     {
+        super.initGUI(applicationName, statusDisplay);
+        initSpecificGUI();
+    }
 
-        super.initGUI(statusDisplay);
-
+    protected void initSpecificGUI()
+    {
+        // XXX I think we can just make DSML an option always can't we?  - CB '11
         // make 'dsml available' the default, but allow it to be turned off for light weight distributions...
-        if (JXConfig.getProperty("dsml") == null ||
-                JXConfig.getProperty("dsml").equalsIgnoreCase("false") == false)
-            version.addItem(DSMLV2);
+        //if (JXConfig.getProperty("dsml") == null ||
+        //        JXConfig.getProperty("dsml").equalsIgnoreCase("false") == false)
+        version.addItem(DSMLV2);
+
+        setReadOnlyHandling();
 
         myTemplater.loadDefault();  // needs to be redone after 'dsml' added to property list
 
-        retrieveCachedPassword();
+        loadPasswordHandling();
 
         display.validate();
+    }
 
+    protected void setReadOnlyHandling()
+    {
+        if (JXConfig.getProperty("lock.read.only").equals("true"))
+        {
+            readOnly.setSelected(true);
+            readOnly.setEnabled(false);
+            readOnlyLabel.setEnabled(false);
+        }
     }
 
     /**
      * During the time JXplorer is active, we cache the password for different connection setups. The
      * cache is lost when JX is shut down.
      */
-    private void retrieveCachedPassword()
+    protected void loadPasswordHandling()
     {
         if (!JXConfig.getProperty("jxplorer.cache.passwords").equals("true"))
             return;
@@ -149,7 +164,7 @@ public class JXOpenConWin extends CBOpenConWin implements DataListener
         if (hostName.getText().trim() == "")
             return;
 
-        String key = makePwdKey();
+        int key = makePwdKey();
 
         if (cachedps.containsKey(key))
         {
@@ -159,15 +174,15 @@ public class JXOpenConWin extends CBOpenConWin implements DataListener
     }
 
     /**
-     * Cache the password used in case we want toreconnect later.  The cache is lost when JX is shut down.
+     * Cache the password used in case we want to reconnect later.  The cache is lost when JX is shut down.
      */
-    private void cachePassword()
+    protected void savePasswordHandling()
     {
 
         if (!JXConfig.getProperty("jxplorer.cache.passwords").equals("true"))
             return;
 
-        String key = makePwdKey();
+        int key = makePwdKey();
         cachedps.put(key, new String(password.getPassword()));
     }
 
@@ -177,10 +192,11 @@ public class JXOpenConWin extends CBOpenConWin implements DataListener
      *
      * @return the password key
      */
-    private String makePwdKey()
+    private int makePwdKey()
     {
-        String key = new StringBuffer(50).append(port.getText()).append(managerDN.getText()).append(version.getSelectedItem().toString()).append(level.getSelectedIndex()).toString();
-        return key;
+        // try to get a unique signature for the connection box by concatenating everything except the password...
+        String key = new StringBuffer(50).append(hostName.getText()).append(port.getText()).append(baseDN.getText()).append(managerDN.getText()).append(version.getSelectedItem().toString()).append(level.getSelectedIndex()).toString();
+        return key.hashCode();
     }
 
     /**
@@ -195,6 +211,7 @@ public class JXOpenConWin extends CBOpenConWin implements DataListener
         display.addWide(dsmlService = new JTextField("", 30), 4);
         urlLabel.setToolTipText(CBIntText.get("The DSML service; e.g.") + " 'dsml/services/DSML?ldapHost=localhost&ldapPort=19289'");
 
+        //version.addItem(DSMLV2);
         VersionActionListener versionListener = new VersionActionListener();
         version.addActionListener(versionListener);
     }
@@ -220,6 +237,13 @@ public class JXOpenConWin extends CBOpenConWin implements DataListener
                 dsmlService.setText("");
                 dsmlService.setBackground(Color.lightGray);
 
+                // stuff around getting our normal options back
+                if (level.getItemCount() < securityOptions.length)
+                {
+                    for (int i=level.getItemCount(); i<securityOptions.length; i++)
+                        level.addItem(securityOptions[i]);
+                }
+
                 level.setEnabled(true);
                 checkSecurityLevel();
             }
@@ -228,11 +252,16 @@ public class JXOpenConWin extends CBOpenConWin implements DataListener
                 dsmlService.setEnabled(true);
                 dsmlService.setBackground(Color.white);
 
-                level.setSelectedIndex(0);
-                managerDN.setText("");
-                password.setText("");
+                // stuff around restricting security options to the ones we handle (currently anonymous and usr/pwd)
+                if (level.getSelectedIndex()>1)
+                    level.setSelectedIndex(1); // enabling security for DSML...
+
+                for (int i=level.getItemCount()-1; i>1; i--)
+                    level.removeItemAt(i);
+
+                level.setEnabled(true);
+
                 checkSecurityLevel();
-                level.setEnabled(false);
 
             }
         }
@@ -250,7 +279,7 @@ public class JXOpenConWin extends CBOpenConWin implements DataListener
 
         addExtraEnvironmentProperties();
 
-        cachePassword();
+        savePasswordHandling();
 
         super.doOK();
 
@@ -333,7 +362,7 @@ public class JXOpenConWin extends CBOpenConWin implements DataListener
             // create a new data query and put it on the query stack for the connection thread.
             com.ca.directory.jxplorer.broker.DataQuery query = jndiBroker.connect(connectData);
 
-            query.addDataListener(this);
+            query.addDataListener(new SwingDataListener(this));
 
         }
                 // the code above just sets up the connection call, and doesn't really

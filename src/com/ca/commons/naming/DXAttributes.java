@@ -7,6 +7,7 @@ import com.ca.commons.jndi.SchemaOps;
 import javax.naming.*;
 import javax.naming.directory.*;
 
+import java.text.Collator;
 import java.util.*;
 import java.util.logging.Logger;
 import java.util.logging.Level;
@@ -32,41 +33,36 @@ import java.util.logging.Level;
 // XXX ldap attributes.  THis is a grubby hack, and handling should be improved
 // XXX somehow.
 
-public class DXAttributes implements Attributes
+public class DXAttributes implements Attributes, Iterable<DXAttribute>
 {
 
     static Hashtable attributeNames = new Hashtable(100);  // a global hashset of all attribute oid-s and corresponding ldap descr names known to the program...
 
     static int ID = 0;
 
-    int id; // unique debug id.
+    int id;                             // unique id for debugging.
 
-    Hashtable atts;                 // a hashtable of attribute id/ attribute object values, keyed by lowercase id.
+    HashMap<String, DXAttribute> atts;  // a hashmap of attribute id/ attribute object values, keyed by lowercase id.
 
-    HashSet must;                   // a hashset of attribute ldap ids that *must* be entered
-                                    // - set in checkSchema()
+    HashSet must;                       // a hashset of attribute ldap ids that *must* be entered - set in expandAllAttributes()
 
-    boolean ignoreCase = true;      // whether attribute IDs are case sensitive
+    boolean ignoreCase = true;          // whether attribute IDs are case sensitive
 
-    boolean schemaChecked = false;  // indicates a schema search has been made,
-                                    // and a full list of objectclass(s) attribute obtained
-    Attribute allObjectClasses;     // a list of allObjectClasses, including parents.
+    boolean schemaChecked = false;      // indicates a schema search has been made, and a full list of objectclass(s) attribute obtained
 
-    //String baseObjectClass = null;  // the deepest ObjectClass.
+    DXAttribute allObjectClasses;         // a list of allObjectClasses, including parents.
 
-    String objectClassName = null;  // the current name of 'objectclass' or 'objectClass'
+    Vector orderedSOCs = new Vector();  // structural object classes, in deepest-first order
 
-    Vector orderedSOCs = new Vector(); // structural object classes, in deepest-first order
-
-
-    static SchemaOps schema;              // the schema context
+    static SchemaOps schema;            // the schema context
 
     static Hashtable knownParents = new Hashtable(30);      // hash of DXAttributes containing the known object class parents for a particular object class subset (e.g. 'inetorgperson' -> 'orgperson','person','top')
     static Hashtable knownSubSets = new Hashtable(30);      // hash of known object class subsets
     static Hashtable objectClassDepths = new Hashtable(30); // hash of known object class 'depths' in object class inheritance tree
 
-    private final static Logger log = Logger.getLogger(DXAttributes.class.getName());
+    public static final String STRUCTURAL_NODE = "structuralTreeNode";  // a synthetic node used only for tree display
 
+    private final static Logger log = Logger.getLogger(DXAttributes.class.getName());
 
     static
     {
@@ -85,10 +81,8 @@ public class DXAttributes implements Attributes
     {
         id = ID++;
 
-        atts = new Hashtable();
+        atts = new HashMap<String, DXAttribute>();
         must = new HashSet();
-
-//        schema = null;
     }
 
     /**
@@ -119,12 +113,12 @@ public class DXAttributes implements Attributes
 
         if (a==null)
         {
-            atts = new Hashtable();
+            atts = new HashMap<String, DXAttribute>();
             must = new HashSet();
         }
         else
         {
-            atts = new Hashtable(a.size()+10);
+            atts = new HashMap<String, DXAttribute>(a.size()+10);
             must = new HashSet(a.size());   // overkill, but what the heck...
 
             Enumeration e = a.getAll();
@@ -143,9 +137,9 @@ public class DXAttributes implements Attributes
      *           initialise the new DXAttributes object
      */
 
-    public DXAttributes(Hashtable newAtts)
+    public DXAttributes(HashMap<String, DXAttribute> newAtts)
     {
-        atts = (Hashtable) newAtts.clone();
+        atts = (HashMap<String, DXAttribute>) newAtts.clone();
     }
 
 
@@ -158,13 +152,21 @@ public class DXAttributes implements Attributes
 
     public DXAttributes(NamingEnumeration newAtts)
     {
-        atts = new Hashtable();
+        atts = new HashMap<String, DXAttribute>();
         while (newAtts.hasMoreElements())
         {
             Attribute current = (Attribute) newAtts.nextElement();
-            atts.put(current.getID().toLowerCase(), current);
+            if (current instanceof DXAttribute)
+                atts.put(current.getID().toLowerCase(), (DXAttribute)current);
+            else
+                atts.put(current.getID().toLowerCase(), new DXAttribute(current));
         }
     }
+
+     @Override
+    public Iterator<DXAttribute> iterator() {
+        return atts.values().iterator();
+     }
 
 
     /**
@@ -196,18 +198,28 @@ public class DXAttributes implements Attributes
     }
 
     /**
+     * Convenience wrapper for fast checking and sorting of att IDs.
+     * @param attrID
+     * @return
+     */
+    public boolean contains(String attrID)
+    {
+        return atts.containsKey(attrID);
+    }
+
+    /**
      *    gets an Attribute specified by its ID
      *    @param attrID the ID of the attribute to retrieve
      *    @return the specified attribute (actually a DXAttribute)
      *            - null if it can't be found.
      */
 
-    public Attribute get(java.lang.String attrID)
+    public DXAttribute get(java.lang.String attrID)
     {
-        Attribute ret = (Attribute) atts.get(attrID.toLowerCase());
+        DXAttribute ret = atts.get(attrID.toLowerCase());
         if (ret==null)
         {
-            ret = (Attribute) atts.get(attrID.toLowerCase() + ";binary");
+            ret = atts.get(attrID.toLowerCase() + ";binary");
         }
 
         return ret;
@@ -220,7 +232,20 @@ public class DXAttributes implements Attributes
      */
     public NamingEnumeration getAll()
     {
-        return (new DXNamingEnumeration (atts.elements())).sort();
+        return (new DXNamingEnumeration (atts.values())).sort();
+    }
+
+
+
+    /**
+     *     convenience method that returns the attributes as a collection...
+     */
+
+    public ArrayList<DXAttribute> getAttArrayList()
+    {
+        ArrayList<DXAttribute> vals = new ArrayList<DXAttribute> (atts.values());
+        Collections.sort(vals);
+        return vals;
     }
 
     /**
@@ -323,10 +348,10 @@ public class DXAttributes implements Attributes
     public NamingEnumeration getOptional()
     {
         DXNamingEnumeration returnEnumeration = new DXNamingEnumeration ();
-        Enumeration allIDs = atts.keys();
-        while (allIDs.hasMoreElements())
+        Collection<DXAttribute> allAtts = atts.values();
+        for (Attribute att: allAtts)
         {
-            String id = (String) allIDs.nextElement();
+            String id = (String) att.getID();
             if (must.contains(id)==false)    // if it's *not* mandatory
                 returnEnumeration.add(get(id)); // add it to the optional list
         }
@@ -392,7 +417,7 @@ public class DXAttributes implements Attributes
 
         String ID = attr.getID().toLowerCase();
         if (attr instanceof DXAttribute)
-            atts.put(ID, attr);
+            atts.put(ID, (DXAttribute)attr);
         else
             atts.put(ID, new DXAttribute(attr));
 
@@ -460,50 +485,53 @@ public class DXAttributes implements Attributes
     }
 
 
-    public void setAllObjectClasses()
-    {
-        allObjectClasses = getAllObjectClasses();
-    }
+
 
     /**
      *    Return a list of object classes as a vector from deepest (at pos 0) to 'top' (at pos (size()-1) ).
      */
-    public Vector getOrderedOCs()
+    public ArrayList<String> getOrderedOCs()
     {
-        Vector ret = null;
         try
         {
             Attribute oc = getAllObjectClasses();
             if (oc == null)
                 return null;
 
-            ret = new Vector(oc.size());
+            ArrayList<String>ret = new ArrayList<String>(oc.size());
             NamingEnumeration vals = oc.getAll();
             while (vals.hasMore())
             {
-                ret.add(vals.next());
+                ret.add(vals.next().toString());
             }
             return ret;
         }
         catch (NamingException e)
         {
             log.log(Level.WARNING, "Yet another rare naming exception - DXAttributes:getOrderedOCs ", e);
-            return new Vector(0);
+            return new ArrayList<String>();
         }
     }
 
-    public Attribute getAllObjectClasses()
-    {
-		Attribute att = get("objectclass");
+    /**
+     * Try to get the current object class; checks for an attribute called 'objectclass', 'objectClass' and 'oc'.
+     * @return
+     */
 
-		if (att != null)	//TE: check that the attribute is set.
-		{
-	        if (att instanceof DXAttribute)
-	            return getAllObjectClasses((DXAttribute)att);
-	        else
-	            return getAllObjectClasses(new DXAttribute(att));
-		}
-		return null;	//TE: return null if att is null.
+    public DXAttribute getAllObjectClasses()
+    {
+        if (allObjectClasses != null) // cache for reuse
+            return allObjectClasses;
+
+		DXAttribute att = get("objectclass");
+        if (att == null)
+            att = get("objectClass");  // try both forms for good luck.
+        if (att == null)
+            att = get("oc");  // backward compatibility for eTrust directory which uses 'oc' as a synonym.
+
+        allObjectClasses = att;
+
+	    return getAllObjectClasses(att); // returns null if att is null
     }
 
     /**
@@ -759,7 +787,7 @@ public class DXAttributes implements Attributes
     {
         if (schema == null) return;
 
-        if (get("structuralTreeNode")!=null)
+        if (get(STRUCTURAL_NODE)!=null)
             return;
 
         Attribute oc = getAllObjectClasses();
@@ -779,6 +807,7 @@ public class DXAttributes implements Attributes
             {
                 String objectClass = (String)ocs.next();
                 Attributes ocAttrs = schema.getAttributes("ClassDefinition/" + objectClass);
+//FIXSCHEMA                
                 Attribute mustAtt = ocAttrs.get("MUST");  // get mandatory attribute IDs
                 Attribute mayAtt  = ocAttrs.get("MAY");   // get optional attribute IDs
 
@@ -1049,7 +1078,7 @@ public class DXAttributes implements Attributes
 
             String attributeName = newAtt.getID();
 
-            boolean isNamingAttribute = newRDN.contains(attributeName);
+            boolean isNamingAttribute = (newRDN != null) && newRDN.contains(attributeName);
 
             Attribute oldAtt = oldSet.get(attributeName);
 
@@ -1129,7 +1158,7 @@ public class DXAttributes implements Attributes
 			{
 	            String attributeName = newAtt.getID();
 
-	            if (newRDN.contains(attributeName) == false) // skip any naming attributes
+	            if (newRDN == null || newRDN.contains(attributeName) == false) // skip any naming attributes
 				{
 		            Attribute oldAtt = oldSet.get(attributeName);
 
@@ -1185,7 +1214,7 @@ public class DXAttributes implements Attributes
                 if (pos > -1)
                     attributeName = attributeName.substring(0, pos);
                 
-	            boolean isNamingAttribute = newRDN.contains(attributeName);
+	            boolean isNamingAttribute = (newRDN != null) && newRDN.contains(attributeName);
 
 	            Attribute newAtt = newSet.get(attributeName);
 

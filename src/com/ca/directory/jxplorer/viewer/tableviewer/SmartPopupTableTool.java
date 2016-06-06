@@ -7,6 +7,8 @@ import com.ca.directory.jxplorer.JXConfig;
 import com.ca.directory.jxplorer.JXplorerBrowser;
 import com.ca.directory.jxplorer.search.SearchExecute;
 
+import javax.naming.NamingException;
+import javax.naming.ldap.LdapName;
 import javax.swing.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -35,7 +37,7 @@ public class SmartPopupTableTool extends JPopupMenu
 
     AttributeValue currentValue;       // type of currently selected table row
 
-    AttributeType currentType;         // value of currently selected table row
+    AttributeNameAndType currentType;         // value of currently selected table row
 
     DN currentDN = null;               // used by the cache system?
 //RDN currentRDN = null;             // used for naming attribute magic.
@@ -44,6 +46,7 @@ public class SmartPopupTableTool extends JPopupMenu
 
     private static Logger log = Logger.getLogger(SmartPopupTableTool.class.getName());
 
+    boolean readOnly = false;
     /**
      * Constructor initialises the drop down menu and menu items, and registers 'this' component as being the listener
      * for all the menu items.
@@ -75,22 +78,70 @@ public class SmartPopupTableTool extends JPopupMenu
     /**
      * Set the name of the attribute being operated with. That is, for new Value creation.
      */
-    public void registerCurrentRow(AttributeType type, AttributeValue value, int row, RDN currentRDN)
+    public void registerCurrentRow(AttributeNameAndType type, AttributeValue value, int row, RDN currentRDN)
     {
+        // TODO: it would be nice to track mandatory single valued attributes, and prevent them being deleted.
+
         currentType = type;
         currentValue = value;
         currentRow = row;
+
+        // only show 'follow dn' if it is, actually, a dn...
+
+        try {
+            LdapName test = new LdapName(value.toString());
+            findDN.setVisible(true);
+        }
+        catch (NamingException e)
+        {
+            findDN.setVisible(false);
+        }
+
+
+        // if this is read only, disable everything except 'follow dn' and bail out.
+        if (readOnly)
+        {
+            newValue.setVisible(false);
+            delete.setVisible(false);
+            removeNaming.setVisible(false);
+            makeNaming.setVisible(false);
+            return;
+        }
 
         if (currentType.toString().equalsIgnoreCase("objectclass"))
         {
             newValue.setEnabled(false);
             delete.setEnabled(false);
         }
+        else if (readOnly)
+        {
+            newValue.setVisible(false);
+            delete.setVisible(false);
+        }
         else
         {
             newValue.setEnabled(true);
             delete.setEnabled(true);
         }
+
+        if (value.isNaming())
+        {
+            removeNaming.setVisible(true);
+            makeNaming.setVisible(false);
+        }
+        else if (currentType.isMandatory())  // is it true that naming attributes *have* to be mandatory?  I guess no one has complained for the last ten years...
+        {
+            removeNaming.setVisible(false);
+            makeNaming.setVisible(true);
+        }
+        else
+        {
+            removeNaming.setVisible(false);
+            makeNaming.setVisible(false);
+        }
+
+        /*
+        // a bunch of logical assumptions were coded below which may not be valid.
 
         if (value.isNaming())
         {
@@ -117,8 +168,14 @@ public class SmartPopupTableTool extends JPopupMenu
             }
             removeNaming.setVisible(false);
         }
-
+        */
     }
+
+    public void setReadWrite(boolean readWrite)
+    {
+        this.readOnly = !readWrite;
+    }
+
 
     /**
      * This handles the menu item actions.  They rely on the attributeName String being set prior to this method being
@@ -191,8 +248,8 @@ public class SmartPopupTableTool extends JPopupMenu
      */
     public void newValue()
     {
-        int type = currentType.isMandatory() ? AttributeType.MANDATORY : AttributeType.NORMAL;
-        String attName = currentType.getValue();
+        int type = currentType.isMandatory() ? AttributeNameAndType.MANDATORY : AttributeNameAndType.NORMAL;
+        String attName = currentType.getName();
         AttributeValue newVal = new AttributeValue(currentValue.getBaseAttribute(), null);
         
 
@@ -214,12 +271,12 @@ public class SmartPopupTableTool extends JPopupMenu
      */
     public void delete()
     {
-        model.deleteAttribute(currentType.getValue(), currentRow);
+        model.deleteAttribute(currentType.getName(), currentRow);
         if (currentValue.isNonStringData())
             currentValue.setValue(null);
         model.fireChange();
 
-        if ((currentType.getValue()).equalsIgnoreCase("jpegPhoto"))    //TE: deletes the temporary files associated with the current entry.
+        if ((currentType.getName()).equalsIgnoreCase("jpegPhoto"))    //TE: deletes the temporary files associated with the current entry.
             CBCache.cleanCache(currentDN.toString());
     }
 

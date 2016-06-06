@@ -7,7 +7,9 @@ import javax.naming.directory.Attribute;
 import javax.naming.directory.BasicAttribute;
 import javax.swing.event.TableModelEvent;
 import javax.swing.table.AbstractTableModel;
-import java.util.Vector;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 
 public class AttributeTableModel extends AbstractTableModel
 {
@@ -16,8 +18,8 @@ public class AttributeTableModel extends AbstractTableModel
 
     DXEntry oldEntry;                        // the original, unedited data
 
-    Vector attributeTypes = new Vector();   // vector of string IDs
-    Vector attributeValues = new Vector();   // vector of attributeValues
+    ArrayList<AttributeNameAndType> attributeTypes = new ArrayList<AttributeNameAndType>();   // vector of string IDs
+    ArrayList<AttributeValue> attributeValues = new ArrayList<AttributeValue>();   // vector of attributeValues
 
     /**
      * The number of naming values (e.g. the length of the
@@ -56,12 +58,12 @@ public class AttributeTableModel extends AbstractTableModel
 
     /**
      * Returns the class of the objects in the different columns:
-     * AttributeType.class for col 0, AttributeValue.class for col 1.
+     * AttributeNameAndType.class for col 0, AttributeValue.class for col 1.
      */
 
     public Class getColumnClass(int c)
     {
-        return (c == 1) ? AttributeValue.class : AttributeType.class;
+        return (c == 1) ? AttributeValue.class : AttributeNameAndType.class;
     }
 
     /**
@@ -86,11 +88,11 @@ public class AttributeTableModel extends AbstractTableModel
         {
             if (aValue instanceof AttributeValue)  // replace an attributeValues
             {
-                attributeValues.set(row, aValue);
+                attributeValues.set(row, (AttributeValue)aValue);
             }
             else                                    // ... or update it.
             {
-                ((AttributeValue) attributeValues.elementAt(row)).update(aValue);
+                ((AttributeValue) attributeValues.get(row)).update(aValue);
             }
 
             fireTableCellUpdated(row, col);
@@ -116,7 +118,7 @@ public class AttributeTableModel extends AbstractTableModel
      */
     public Object getValueAt(int row, int col)
     {
-        return (col == 0) ? attributeTypes.elementAt(row) : attributeValues.elementAt(row);
+        return (col == 0) ? attributeTypes.get(row) : attributeValues.get(row);
     }
 
     /**
@@ -126,8 +128,14 @@ public class AttributeTableModel extends AbstractTableModel
     {
         if (col == 0) return false;  // can't edit attribute names
         if (col > 1) return false;   // should never happen.
-        if (attributeTypes.elementAt(row).toString().equalsIgnoreCase("objectclass"))
+        AttributeNameAndType att = attributeTypes.get(row);
+
+
+        if (att.toString().equalsIgnoreCase("objectclass"))
             return false;            // can't edit object classes (this way)
+
+        if (att.isOperational())
+            return false;           // can't edit operational attributes either...
 
         return true;
     }
@@ -151,7 +159,7 @@ public class AttributeTableModel extends AbstractTableModel
          */
 
         for (int i = 0; i < attributeValues.size(); i++)
-            ((AttributeValue) attributeValues.elementAt(i)).reset();
+            ((AttributeValue) attributeValues.get(i)).reset();
 
         /*
          *    Return the naming attribute list to the original
@@ -227,7 +235,7 @@ public class AttributeTableModel extends AbstractTableModel
             DXNamingEnumeration mandatory = (DXNamingEnumeration) entry.getMandatory();
 
             while (mandatory.hasMore())
-                insertAttribute(((DXAttribute) mandatory.next()), AttributeType.MANDATORY);
+                insertAttribute(((DXAttribute) mandatory.next()), AttributeNameAndType.MANDATORY);
 
             /*
              *    Then add the 'MAY' contain optional attributes.
@@ -242,8 +250,8 @@ public class AttributeTableModel extends AbstractTableModel
 
                 if (mandatory.contains(temp) == false && (temp.size() > 0) && (temp.get() != null))
                 {
-                    temp.sort();
-                    insertAttribute(temp, AttributeType.NORMAL);
+                    //temp.sort();   // do we really want to sort attribute values?  Kinda screws up ordered attributes (e.g. for LDIF display)
+                    insertAttribute(temp, AttributeNameAndType.NORMAL);
                 }
             }
 
@@ -258,7 +266,7 @@ public class AttributeTableModel extends AbstractTableModel
                 DXAttribute temp = (DXAttribute) possible.next();
                 if (mandatory.contains(temp) == false && ((temp.size() == 0) || (temp.get() == null)))
                 {
-                    insertAttribute(temp, AttributeType.NORMAL);
+                    insertAttribute(temp, AttributeNameAndType.NORMAL);
                 }
             }
 
@@ -298,6 +306,49 @@ public class AttributeTableModel extends AbstractTableModel
         }
     }
 
+    //TODO: this all seems a bit clunky - can we simplify it somehow?  There seems to be a lot of
+    //TODO: overlap between AttributeNameAndType and AttributeValue?
+
+    /**
+     * Add a special 'operational attribute' that is displayed differently
+     * @param att
+     */
+    public void insertOperationalAttribute(DXAttribute att)
+    {
+        attributeTypes.add(0, new AttributeNameAndType(att.getID(), AttributeNameAndType.OPERATIONAL));
+        try
+        {
+            String val = att.get().toString();
+            attributeValues.add(0, new AttributeValue(att, val, false));
+        }
+        catch (NamingException e)
+        {
+            attributeValues.add(0,new AttributeValue(att, "error")); // shouldn't ever happen...
+        }
+        noRows++;
+
+    }
+
+    /**
+     * remove all operational attributes from display
+     */
+    public void removeOperationalAttributes()
+    {
+       /* for (AttributeNameAndType att:attributeTypes)
+        {
+            if (att.isOperational())
+
+        }*/
+        for (int i = attributeTypes.size()-1; i>=0; i--)
+        {
+            if (attributeTypes.get(i).isOperational())
+            {
+                attributeTypes.remove(i);
+                attributeValues.remove(i);
+                noRows--;
+            }
+        }
+    }
 
     /**
      * Adds a single attribute, and (possibly multiple, or blank) values
@@ -306,6 +357,9 @@ public class AttributeTableModel extends AbstractTableModel
     public void insertAttribute(DXAttribute att, int type)
             throws NamingException
     {
+        if (att == null)
+            return;
+
         String ID = att.getID();
 
         /*
@@ -327,12 +381,26 @@ public class AttributeTableModel extends AbstractTableModel
             if (namingValue != null && att.isString() == false)
                 throw new NamingException("Binary naming attributes not supported in JXplorer: can't use attribute " + ID + " to name an entry");
 
+            Object[] vals = att.getValues();
+
+            if (att.isString())
+            {
+                Arrays.sort(vals, new Comparator<Object>()
+                {
+                    public int compare(Object str1, Object str2) {
+                        return String.CASE_INSENSITIVE_ORDER.compare(str1.toString(), str2.toString());
+                    }
+
+                });
+            }
+
+
             for (int i=0; i<att.size(); i++)
             {
                 /*
                  *  Create new AttributeValue with internal DXAttribute object and this particular value
                  */
-                AttributeValue newAV = new AttributeValue(att, att.get(i));
+                AttributeValue newAV = new AttributeValue(att, vals[i]);  // use sorted strings...
 
                 /*
                  *    Checks (and possibly Flags) that an AttributeValue is a Naming Value.
@@ -425,27 +493,29 @@ public class AttributeTableModel extends AbstractTableModel
 
     public void addAttribute(AttributeValue val, int type)
     {
-        attributeTypes.add(new AttributeType(val.getID(), (type == AttributeType.MANDATORY)));
+        AttributeNameAndType newAtt = new AttributeNameAndType(val.getID(), (type == AttributeNameAndType.MANDATORY));
+        attributeTypes.add(newAtt);
         attributeValues.add(val);
         noRows++;
     }
 
     public void addAttribute(AttributeValue val, int type, int indexPos)
     {
-        attributeTypes.add(indexPos, new AttributeType(val.getID(), (type == AttributeType.MANDATORY)));
+        AttributeNameAndType newAtt = new AttributeNameAndType(val.getID(), (type == AttributeNameAndType.MANDATORY));
+        attributeTypes.add(indexPos, newAtt);
         attributeValues.add(indexPos, val);
         noRows++;
     }
 
     public void deleteAttribute(String ID, int indexPos)
     {
-        if (attributeTypes.elementAt(indexPos).toString().equals(ID))
+        if (attributeTypes.get(indexPos).toString().equals(ID))
         {
-            ((AttributeValue) attributeValues.elementAt(indexPos)).update(new String(""));
+            ((AttributeValue) attributeValues.get(indexPos)).update(new String("")); // empty string required to not break table display with nulls (I think)
         }
         else
             System.err.println("Internal error: attempt to delete attribute with invalid ID in AttributeTableModel" +
-                    "\n att name = " + attributeTypes.elementAt(indexPos).toString() + " ID = " + ID);
+                    "\n att name = " + attributeTypes.get(indexPos).toString() + " ID = " + ID);
     }
 
     public void fireChange()
@@ -534,20 +604,36 @@ public class AttributeTableModel extends AbstractTableModel
          *    new entry.
          */
 
-        AttributeValue test;
+        AttributeValue currentAttributeValue;
         String id;
 
         for (int i = 0; i < attributeTypes.size(); i++)
         {
-            test = (AttributeValue) attributeValues.elementAt(i);
-            if (!test.isEmpty())
+            currentAttributeValue = (AttributeValue) attributeValues.get(i);
+            if (!currentAttributeValue.isEmpty())
             {
-                id = attributeTypes.elementAt(i).toString();
-                BasicAttribute exists = (BasicAttribute) newEntry.get(id);
-                if (exists == null)  // no values of this att. already registered
-                    newEntry.put(new BasicAttribute(id, test.value()));
-                else
-                    exists.add(test.value());
+                // get the ID of the current Att
+                id = attributeTypes.get(i).toString();
+
+                // test value for emptiness
+                Object value = currentAttributeValue.value();
+                if (value != null && value instanceof String)
+                {
+                 String attString = (String) value;
+                    if (attString.length() == 0 || attString.equals(" "))
+                        value = null;
+                }
+
+                if (value != null)
+                {
+                    // See if att already exists (e.g. a multi valued att that we're adding more values to)
+                    Attribute currentAttribute = newEntry.get(id);
+                    if (currentAttribute == null)  // no values of this att. already registered - create a new one
+                        currentAttribute = new BasicAttribute(id);
+
+                    currentAttribute.add(value);
+                    newEntry.put(currentAttribute);
+                }
             }
         }
 
@@ -567,14 +653,15 @@ public class AttributeTableModel extends AbstractTableModel
     {
         BasicAttribute returnAtt = new BasicAttribute(ID);
         for (int i = 0; i < attributeTypes.size(); i++)
-            if (ID.equals(attributeTypes.elementAt(i).toString()))
+            if (ID.equals(attributeTypes.get(i).toString()))
             {
-                Object o = ((AttributeValue) attributeValues.elementAt(i)).value();
+                Object o = ((AttributeValue) attributeValues.get(i)).value();
 
-                // don't allow zero length string attributes...
+                // don't allow zero length string attributes, or 'empty' strings of just a single space...
                 if (o != null && o instanceof String)
                 {
-                    if (((String) o).length() == 0)
+                    String attString = (String) o;
+                    if (attString.length() == 0 || attString.equals(" "))
                         o = null;
                 }
 
@@ -586,6 +673,7 @@ public class AttributeTableModel extends AbstractTableModel
         return returnAtt;
     }
 
+
     /**
      * Brute force search to find an attributeType given only the name.
      * rarely used - main use is when popupTool tries to create a new
@@ -596,9 +684,9 @@ public class AttributeTableModel extends AbstractTableModel
     {
         for (int i = 0; i < attributeTypes.size(); i++)
         {
-            if (((AttributeType) attributeTypes.elementAt(i)).toString().equals(attributeTypeName))
+            if (((AttributeNameAndType) attributeTypes.get(i)).toString().equals(attributeTypeName))
             {
-                return ((AttributeType) attributeTypes.elementAt(i)).isMandatory();
+                return ((AttributeNameAndType) attributeTypes.get(i)).isMandatory();
             }
         }
         System.err.println("unable to find type name " + attributeTypeName);
@@ -618,7 +706,7 @@ public class AttributeTableModel extends AbstractTableModel
     //    continue until no types left.
     public boolean checkMandatoryAttributesSet()
     {
-        AttributeType type, testType;
+        AttributeNameAndType type, testType;
         AttributeValue value;
         String ID = "";
         boolean inDoubt = false;
@@ -626,7 +714,7 @@ public class AttributeTableModel extends AbstractTableModel
 
         while (i < noRows)                                            // for all rows
         {
-            type = (AttributeType) attributeTypes.elementAt(i);
+            type = (AttributeNameAndType) attributeTypes.get(i);
 
             if (type.isMandatory())                                // find mandatory types
             {
@@ -638,12 +726,12 @@ public class AttributeTableModel extends AbstractTableModel
                 {                                                  // mandatory attribute...
                     if (inDoubt)                                   // ... until we find a valid value
                     {
-                        value = (AttributeValue) attributeValues.elementAt(i);
+                        value = (AttributeValue) attributeValues.get(i);
                         if (value.isEmpty() == false)                // !!! found a valid value
                             inDoubt = false;
                     }
                     i++;
-                    if (i < noRows) testType = (AttributeType) attributeTypes.elementAt(i);
+                    if (i < noRows) testType = (AttributeNameAndType) attributeTypes.get(i);
                 }
 
                 if (inDoubt)         // Iff still in doubt, means no valid value was found
@@ -663,12 +751,12 @@ public class AttributeTableModel extends AbstractTableModel
      * sets the currentValue object to be a naming value.
      */
 
-    public void removeNamingComponent(AttributeType currentType, AttributeValue currentValue)
+    public void removeNamingComponent(AttributeNameAndType currentType, AttributeValue currentValue)
     {
 
         try
         {
-            String type = currentType.getValue();
+            String type = currentType.getName();
             String value = currentValue.getStringValue();
 
             if ("".equals(type) || "".equals(value)) // which it really, really shouldn't...
@@ -736,10 +824,10 @@ public class AttributeTableModel extends AbstractTableModel
     }
 
 
-    public void addNamingComponent(AttributeType currentType, AttributeValue currentValue)
+    public void addNamingComponent(AttributeNameAndType currentType, AttributeValue currentValue)
     {
 
-        String type = currentType.getValue();
+        String type = currentType.getName();
         String value = currentValue.getStringValue();
 
         if ("".equals(type) || "".equals(value)) // which it really, really shouldn't...
@@ -771,7 +859,7 @@ public class AttributeTableModel extends AbstractTableModel
     public boolean changedByUser()
     {
         for (int i = 0; i < attributeValues.size(); i++)
-            if (((AttributeValue) attributeValues.elementAt(i)).changed())
+            if (((AttributeValue) attributeValues.get(i)).changed())
                 return true;
 
         return false;

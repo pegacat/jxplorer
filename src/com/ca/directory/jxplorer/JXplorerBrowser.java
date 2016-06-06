@@ -41,6 +41,8 @@ public class JXplorerBrowser extends JFrame                     // Applet
 
     EventListenerList eventListeners = new EventListenerList();
 
+    JSplitPane splitPane;                       // the main page, containing treeTabPane on the left and the results on the right
+
     JScrollPane explorePanel;                   // contains mr tree
     JScrollPane resultsPanel;                   // contains search tree
     JScrollPane schemaPanel;                    // contains schema tree
@@ -58,12 +60,14 @@ public class JXplorerBrowser extends JFrame                     // Applet
 
     //public static JFrame jx;
 
-    private JNDIDataBroker jndiBroker = null;          // the JNDIDataBroker intermediary class through which requests pass
-    JNDIDataBroker searchBroker = null;          // another JNDIDataBroker used for searching, and the search tree.
-    OfflineDataBroker offlineBroker = null;          // provides a gateway to ldif files.
+    private JNDIDataBroker jndiBroker = null;      // the JNDIDataBroker intermediary class through which requests pass
+    JNDIDataBroker searchBroker = null;            // another JNDIDataBroker used for searching, and the search tree.
+    public OfflineDataBroker offlineBroker = null;        // provides a gateway to ldif files.
     SchemaDataBroker schemaBroker = null;          // provides access to an artificaial 'schema tree'
 
-    SmartTree mrTree = null;          // the display tree
+
+    // use 'getActiveTree()' to find the currently shown tree.
+    public SmartTree mrTree = null;              // the 'main' browse tree
     SmartTree searchTree = null;          // the search results tree
     SmartTree schemaTree = null;          // the schema display tree
 
@@ -88,7 +92,10 @@ public class JXplorerBrowser extends JFrame                     // Applet
     boolean connected = false;  //TE: a vague flag that is set to true if the user hits the connect button, false if user hits disconnect button.  This is for changing the state of the buttons when flicking between tabs.
 
     //TODO: wrap this up in the 'connected' variable above?
-    boolean workOffline = false;
+    public boolean workOffline = false;
+
+    public enum DisplayMode
+    {BROWSE, SEARCH, SCHEMA}
 
     public JXplorerBrowser()
     {
@@ -100,6 +107,7 @@ public class JXplorerBrowser extends JFrame                     // Applet
         this.parent = parent;
 
         DataBrokerQueryInterface datamodifier;
+
         rootFrame = this;
         mainPane = rootFrame.getContentPane();
         mrTree = null;
@@ -124,10 +132,17 @@ public class JXplorerBrowser extends JFrame                     // Applet
 
         datamodifier = (DataBrokerQueryInterface) this.offlineBroker;
 
-        //setBrowserMouseListener();
+        setInitialOfflineTreeBroker();
 
         setVisible(true);
     }
+
+
+    public void setInitialOfflineTreeBroker()
+    {
+        mrTree.registerDataSource(this.offlineBroker);
+    }
+
 
     public JXplorer getJXplorer()
     {
@@ -138,6 +153,13 @@ public class JXplorerBrowser extends JFrame                     // Applet
     {
         return jndiBroker;
     }
+
+    /**
+     * allows other components to set the display message.
+     * TODO: probably shouldn't allow direct access - *shrug* - do we care? 
+     * @return
+     */
+    public JLabel getDisplayLabel() { return displayLabel;}
 
     /**
      * Activate any special actions linked to
@@ -158,8 +180,9 @@ public class JXplorerBrowser extends JFrame                     // Applet
         if (CBUtility.getTrueLogLevel(log) == Level.ALL)
             jndiBroker.setTracing(true);  // set BER tracing on.
 
-        jndiBroker.setTimeout(Integer.parseInt(JXConfig.getProperty("option.ldap.timeout")));
-        jndiBroker.setLimit(Integer.parseInt(JXConfig.getProperty("option.ldap.limit")));
+        jndiBroker.setTimeout(JXConfig.getIntProperty("option.ldap.timeout", 0));
+        jndiBroker.setLimit(JXConfig.getIntProperty("option.ldap.limit", 0));
+        jndiBroker.setPaging(Boolean.parseBoolean(JXConfig.getProperty("option.ldap.pagedResults", "false")), JXConfig.getIntProperty("option.ldap.pageSize", 1000));
 
         jndiThread = new Thread(jndiBroker, "jndiBroker Thread");
         jndiThread.start();
@@ -182,12 +205,12 @@ public class JXplorerBrowser extends JFrame                     // Applet
     }
 
     /**
-     * initialise the offline broker, used for viewing ldif
+     * initialise the offline broker, used for viewing ldif & csv
      * files independantly of a working directory.
      */
     public void initOfflineBroker()
     {
-        offlineBroker = new OfflineDataBroker(this);
+        offlineBroker = new OfflineDataBroker();
 
         offlineThread = new Thread(offlineBroker, "offlineBroker Thread");
         offlineThread.start();
@@ -228,43 +251,55 @@ public class JXplorerBrowser extends JFrame                     // Applet
 
         setupFrills();           // do funny icons and logos 'n stuff
 
-        positionBrowser();       // set the size and location of the main browser window.
+        //positionBrowser();       // set the size and location of the main browser window.
     }
 
 
     /**
-     * Set the position and size of the browser to be (where possible) the same
-     * As it was the last time it was used.
+     * Set the position and size of the browser, if one hasn't already been set.
      */
-
+    /* LOGIC MOVED TO JXplorer.createNewWindow()
     protected void positionBrowser()
     {
-        int width, height, xpos, ypos;
+        Rectangle bounds = getBounds();
 
-        try
+        if (bounds == null || bounds.width < 100 || bounds.height < 100)
         {
-            width = Integer.parseInt(JXConfig.getProperty("width"));
-            height = Integer.parseInt(JXConfig.getProperty("height"));
-            xpos = Integer.parseInt(JXConfig.getProperty("xpos"));
-            ypos = Integer.parseInt(JXConfig.getProperty("ypos"));
-        }
-        catch (Exception e)
-        {
-            width = 800;
-            height = 600;  // emergency fallbacks
-            Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
-            xpos = (screen.width - width) / 2;
-            ypos = (screen.height - height) / 2;
-        }
+            int width, height, xpos, ypos;
 
-        // In this unusual case, the centering will be slightly off - but we probably don't care.
-        if (width < 100) width = 100;
-        if (height < 100) height = 100;
+            try  // try to use the default of whatever the 'root' windows was last 
+            {
+                width = Integer.parseInt(JXConfig.getProperty("width"));
+                height = Integer.parseInt(JXConfig.getProperty("height"));
+            }
+            catch (Exception e)
+            {
+                width = 1000;
+                height = 800;  // emergency fallbacks
+            }
 
-        setBounds(xpos, ypos, width, height);
-        setSize(width, height);
+            // In this unusual case, the centering will be slightly off - but we probably don't care.
+            if (width < 100) width = 100;
+            if (height < 100) height = 100;
+
+            try
+            {
+                xpos = Integer.parseInt(JXConfig.getProperty("xpos"));
+                ypos = Integer.parseInt(JXConfig.getProperty("ypos"));
+            }
+            catch (Exception e)
+            {
+                Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
+                xpos = (screen.width - width) / 2;
+                ypos = (screen.height - height) / 2;
+            }
+
+
+            setBounds(xpos, ypos, width, height);
+            setSize(width, height);
+        }
     }
-
+    */
     /**
      * This sets the initial look and feel to the local system
      * look and feel, if possible; otherwise uses the java default.
@@ -595,27 +630,52 @@ public class JXplorerBrowser extends JFrame                     // Applet
     }
 
     /**
+     * Gets the current display mode.
+     * On error returns 'BROWSE'.
+     * @return
+     */
+    public DisplayMode getDisplayMode()
+    {
+        if (treeTabPane == null) return DisplayMode.BROWSE;
+        
+        Component treePane = treeTabPane.getSelectedComponent();
+        if (treePane == explorePanel)                // Explore.
+            return DisplayMode.BROWSE;
+        else if (treePane == resultsPanel)             // Search.
+            return DisplayMode.SEARCH;
+        else if (treePane == schemaPanel)           // Schema.
+            return DisplayMode.SCHEMA;
+        else
+            return DisplayMode.BROWSE;
+    }
+
+    /**
      * Sets up the main work area, below the tool bar,
      * which displays the tree/browser panel, and the
      * results panel...
      */
+
+    public JSplitPane getSplitPane() { return splitPane; }
 
     protected void setupMainWorkArea()
     {
         // make sure stuff has been done already is correct...
 
 
-        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, false);
+        splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, false);
         mainPane.add(splitPane, BorderLayout.CENTER);
 
         treeTabPane = new JTabbedPane();
         treeTabPane.setMinimumSize(new Dimension(100, 100));
 
-        if (JXplorer.isLinux())
+        treeTabPane.setPreferredSize(new Dimension(320, 100));   //CB: screens have got bigger in the last ten years...
+
+        /*
+        if (CBUtility.isLinux())
             treeTabPane.setPreferredSize(new Dimension(265, 100));      //TE: bug 2538.
         else
             treeTabPane.setPreferredSize(new Dimension(300, 100));   //TE: was 220x100 but increased size to 250 to fit icons. // CB: made 300 to fit all tabs on OSX
-
+        */
         /*
          *    Initialise the work area scroll panes.  Our user defined
          *    classes will be added to these, and will become magically
@@ -662,57 +722,33 @@ public class JXplorerBrowser extends JFrame                     // Applet
         {
             public void stateChanged(ChangeEvent e)
             {
-                Component treePane = treeTabPane.getSelectedComponent();
+                DisplayMode mode = getDisplayMode();
+
                 ButtonRegister br = getButtonRegister();
-                if (treePane == explorePanel)                // Explore.
+                if (mode == DisplayMode.BROWSE)
                 {
                     setStatus(CBIntText.get("Connected To ''{0}''", new String[]{url}));
-                    if (br != null && isConnected())  //todo and only if connected!
-                        br.setCommonState(true);            //TE: enable buttons.
+                    if (br != null)
+                        br.setEditingButtons(isConnected() && mrTree.isModifiable());    // CB: set editing button state
                     mrTree.refreshEditorPane();
                 }
-                else if (treePane == resultsPanel)             // Search.
+                else if (mode == DisplayMode.SEARCH)
                 {
                     setStatus("Number of search results: " + String.valueOf(searchTree.getNumOfResults()));
+                    if (br != null)
+                        br.setEditingButtons(isConnected()&&searchTree.isModifiable());    // CB: set editing button state
                     searchTree.refreshEditorPane();
                 }
-                else if (treePane == schemaPanel)           // Schema.
+                else if (mode == DisplayMode.SCHEMA)
                 {
                     setStatus(CBIntText.get("Connected To ''{0}''", new String[]{url}));
-                    if (br != null)                          //TE: disable buttons.
-                        br.setCommonState(false);
+                    if (br != null)                          //TE: disable buttons for schema display.
+                        br.setEditingButtons(false);
+
                     schemaTree.refreshEditorPane();
                 }
             }
         });
-
-
-/* CB removed - use components (above) instead of indices for clarity...
-
-                int index = treeTabPane.getSelectedIndex();
-
-                switch (index)
-                {
-                    case 0:			//TE: Explore.
-                    {
-                        if (mrTree != null)
-                            mrTree.refreshEditorPane();
-                        break;
-                    }
-                    case 1: 		//TE: Search.
-                    {
-                        if (searchTree != null)
-                            searchTree.refreshEditorPane();
-                        break;
-                    }
-                    case 2: 		//TE: Schema.
-                    {
-                        if (schemaTree != null)
-                            schemaTree.refreshEditorPane();
-                        break;
-                    }
-                }
-*/
     }
 
     /**
@@ -746,18 +782,27 @@ public class JXplorerBrowser extends JFrame                     // Applet
 
     public SmartTree getActiveTree()
     {
-        int paneNumber = treeTabPane.getSelectedIndex();
 
+        switch (getDisplayMode())
+        {
+            case BROWSE: return mrTree;
+            case SEARCH: return searchTree;
+            case SCHEMA: return schemaTree;
+        }
+
+        // should have returned by now... this line should never be reached!
+        log.warning("ERROR: Unable to establish active tree - panel");
+        return null;
+
+        /*
+        int paneNumber = treeTabPane.getSelectedIndex();
         if (paneNumber == treeTabPane.indexOfTab(CBIntText.get("Explore")))
             return mrTree;
         else if (paneNumber == treeTabPane.indexOfTab(CBIntText.get("Results")))
             return searchTree;
         else if (paneNumber == treeTabPane.indexOfTab(CBIntText.get("Schema")))
             return schemaTree;
-
-        // should have returned by now... this line should never be reached!
-        log.warning("ERROR: Unable to establish active tree - panel = " + paneNumber);
-        return null;
+        */
     }
 
     /**
@@ -791,17 +836,17 @@ public class JXplorerBrowser extends JFrame                     // Applet
     {
         if (mrTree == null) return;
         mrTree.clearTree();
-        mrTree.setRoot(SmartTree.NODATA);
+        mrTree.setRootDN(SmartTree.NODATA_DN);
 
         treeTabPane.setSelectedIndex(0);
 
         if (searchTree == null) return;
         searchTree.clearTree();
-        searchTree.setRoot(SmartTree.NODATA);
+        searchTree.setRootDN(SmartTree.NODATA_DN);
 
         if (schemaTree == null) return;
         schemaTree.clearTree();
-        schemaTree.setRoot(SmartTree.NODATA);
+        schemaTree.setRootDN(SmartTree.NODATA_DN);
 
         // TODO: maybe restart jndibroker thread somehow?
     }
@@ -826,7 +871,10 @@ public class JXplorerBrowser extends JFrame                     // Applet
         }
         else
         {
-            setTitle(CBIntText.get("JXplorer") + " - " + request.conData.getURL());
+            if (request.conData.getTemplateName() != null)
+                setTitle(CBIntText.get("JXplorer") + " - " + request.conData.getTemplateName());
+            else
+                setTitle(CBIntText.get("JXplorer") + " - " + request.conData.getURL());
         }
         String baseDN = request.conData.baseDN;
         DN base = new DN(baseDN);
@@ -836,11 +884,12 @@ public class JXplorerBrowser extends JFrame                     // Applet
 
         try
         {
-            if (base == null || base.size() == 0 || jndiBroker.getDirOp().exists(base) == false)
+            if (base == null || base.size() == 0 || jndiBroker.unthreadedExists(base) == false)
             {
                 if (ldapV == 2)
                 {
-                    if (jndiBroker.getDirOp().exists(base) == false) // bail out if we can't find the base DN for ldap v2
+//                    if (jndiBroker.getDirOp().exists(base) == false) // bail out if we can't find the base DN for ldap v2
+                        if (jndiBroker.unthreadedExists(base) == false) // bail out if we can't find the base DN for ldap v2
                     {
                         CBUtility.error("Error opening ldap v2 connection - bad base DN '" + ((base == null) ? "*null*" : base.toString()) + "' ");
                         disconnect();
@@ -895,7 +944,8 @@ public class JXplorerBrowser extends JFrame                     // Applet
 
         if (base != null)    // We've got a single base DN - use it to set the tree root...
         {
-            mrTree.setRoot(base);
+            mrTree.setRootDN(base);
+            mrTree.expandRootDN();
 
             if (base.size() == 0)
             {
@@ -911,7 +961,10 @@ public class JXplorerBrowser extends JFrame                     // Applet
         }
         else if (namingContexts != null)  // We've got multiple naming contexts - add them all.
         {
-            mrTree.setRoot("");
+//            mrTree.setRoot("");
+            mrTree.setRootDN(new DN());
+            mrTree.expandRootDN();
+            
             for (int i = 0; i < namingContexts.length; i++)         // for each context
             {
                 DN namingContext = namingContexts[i];           // get the 'base' DN
@@ -938,7 +991,7 @@ public class JXplorerBrowser extends JFrame                     // Applet
         searchTree.clearTree();
         searchBroker.registerDirectoryConnection(jndiBroker);
         searchTree.registerDataSource(searchBroker);
-        searchTree.setRoot(new DN(SmartTree.NODATA));
+        searchTree.setRootDN(new DN());   // empty root
 
         schemaTree.clearTree();
 
@@ -946,7 +999,7 @@ public class JXplorerBrowser extends JFrame                     // Applet
         {
             schemaBroker.registerDirectoryConnection(jndiBroker);
             schemaTree.registerDataSource(schemaBroker);
-            schemaTree.setRoot(new DN("cn=schema"));
+            schemaTree.setRootDN(new DN("cn=schema"));
 
             DXAttribute.setDefaultSchema(jndiBroker.getSchemaOps());
             DXAttributes.setDefaultSchema(jndiBroker.getSchemaOps());
@@ -966,7 +1019,9 @@ public class JXplorerBrowser extends JFrame                     // Applet
             setStatus(CBIntText.get("Connected To ''{0}''", new String[]{url}));
         }
 
-        getButtonRegister().setConnectedState();
+        boolean readOnlyStatus = jndiBroker.isReadOnly();
+        getButtonRegister().setConnectedState(readOnlyStatus);
+
         mainMenu.setConnected(true);
         setConnected(true);
 
@@ -1002,10 +1057,18 @@ public class JXplorerBrowser extends JFrame                     // Applet
     public void disconnect()
     {
         jndiBroker.disconnect();
+
+        mrTree.goOffline(offlineBroker);
+        schemaTree.goOffline(null);
+        searchTree.goOffline(null);
+
+        searchTree.setNumOfResults(0);
+
         mrTree.clearTree();
         schemaTree.clearTree();
         searchTree.clearTree();
-        searchTree.setNumOfResults(0);
+
+
 
         getButtonRegister().setDisconnectState();
 

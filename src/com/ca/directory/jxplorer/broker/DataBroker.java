@@ -7,6 +7,7 @@ import com.ca.commons.jndi.SchemaOps;
 import com.ca.commons.naming.*;
 
 import com.ca.directory.jxplorer.DataListener;
+import com.ca.directory.jxplorer.SwingDataListener;
 
 import javax.naming.NameClassPair;
 import javax.naming.NameNotFoundException;
@@ -14,7 +15,7 @@ import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
 import javax.naming.directory.Attribute;
 import javax.naming.directory.BasicAttribute;
-import javax.naming.directory.DirContext;
+import javax.naming.ldap.LdapContext;
 import java.util.ArrayList;
 import java.util.Vector;
 
@@ -69,12 +70,21 @@ public abstract class DataBroker implements Runnable, DataBrokerQueryInterface, 
 
     public DataQuery push(DataQuery request)
     {
-        if (request.type == DataQuery.MODIFY)
-            System.out.println("modify request: " + request.toString());
-
+//        if (request.type == DataQuery.MODIFY)
+//            System.out.println("modify request: " + request.toString());
+        if (debug)
+        {
+            System.out.println("Thread: " + Thread.currentThread().getName() + " pushing request: " + request.getTypeString() + ": " + request.toString() + " in broker " + this.id());
+            try {
+            Thread.sleep(100);
+            Thread.dumpStack();
+            Thread.sleep(100);
+            } catch (Exception e) {};    
+            System.out.println("----------");
+        }
 
         for (int i = 0; i < listeners.size(); i++)
-            request.addDataListener((DataListener) listeners.get(i));
+            request.addDataListener(new SwingDataListener((DataListener) listeners.get(i)));
 
         synchronized (requestQueue)
         {
@@ -99,12 +109,15 @@ public abstract class DataBroker implements Runnable, DataBrokerQueryInterface, 
 
     public DataQuery pop()
     {
+
         DataQuery request = null;
 
         synchronized (requestQueue)
         {
             if (requestQueue.isEmpty()) return null;
             request = (DataQuery) requestQueue.firstElement();
+            if (debug) System.out.println("Thread: " + Thread.currentThread().getName() + " popping request: " + request.getTypeString() + ": " + request.toString() + " in broker " + this.id());
+
             requestQueue.removeElementAt(0);
             request.setRunning();                // set the running flag (for use by StopMonitor)
         }
@@ -147,12 +160,11 @@ public abstract class DataBroker implements Runnable, DataBrokerQueryInterface, 
     {
         while (true)
         {
-            if (debug)
-                System.out.println("Thread: " + Thread.currentThread().getName() + " processing Queue of length: " + requestQueue.size() + " in broker " + id);
+            if (debug) System.out.println("Thread: " + Thread.currentThread().getName() + " processing Queue of length: " + requestQueue.size() + " in broker " + id);
+
             if (processQueue() == false)
             {
-                if (debug)
-                    System.out.println("Thread: " + Thread.currentThread().getName() + " ending." + requestQueue.size());
+                if (debug) System.out.println("Thread: " + Thread.currentThread().getName() + " ending." + requestQueue.size());
                 return;
             }
 
@@ -163,13 +175,11 @@ public abstract class DataBroker implements Runnable, DataBrokerQueryInterface, 
                 {
                     requestQueue.wait();
                 }
-                if (debug)
-                    System.out.println("Thread: " + Thread.currentThread().getName() + " notified in run() loop");
+                if (debug) System.out.println("Thread: " + Thread.currentThread().getName() + " notified in run() loop");
             }
             catch (Exception e)
             {
-                if (debug)
-                    System.out.println("Thread: " + Thread.currentThread().getName() + " interrupted in run() loop \n    " + e);
+                if (debug) System.out.println("Thread: " + Thread.currentThread().getName() + " interrupted in run() loop \n    " + e);
             }
         }
     }
@@ -223,8 +233,7 @@ public abstract class DataBroker implements Runnable, DataBrokerQueryInterface, 
             if (!isActive())
                 request.setException(new Exception("No Data Connection Enabled"));
 
-            if (debug)
-                System.out.println("Thread: " + Thread.currentThread().getName() + " process request " + request.id + " of type " + request.getTypeString());
+            if (debug) System.out.println("Thread: " + Thread.currentThread().getName() + " process request " + request.id + " of type " + request.getTypeString());
 
             switch (request.getType())
             {
@@ -249,10 +258,7 @@ public abstract class DataBroker implements Runnable, DataBrokerQueryInterface, 
                     break;
 
                 case DataQuery.COPY:
-                    //if (request.getExternalDataSource()==null)
                     doCopyQuery(request);
-                    //else
-                    //    doCopyBetweenWindowsQuery(request);
                     break;
 
                 case DataQuery.XWINCOPY:
@@ -376,7 +382,7 @@ public abstract class DataBroker implements Runnable, DataBrokerQueryInterface, 
 
     public abstract boolean isModifiable();
 
-    public abstract DirContext getDirContext();
+    public abstract LdapContext getLdapContext() throws NamingException;
 
     public abstract boolean isActive();
 
@@ -389,8 +395,7 @@ public abstract class DataBroker implements Runnable, DataBrokerQueryInterface, 
 
     protected DataQuery finish(DataQuery request)
     {
-        if (debug)
-            System.out.println("Thread: " + Thread.currentThread().getName() + " request " + request.id + " finished ");
+        if (debug) System.out.println("Thread: " + Thread.currentThread().getName() + " request " + request.id + " finished ");
         request.finish();
         return request;
     }
@@ -759,4 +764,7 @@ public abstract class DataBroker implements Runnable, DataBrokerQueryInterface, 
         }
         return children;
     }
+
+    public String id() { return "DataBroker " + id;};
+    
 }

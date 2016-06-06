@@ -73,9 +73,9 @@ public class KeystoreGUI extends CBDialog implements ActionListener
      *   @param keyStoreLocation the location of the java keystore to manage.
      *   @param keyStorePassword the password of the encrypted keystore - may be null,
      *                           in which case the user will be prompted.
-     *   @param keyStoreType the java abreviation of the keystore type (typically 'jks' for
+     *   @param keyStoreType the java abbreviation of the keystore type (typically 'jks' for
      *          'java keystore' - the default java file based keystore).
-     *   @param title a meaningfull (to the user) name for the keystore
+     *   @param title a meaningful (to the user) name for the keystore
      *   @param handlePrivateKeys whether the keystore manager will allow the
      *          user to associate a private key with a particular certificate.
      *   @param helpTopic the link into the default java help system (if used).  See

@@ -50,8 +50,8 @@ public class CBBase64
     }
 
     /**
-     * Takes a binary byte array and converts it to base64 mime
-     * encoded data.
+     * Takes a binary byte array and converts it to a formatted base64 mime
+     * encoded data formatted for LDIF with 76 character long lines.
      *
      * @param byteArray an array of 8 bit bytes to be converted
      * @return the resultant encoded string
@@ -63,7 +63,7 @@ public class CBBase64
 
     /**
      * Takes a binary byte array and converts it to base64 mime
-     * encoded data.
+     * encoded data, formatted for LDIF with 76 character long lines.
      *
      * @param byteArray an array of 8 bit bytes to be converted
      * @param offset    The first line of the string may be offset by
@@ -77,9 +77,6 @@ public class CBBase64
     {
         if (byteArray == null) return null;  // XXX correct behaviour?
 
-        int arraySize = byteArray.length;
-        int thirdSize = arraySize / 3;
-
         byte[] base64Data = encode(byteArray);
 
         if (base64Data == null) return null;  // Exception occurred.
@@ -87,6 +84,24 @@ public class CBBase64
         return format(base64Data, offset);
 
     }
+
+    /**
+     * Takes a binary array and converts it to base64 mime encoded data, with NO FORMATTING.
+     * @param byteArray
+     * @return
+     */
+
+    public static String toBase64(byte[] byteArray)
+    {
+        if (byteArray == null) return null;  // XXX correct behaviour?
+
+        byte[] base64Data = encode(byteArray);
+
+        if (base64Data == null) return null;  // Exception occurred.
+
+        return new String(base64Data);
+    }
+
 
     /**
      * This returns a formatted string representing the base64 data.
@@ -98,7 +113,7 @@ public class CBBase64
      *                   files).
      */
 
-// XXX this is unusually sucky, even for me.  Better would be too format on the fly...
+// XXX this is unusually sucky, even for me.  Better would be to format on the fly...
 
     public static String format(byte[] base64Data, int offset)
     {
@@ -121,8 +136,8 @@ public class CBBase64
         int i = 76 - offset;
         while (i < base64Data.length)
         {
-            buffer.insert(i, "\r\n ");
-            i += 78;
+            buffer.insert(i, "\n ");
+            i += 77;
         }
 
         return buffer.toString();

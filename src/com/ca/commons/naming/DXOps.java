@@ -7,6 +7,8 @@ import com.ca.commons.jndi.ConnectionData;
 
 import javax.naming.*;
 import javax.naming.directory.*;
+import javax.naming.ldap.LdapContext;
+import javax.naming.ldap.LdapName;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.logging.Level;
@@ -27,7 +29,7 @@ public class DXOps extends AdvancedOps
      */
 
 
-    public DXOps(DirContext ctx)
+    public DXOps(LdapContext ctx)
             throws NamingException
     {
         super(ctx);
@@ -225,7 +227,12 @@ public class DXOps extends AdvancedOps
         }
         catch (NamingException ex)
         {
-            CBUtility.error(CBIntText.get("Search partially failed! - only {0} entries returned", new Integer[]{new Integer(dxe.size())}), ex);
+            String msg = CBIntText.get("Search partially failed! - only {0} entries returned.", new Integer[]{new Integer(dxe.size())});
+            if (ex instanceof SizeLimitExceededException)
+            {
+                msg = msg + "\n" +  CBIntText.get("(Consider using paged results; see 'Advanced Options -> Ldap Limits.)");
+            }
+            CBUtility.error(msg, ex);
         }
 
         return dxe;
@@ -432,11 +439,13 @@ System.out.println("ended up with: '" + rawName + "'");
 
         if (exists(newDN))
         {
-            throw new NamingException(CBIntText.get("The name: \"{0}\" already exists - please choose a different name", new String[] {newDN.getLowestRDN() .toString()}));
+            throw new NamingException(CBIntText.get("The name: ''{0}'' already exists - please choose a different name", new String[] {newDN.getLowestRDN() .toString()}));
         }
         else
         {
-            moveTree(oldDN, newDN);
+            boolean replaceRDN = doWeReplaceTheRDN(oldEntry, newEntry);
+
+            moveTree(oldDN, newDN, replaceRDN);
 
             for (int i=0; i<oldRDN.size(); i++)
             {
@@ -452,6 +461,57 @@ System.out.println("ended up with: '" + rawName + "'");
         }
     }
 
+    /**
+    // The horror.  Renaming an entry with a single valued attribute *requires* a rename that doesn't maintain
+    // the old value.
+    //
+    // Renaming an entry between single valued attributes *requires* that the rename does
+    // maintain the old value.
+    //
+    //  <br>(Case 0: one or other RDN has multiple AV pairs.  Give up; assume user knows what they're doing - return false)
+    //  <br>Case 1: naming attribute is the same - internal node rename - return false
+    //  <br>Case 2: different RDN attributes - don't need to do anything - return false
+    //  <br>Case 3: same RDN attribute - not single valued - return false
+    //  <br>Case 4: same RDN attribute - is single valued - return true...
+    //  <br>Case 5: we have entry attributes, and can check that the new entry doesn't have the old attribute value, so we remove it...
+
+     * @param oldEntry an 'entry' (only used for the RDN; usually empty)
+     * @param newEntry an 'entry' (only used for the RDN; usually empty)
+     * @return
+     */
+
+    protected boolean doWeReplaceTheRDN(DXEntry oldEntry, DXEntry newEntry)
+    {
+        RDN oldRdn = oldEntry.getRDN();
+        RDN newRdn = newEntry.getRDN();
+
+        if (oldRdn.size()>1 || newRdn.size()>1)
+            return false;               // if the RDNs are multi-valued, assume the user knows what they're doing (ha ha)
+
+        if (oldRdn.equals(newRdn))
+            return false;               // internal tree rename; leaf name is the same so don't replace anything
+
+
+        if (oldRdn.getAttID().equals(newRdn.getAttID())) // RDNs have the same ID.. possible replacement situation
+        {
+            DXAttribute oldNamingAtt = new DXAttribute(oldRdn.getAttID());
+
+            if (oldNamingAtt.isSingleValued())
+                return true;  // we have a single valued naming attribute; we have to replace the value...
+
+            if (newEntry.size()>0)
+            {
+                DXAttribute newNamingAtt =  newEntry.get(oldRdn.getAttID());
+                if (newNamingAtt!=null && newNamingAtt.contains(oldRdn.getRawVal(0)))   // the new entry contains the old attribute value...
+                    return false;                                   // so don't replace it!
+                else
+                    return true;                                    // but if it doesn't, we *do* need to replace it...
+            }
+
+        }
+
+        return false; // different attributes; don't replace nuffin' ...
+    }
 
 
     /**
@@ -490,9 +550,9 @@ System.out.println("ended up with: '" + rawName + "'");
         mods = new ModificationItem[dels.size() + reps.size() + adds.size()];
 
         int modIndex = 0;
-        modIndex = loadMods(mods, dels.getAll(), DirContext.REMOVE_ATTRIBUTE, modIndex);
-        modIndex = loadMods(mods, adds.getAll(), DirContext.ADD_ATTRIBUTE, modIndex);
-        modIndex = loadMods(mods, reps.getAll(), DirContext.REPLACE_ATTRIBUTE, modIndex);
+        modIndex = loadMods(mods, dels.getAll(), LdapContext.REMOVE_ATTRIBUTE, modIndex);
+        modIndex = loadMods(mods, adds.getAll(), LdapContext.ADD_ATTRIBUTE, modIndex);
+        modIndex = loadMods(mods, reps.getAll(), LdapContext.REPLACE_ATTRIBUTE, modIndex);
 
         modifyAttributes(nodeDN, mods);          //TE: This may fail, returning false.
     }

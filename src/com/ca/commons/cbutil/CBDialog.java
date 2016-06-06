@@ -41,6 +41,7 @@ public class CBDialog extends JDialog
      * This is the parent Frame of the dialog
      */
 
+    //TODO: refactor so we can use something other than a frame as an owner?
     protected Frame owner;
 
     /**

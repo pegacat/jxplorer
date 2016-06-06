@@ -578,7 +578,7 @@ public class ReturnAttributesDisplay
 					if (readFile.exists())
 					{
 						response = JOptionPane.showConfirmDialog(this,
-                                CBIntText.get("The File ''{0}'' already exists.  Do you want to replace it?", new String[] {readFile.toString()}),
+                                CBIntText.get("The File ''{0}'' already exists. Do you want to replace it?", new String[] {readFile.toString()}),
                                 CBIntText.get("Overwrite Confirmation"), JOptionPane.YES_NO_OPTION );
 
 						if (response != JOptionPane.YES_OPTION)

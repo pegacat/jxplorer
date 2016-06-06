@@ -1,0 +1,73 @@
+Index: src/com/ca/directory/jxplorer/JXOpenConWin.java
+===================================================================
+--- src/com/ca/directory/jxplorer/JXOpenConWin.java	(Revision 22)
++++ src/com/ca/directory/jxplorer/JXOpenConWin.java	(Arbeitskopie)
+@@ -332,7 +332,7 @@
+             // create a new data query and put it on the query stack for the connection thread.
+             DataQuery query = jndiBroker.connect(connectData);
+ 
+-            query.addDataListener(this);
++            query.addDataListener(new SwingDataListener(this));
+ 
+         }
+                 // the code above just sets up the connection call, and doesn't really
+@@ -389,7 +389,7 @@
+             log.log(Level.WARNING, "Error opening connection ", request.getException());
+             request.clearException();
+             setTitle(CBIntText.get("Couldn't Connect" + ": " + "Try Again"));
+-            dispose();	//TE: don't remove this...for some reason if an incorrect port etc is entered on Linux - JX crashes!
++//            dispose();	//TE: don't remove this...for some reason if an incorrect port etc is entered on Linux - JX crashes!
+             setVisible(true);
+             userMessage.setText(CBIntText.get("Couldn't Open ") + request.getExtendedData("url"));
+             jxplorer.disconnect();
+Index: src/com/ca/directory/jxplorer/SwingDataListener.java
+===================================================================
+--- src/com/ca/directory/jxplorer/SwingDataListener.java	(Revision 0)
++++ src/com/ca/directory/jxplorer/SwingDataListener.java	(Revision 0)
+@@ -0,0 +1,46 @@
++package com.ca.directory.jxplorer;
++
++import java.awt.EventQueue;
++
++/**
++ * DataListener decorator.
++ * Delivers dataReady events inside the AWT dispatcher thread
++ * in case the listener intends to do any GUI stuff.
++ */
++public class SwingDataListener implements DataListener
++{
++	private final DataListener listener;
++	
++	/**
++	 * Constructor
++	 * @param listener The real listener
++	 */
++	public SwingDataListener(DataListener listener)
++	{
++		this.listener = listener;
++	}
++	
++    private static final class DataReadyEvent implements Runnable
++    {
++    	private final DataListener listener;
++    	private final DataQuery result;
++    	
++    	public DataReadyEvent(DataListener listener, DataQuery result)
++    	{
++    		this.listener = listener;
++    		this.result = result;
++    	}
++    	
++	    public void run()
++	    {
++	    	listener.dataReady(result);
++	    }
++    }
++    
++	@Override
++	public void dataReady(DataQuery result)
++	{
++       	EventQueue.invokeLater(new DataReadyEvent(listener, result));
++	}
++
++}

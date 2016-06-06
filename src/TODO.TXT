@@ -1,0 +1,35 @@
+* Read Only Version
+  - disable tree (need to address 'rename')
+  - disable editor (need to address editor fields)
+
+* DO NEW RELEASE WITH CLEAN JXWORKBENCH
+
+* (meh) Expand help to show LDIF change handling
+* (tick) change splash screen and menu
+* adjust ant task to copy JXWsplash when making release_jxw
+* (tick) fix button highlights on LDAP import screen
+
+* (meh) Expand help to explain how sorted attributes for reports only occur for embedded query strings,
+  not for 'quick reports' based on searches... (and how to use 'sort')            (??)
+
+* UPDATE WELCOME PAGE WITH JXW INFO!!!  (tick)
+
+Web Site
+=======
+
+Update JX:
+a: (tick) JXW links
+b: (tick) spanish thingy
+c: (tick) check jxplorer-users@sourceforge.net link
+
+
+Update JXW:
+a: (tick) refer to 'bundle'
+b: (tick) change timing
+c: (tick) change order of licence page.
+
+
+NEXT
+====
+
+Check out if there's a new installer, and what to do about OSX 10.8 etc...

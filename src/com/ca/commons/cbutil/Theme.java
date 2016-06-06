@@ -45,7 +45,6 @@ public class Theme {
         if (!themeLocation.exists())
         {
             themeDirectory = localDir;
-            System.out.println("Unable to find theme directory; falling back to: " + themeDirectory);
         }
 
         dirHtmlDocs = themeDirectory + "htmldocs" + File.separator;

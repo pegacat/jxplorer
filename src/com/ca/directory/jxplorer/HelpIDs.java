@@ -11,47 +11,47 @@ public class HelpIDs
     /**
      * Stop monitor dialog.
      */
-    public static final String ABORT = "abort";
+    public static final String ABORT = "utilities.abort";
 
     /**
      * Audio editor dialog.
      */
-    public static final String ATTR_AUDIO = "attr.audio";
+    public static final String ATTR_AUDIO = "edit.audio";
 
     /**
      * Default editor dialog.
      */
-    public static final String ATTR_BINARY = "attr.binary";
+    public static final String ATTR_BINARY = "edit.binary";
 
     /**
      * Boolean editor dialog.
      */
-    public static final String ATTR_BOOLEAN = "attr.boolean";
+    public static final String ATTR_BOOLEAN = "adding_an_attribute_or_value_htm";  // XXX don't really have a specific help topic for this...
 
     /**
      * JPEGPhoto editor dialog.
      */
-    public static final String ATTR_JPEGPHOTO = "attr.jpegphoto";
+    public static final String ATTR_JPEGPHOTO = "edit.jpegphoto";
 
     /**
      * Password editor dialog.
      */
-    public static final String ATTR_PASSWORD = "attr.password";
+    public static final String ATTR_PASSWORD = "edit.password";
 
     /**
      * Address editor dialog.
      */
-    public static final String ATTR_POSTAL = "attr.postal";
+    public static final String ATTR_POSTAL = "edit.attributeeditor"; // need to rename
 
     /**
      * Generalized time editor dialog.
      */
-    public static final String ATTR_TIME = "attr.time";
+    public static final String ATTR_TIME = "edit.time";
 
     /**
      * Change object class dialog.
      */
-    public static final String CLASS_CHANGE = "class.change";
+    public static final String CLASS_CHANGE = "edit.new";   // check
 
     /**
      * Advanced options dialog.
@@ -61,52 +61,52 @@ public class HelpIDs
     /**
      * Add bookmark dialog.
      */
-    public static final String BOOKMARK_ADD = "bookmark.add";
+    public static final String BOOKMARK_ADD = "adding_a_bookmark_htm";
 
     /**
      * Edit bookmark dialog.
      */
-    public static final String BOOKMARK_EDIT = "bookmark.edit";
+    public static final String BOOKMARK_EDIT = "editing_a_bookmark_htm";
 
     /**
      * Delete bookmark dialog.
      */
-    public static final String BOOKMARK_DELETE = "bookmark.delete";
+    public static final String BOOKMARK_DELETE = "deleting_a_bookmark_htm";
 
     /**
      * Connection dialog.
      */
-    public static final String CONNECT = "connect";
+    public static final String CONNECT = "browse.connection";
 
     /**
      * Customer support link.
      */
-    public static final String CONTACT_SUPPORT = "contact.support";
+    //public static final String CONTACT_SUPPORT = "contact.support";
 
     /**
      * New entry dialog.
      */
-    public static final String ENTRY_NEW = "entry.new";
+    public static final String ENTRY_NEW = "edit.new";
 
     /**
      * LDIF export dialog (full subtree).
      */
-    public static final String LDIF_EXPORT_SUBTREE = "ldif.export.subtree";
+    public static final String LDIF_EXPORT_SUBTREE = "ldif.fileio";
 
     /**
      * LDIF export dialog (full tree).
      */
-    public static final String LDIF_EXPORT_TREE = "ldif.export.tree";
+    public static final String LDIF_EXPORT_TREE = "ldif.fileio";
 
     /**
      * Search dialog.
      */
-    public static final String SEARCH = "search";
+    public static final String SEARCH = "browse.searching";
 
     /**
      * Delete search filter dialog.
      */
-    public static final String SEARCH_DELETE_FILTER = "search.delete.filter";
+    public static final String SEARCH_DELETE_FILTER = "browse.searching";
 
     /**
      * Return attributes search results dialog.
@@ -116,7 +116,7 @@ public class HelpIDs
     /**
      * Return attributes dialog.
      */
-    public static final String SEARCH_RETURN_ATTRIBUTES = "search.return.attributes";
+    public static final String SEARCH_RETURN_ATTRIBUTES = "return.attributes";
 
     /**
      * Manage certs dialog.
@@ -126,12 +126,12 @@ public class HelpIDs
     /**
      * Keystore options dialog.
      */
-    public static final String SSL_CHANGE_KEYSTORE = "ssl.change.keystore";
+    public static final String SSL_CHANGE_KEYSTORE = "ssl.changekeystore"; 
 
     /**
      * Change the keystore password dialog.
      */
-    public static final String SSL_KEYSTORE_PASSWORD = "ssl.keystore.password";
+    public static final String SSL_KEYSTORE_PASSWORD = "ssl.changekeystore";
 
     /**
      * Certificate dialog.
@@ -147,4 +147,22 @@ public class HelpIDs
      * Search tab.
      */
     public static final String TAB_SEARCH = "Search";
+
+    /**
+     * JXWorkBench find and replace page.
+     */
+    public static final String JXWORKBENCH_SEARCH_REPLACE = "workbench.replace";
+
+    /**
+     * JXWorkbench password vault.
+     */
+    public static final String JXWORKBENCH_PASSWORD_VAULT = "workbench.vault";
+
+    /**
+     * JXWorkbench import / export
+     */
+    public static final String JXWORKBENCH_CSV = "workbench.io";
+
+
+    // XXX remember to add any new IDs to the list in HelpIDsTest, which tests that they appear in the help system map!
 }

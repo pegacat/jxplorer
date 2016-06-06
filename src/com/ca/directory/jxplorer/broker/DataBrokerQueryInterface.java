@@ -5,7 +5,8 @@ import com.ca.commons.naming.DN;
 import com.ca.commons.naming.DXEntry;
 import com.ca.directory.jxplorer.DataListener;
 
-import javax.naming.directory.DirContext;
+import javax.naming.ldap.LdapContext;
+import javax.naming.NamingException;
 
 /**
  * This interface defines data sources used by the the
@@ -161,7 +162,7 @@ public interface DataBrokerQueryInterface
      * @return the jndi directory context - may be null.
      */
 
-    public DirContext getDirContext();
+    public LdapContext getLdapContext() throws NamingException;
 
     /**
      * As a way to directly access the directory broker, a DataBrokerQueryInterface
@@ -207,4 +208,10 @@ public interface DataBrokerQueryInterface
      */
 
     public DataQuery extendedRequest(DataQuery query);
+
+    /**
+     * Identifying string for debugging
+     */
+
+    public String id();
 }

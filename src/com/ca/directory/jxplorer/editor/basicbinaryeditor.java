@@ -325,7 +325,7 @@ public class basicbinaryeditor extends JDialog
         {
             FileOutputStream output = new FileOutputStream(file);
             if(editHex)
-                output.write(hexString2bytes(field.getText()));        //TE: if the user is in edit mode there may be changes to the data therefore get it from the text area.
+                output.write(CBParse.hex2bytes(field.getText()));        //TE: if the user is in edit mode there may be changes to the data therefore get it from the text area.
             else
                 output.write(bytes);        //TE: the user is not in edit mode therefore no changes have been made ...'bytes' can be used.
 
@@ -423,7 +423,7 @@ public class basicbinaryeditor extends JDialog
             String newvalue = field.getText();
 
 		    if (newvalue!=null && newvalue.length()!=0)
-                return hexString2bytes(newvalue);
+                return CBParse.hex2bytes(newvalue);
 		    else
 			    return null;
         }
@@ -494,34 +494,7 @@ public class basicbinaryeditor extends JDialog
 
 
 
-   /**
-    *   Converts a string to hex then to a byte array.
-    *   @param forConversion value to be converted.
-    *   @return bytesConverted byte representation of the hex.
-    */
 
-    public byte[] hexString2bytes(String forConversion)
-    {
-        char charForConversion[] = forConversion.toCharArray();
-
-        byte[] bytesConverted = new byte[charForConversion.length/2];
-
-        int a = 0;      //TE: loop counter.
-
-        try
-        {
-            for (int i=0;i<charForConversion.length; i=i+2)     //TE: increments by two b/c two chars need to be parsed at a time.
-            {
-                bytesConverted[a] = CBParse.hex2Byte(charForConversion[i], charForConversion[i+1]);
-                a++;
-            }
-        }
-        catch (Exception e)
-        {
-            CBUtility.error("Problem parsing hex to byte: " + e);
-        }
-        return bytesConverted;
-    }
 
 
 

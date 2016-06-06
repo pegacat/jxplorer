@@ -92,11 +92,14 @@ public class SmartNode extends DefaultMutableTreeNode implements  Transferable, 
 // XXX Rewrite to use resource loader as well...!
 // XXX (and possibly only create icons when needed?)
  
-    static public void init(CBResourceLoader resourceLoader)
+    static public void initIcons(CBResourceLoader resourceLoader)
     {
     	if (initialised) return;	// we only need to run this method once, but
     	initialised = true;			// it's not an error to call it multiple times.
-    
+
+        if (resourceLoader==null)
+            return;
+
         String[] extensions = {"jpg","gif","jpeg"};
         
         String[] iconFiles = CBUtility.readFilteredDirectory(Theme.getInstance().getDirIcons(), extensions);

@@ -11,6 +11,7 @@ import java.io.*;
 
 import com.ca.commons.cbutil.*;
 import com.ca.directory.jxplorer.HelpIDs;
+import com.ca.directory.jxplorer.JXplorer;
 import com.ca.directory.jxplorer.JXplorerBrowser;
 import com.ca.directory.jxplorer.broker.JNDIDataBroker;
 
@@ -18,6 +19,8 @@ import com.ca.directory.jxplorer.broker.JNDIDataBroker;
 *	This class acts as a item selector.  It sets up a dialog that lets you select items
 *	from one list and add them to another list.  It also allows you to remove selected
 *	items from the list.
+ *
+ *  Much of the class is static; there might be difficulties running two of these simultaneously...
 */
 public class ReturnAttributesDialog extends CBDialog
 {
@@ -28,7 +31,6 @@ public class ReturnAttributesDialog extends CBDialog
 	private JTextField		nameField;
     private JCheckBox       includeDNCheckBox;
 	private ArrayList		arrayList = new ArrayList();
-	private Properties 		properties;
 	private String			localDir="";
 	private JXplorerBrowser browser;
 
@@ -52,6 +54,16 @@ public class ReturnAttributesDialog extends CBDialog
      */
     public static final String DEFAULT_RETURN_ATTRS = "None";
 
+
+    /*
+     *  The locatio of the stored property file
+     */
+    static String configSavePath;
+
+    /*
+     * The common properties object used to save return attribute lists.
+     */
+    static Properties returnAttProperties;
     /**
     *	Static method that should be used rather than creating an object directly if
 	*	you wish to get the user input after the user has finished making selections and
@@ -81,12 +93,10 @@ public class ReturnAttributesDialog extends CBDialog
 	{
         ArrayList list = new ArrayList(0);
 
-        Properties prop = getProperties();
-
-        if(prop == null)
+        if(returnAttProperties == null)
             return new String[] {"objectClass"};  // as a default, get the object class rather than nothing ("1.1")
 
-        String value = prop.getProperty(name);
+        String value = returnAttProperties.getProperty(name);
 
         if(value == null)
             return new String[] {"objectClass"};  // as a default, get the object class rather than nothing ("1.1")
@@ -123,7 +133,7 @@ public class ReturnAttributesDialog extends CBDialog
 
 		try
 		{
-			en = (getProperties()).propertyNames();
+			en = returnAttProperties.propertyNames();
 		}
 		catch(Exception e)
 		{
@@ -140,10 +150,11 @@ public class ReturnAttributesDialog extends CBDialog
 
 		return list.toArray();
 	}
-
+   //XXPROP
    /**
     *	Sets up the property file called 'return_attributes.txt' in the user dir.
 	*/
+    /*
 	public static Properties getProperties()
 	{
 		Properties myProperties = new Properties();
@@ -156,7 +167,7 @@ public class ReturnAttributesDialog extends CBDialog
 
 		return myProperties;
 	}
-
+    */
    /**
     *	Sets up a dialog with two lists.  The list on the left displays all available values
 	*	that the user can select from.  When the user selects a value it is displayed in the
@@ -170,7 +181,13 @@ public class ReturnAttributesDialog extends CBDialog
 		super(jx, CBIntText.get("Return Attributes"), HelpIDs.SEARCH_RETURN_ATTRIBUTES);
 
 		this.browser = jx;
-		setUpPropertyFile();
+
+		//XXPROP setUpPropertyFile();
+        if (returnAttProperties==null)
+        {
+            configSavePath = CBUtility.getPropertyConfigPath(JXplorer.APPLICATION_NAME, FILENAME);
+            returnAttProperties = CBUtility.readPropertyFile(configSavePath);
+        }
 
 		CBPanel topPanel = new CBPanel();
 		CBPanel leftPanel = new CBPanel();
@@ -305,7 +322,9 @@ public class ReturnAttributesDialog extends CBDialog
         try
         {
             JNDIDataBroker searchBroker = browser.getSearchBroker();
-            ArrayList en = searchBroker.getSchemaOps().listEntryNames("schema=AttributeDefinition,cn=schema");
+            //ArrayList en = searchBroker.getSchemaOps().listEntryNames("schema=AttributeDefinition,cn=schema");
+            ArrayList en = searchBroker.getSchemaOps().getKnownAttributeNames();
+
 
             // Check for no schema publishing i.e. LDAP V2...
             if(en==null)
@@ -323,20 +342,6 @@ public class ReturnAttributesDialog extends CBDialog
         }
 	}
 
-   /**
-    *	Sets up the property file called 'return_attributes.txt' in the user dir.
-	*/
-	protected void setUpPropertyFile()
-	{
-		properties = new Properties();
-
-        String temp = System.getProperty("user.dir") + File.separator;
-        if (temp==null) { log.warning("Unable to read user home directory."); return;}
-		localDir = temp;
-
-        properties = CBUtility.readPropertyFile(temp + FILENAME);
-        if (properties.size()==0) { log.info("Initialising config file: " + temp + FILENAME); return;}
-	}
 
    /**
     *	Adds a double click mouse listener to both lists in this dialog.
@@ -416,9 +421,6 @@ public class ReturnAttributesDialog extends CBDialog
 	*/
 	public void save()
 	{
-		if(properties == null)
-			setUpPropertyFile();
-
 		ArrayList list = getSelectedValues();
 
         // Any attributes selected?
@@ -459,8 +461,8 @@ public class ReturnAttributesDialog extends CBDialog
 		for(int i=0; i<list.size();i++)
 			buffy.append(list.get(i)+";");
 
-		properties.setProperty(name, buffy.toString());
-		CBUtility.writePropertyFile(localDir + FILENAME, properties, "");
+		returnAttProperties.setProperty(name, buffy.toString());
+		CBUtility.writePropertyFile(configSavePath, returnAttProperties, null);
 
 		JOptionPane.showMessageDialog(this,
                 CBIntText.get("Your return attributes list has been saved as ''{0}''.",new String[] {name}),
@@ -482,7 +484,7 @@ public class ReturnAttributesDialog extends CBDialog
 	*/
 	public void load()
 	{
-		Enumeration en = properties.propertyNames();
+		Enumeration en = returnAttProperties.propertyNames();
 
 		ArrayList list = new ArrayList(0);
 
@@ -557,7 +559,7 @@ public class ReturnAttributesDialog extends CBDialog
 	protected boolean exists(String name)
 	{
         // Check if the list name already exists, if so return true...
-		if(properties.containsKey(name))
+		if(returnAttProperties.containsKey(name))
 			return true;
 
 		return false;
@@ -570,7 +572,7 @@ public class ReturnAttributesDialog extends CBDialog
 	*/
 	public String getList(String name)
 	{
-		return properties.getProperty(name);
+		return returnAttProperties.getProperty(name);
 	}
 
    /**
@@ -621,11 +623,11 @@ public class ReturnAttributesDialog extends CBDialog
 	*/
 	protected void removeList(String name)
 	{
-		if(!properties.containsKey(name))
+		if(!returnAttProperties.containsKey(name))
 			return;
 
-		properties.remove(name);
-		CBUtility.writePropertyFile(localDir + FILENAME, properties, "");
+		returnAttProperties.remove(name);
+		CBUtility.writePropertyFile(configSavePath, returnAttProperties, null);
 		removeFromSearch(name);
 	}
 

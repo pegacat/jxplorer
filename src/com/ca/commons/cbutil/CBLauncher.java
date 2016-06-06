@@ -7,6 +7,8 @@ import java.io.InputStream;
  * This class attempts to launch a program (depending on its file extension) and attempts
  * to open the specified file.  For example: launch MS word (winword.exe) with file 'a.doc'.
  *
+ * ... I think this only works on Windows - CB?  (Could try to do something using 'afplay' for audio on OSX?
+ *
  * @author Trudi.
  */
 
@@ -24,6 +26,8 @@ public class CBLauncher
 
     public static void launchProgram(String extension, String fileName)
     {
+        System.out.println("launching: " + extension + " - " + fileName);
+
         String command = null;
         StringBuffer fileType = new StringBuffer(20);
         StringBuffer program = new StringBuffer(50);
@@ -118,7 +122,10 @@ public class CBLauncher
         String fullProgramName = program.toString();
         String runProgramName;
 
-        if (program.toString().endsWith("%1"))	//TE: for some reason, to get mplayer2 & realplayer working, remove the %1 from the end of the name (they don't write it like the others i.e. "%1").
+        System.out.println("Running program: " + fullProgramName);
+
+//        if (program.toString().endsWith("%1"))	//TE: for some reason, to get mplayer2 & realplayer working, remove the %1 from the end of the name (they don't write it like the others i.e. "%1").
+            if (program.toString().contains("%1"))	//TE: for some reason, to get mplayer2 & realplayer working, remove the %1 from the end of the name (they don't write it like the others i.e. "%1").
             runProgramName = fullProgramName.substring(0, fullProgramName.lastIndexOf("%1") - 1);
         else if (program.toString().endsWith("\"%L\""))	//TE: Midi format.
             runProgramName = fullProgramName.substring(0, fullProgramName.lastIndexOf("\"%L\"") - 1);
@@ -129,6 +136,8 @@ public class CBLauncher
 
         try
         {
+            //System.out.println("Attempting to run command line: " + runProgramName + " \"" + fileName + "\"");
+
             r.exec(runProgramName + " \"" + fileName + "\"");
         }
         catch (IOException e)

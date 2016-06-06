@@ -3,6 +3,7 @@ package com.ca.directory.jxplorer.broker;
 
 import javax.naming.*;
 import javax.naming.directory.*;
+import javax.naming.ldap.LdapContext;
 
 import java.io.File;
 import java.util.*;
@@ -13,8 +14,6 @@ import com.ca.commons.cbutil.CBIntText;
 import com.ca.commons.naming.*;
 import com.ca.commons.jndi.SchemaOps;
 
-import java.awt.Component;
-
 /** 
  * 	    This sets up a 'virtual broker' that reads info in, and allows
  *      the user to operate on it, without any server being involved.  The
@@ -23,8 +22,7 @@ import java.awt.Component;
 
 public class OfflineDataBroker extends DataBroker
 {
-    Hashtable nodes;  // stored node dn keys (as strings), and nodes
-    Component display;
+    HashMap <String, Node> nodes;  // stored node dn keys (as strings), and nodes
     File ldifFile;
 
     private static Logger log = Logger.getLogger(OfflineDataBroker.class.getName());
@@ -36,11 +34,8 @@ public class OfflineDataBroker extends DataBroker
     
     class Node
     {
-        DXEntry entry;
-        
-        //DXAttributes myAtts;
-        Vector children;
-        DN dn;
+        DXEntry entry; // the actual entry data represented by the node (e.g. the list of attributes)
+        ArrayList<Node> children;
         NameClassPair namePair;
 
         /** 
@@ -49,8 +44,8 @@ public class OfflineDataBroker extends DataBroker
         public Node(DXEntry entry) 
         {
             this.entry = entry;
-            dn = entry.getDN();
-            children = new Vector(10);
+            DN dn = entry.getDN();
+            children = new ArrayList<Node>(10);
             namePair = new NameClassPair(dn.getLowestRDN().toString(), dn.getLowestRDN().getAttID());
         }
         
@@ -80,7 +75,7 @@ public class OfflineDataBroker extends DataBroker
         {
             DXNamingEnumeration result = new DXNamingEnumeration();
             for (int i=0; i<children.size(); i++)
-                result.add(((Node)children.elementAt(i)).getNameClassPair());
+                result.add((children.get(i)).getNameClassPair());
             return result;                            
         }
      
@@ -92,7 +87,7 @@ public class OfflineDataBroker extends DataBroker
         {
             DXNamingEnumeration result = new DXNamingEnumeration();
             for (int i=0; i<children.size(); i++)
-                result.add(children.elementAt(i));
+                result.add(children.get(i));
             return result;                            
         }
 
@@ -110,7 +105,7 @@ public class OfflineDataBroker extends DataBroker
         /** 
          *    Gets the full dn for the current node.
          */
-        public DN getDN() { return dn; }
+        public DN getDN() { return entry.getDN(); }
         
         /**
          *    Looks up the parent in the big nodes Hashtable.
@@ -120,13 +115,13 @@ public class OfflineDataBroker extends DataBroker
          
         public Node getParent()
         {
-            DN parentDN = dn.parentDN();
+            DN parentDN = getDN().getParent();
             if (parentDN == null) return null;
-            Node Parent = (Node)nodes.get(parentDN.toString());
+            Node Parent = nodes.get(parentDN.toString());
             return Parent;
         }
         
-        public String toString() { return dn.toString(); }
+        public String toString() { return getDN().toString(); }
     }
 
     /**
@@ -134,10 +129,9 @@ public class OfflineDataBroker extends DataBroker
      *    initialise the big hashtable that is at the core
      *    of the class.
      */
-    public OfflineDataBroker(Component graphicsDisplay)
+    public OfflineDataBroker()
     {
-        display = graphicsDisplay;
-        nodes = new Hashtable(1000);
+        nodes = new HashMap<String, Node>(1000);
     }
 
     /**
@@ -179,11 +173,12 @@ public class OfflineDataBroker extends DataBroker
     
 
     /**
-     *    whether the data source is currently on-line.
+     *    whether the data source is currently on-line... which for this broker is
+     *    defined as "do we have any data loaded"?
      *    @return on-line status
      */  
      
-     public boolean isActive() { return true; }
+     public boolean isActive() { return true; } // offline broker is *always* available? //return hasData(); }
 
     /**
      * Whether there are any nodes in our offline broker (effectively, if the ldif file read was successful)
@@ -239,8 +234,8 @@ public class OfflineDataBroker extends DataBroker
         {
             if (nodeDN.size()>1)  // so there *should* be a parent!
             {
-                addNode(new DXEntry(new DXAttributes(new DXAttribute("structuralTreeNode", "true")), nodeDN.parentDN()));  // add a 'fake' node to pad the tree out...
-                P = (Node)nodes.get(nodeDN.parentDN().toString());    
+                addNode(new DXEntry(new DXAttributes(new DXAttribute(DXAttributes.STRUCTURAL_NODE, "true")), nodeDN.getParent()));  // add a 'fake' node to pad the tree out...
+                P = (Node)nodes.get(nodeDN.getParent().toString());
             }   
         }
         log.fine("parent = " + ((P==null)?"null":P.toString()));
@@ -330,10 +325,10 @@ public class OfflineDataBroker extends DataBroker
 
 
     /**
-     *    We don't actually have an underlying DirContext, so return null...
+     *    We don't actually have an underlying LdapContext, so return null...
      */
      
-     public DirContext getDirContext() { return null; }
+     public LdapContext getLdapContext() { return null; }
      
      
      
@@ -555,7 +550,7 @@ public class OfflineDataBroker extends DataBroker
 
         if (unthreadedExists(newDN))
         {
-            throw new NamingException(CBIntText.get("The name: \"{0}\" already exists - please choose a different name", new String[] {newDN.getLowestRDN() .toString()}));
+            throw new NamingException(CBIntText.get("The name: ''{0}'' already exists - please choose a different name", new String[] {newDN.getLowestRDN() .toString()}));
         }
 
         for (int i=0; i<oldRDN.size(); i++)
@@ -580,5 +575,7 @@ public class OfflineDataBroker extends DataBroker
      */
     
     public  ArrayList unthreadedGetRecOCs(DN dn) { return null; }
-     
+
+    public String id() { return "OfflineDataBroker " + id;};
+    
 }

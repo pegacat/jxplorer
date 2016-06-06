@@ -7,21 +7,7 @@ import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.swing.ButtonGroup;
-import javax.swing.ImageIcon;
-import javax.swing.JComboBox;
-import javax.swing.JComponent;
-import javax.swing.JDialog;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JRadioButton;
-import javax.swing.JTabbedPane;
-import javax.swing.JTextField;
-import javax.swing.KeyStroke;
-import javax.swing.SwingUtilities;
-import javax.swing.UIManager;
-import javax.swing.UnsupportedLookAndFeelException;
+import javax.swing.*;
 
 import com.ca.commons.cbutil.CBAction;
 import com.ca.commons.cbutil.CBButton;
@@ -44,7 +30,8 @@ import com.ca.directory.jxplorer.tree.SmartTree;
 public class AdvancedOptions extends JDialog
 {
     private CBButton btnApply, btnReset, btnCancel, btnHelp;
-    private JTextField ldapLimit, ldapTimeout;
+    private JTextField ldapLimit, ldapTimeout, pageSize;
+    private JCheckBox pagedResults;
     private JComboBox       urlCombo, logLevelCombo, logMethodCombo, cachePwdCombo;
     private CBPanel display;
     private JTabbedPane tabbedPane;
@@ -125,7 +112,7 @@ public class AdvancedOptions extends JDialog
         });
 
         // Creates a new help button with a listener that will open JX help at appropriate location...
-        btnHelp = new CBButton(CBIntText.get("Help"), CBIntText.get("Click here for help"));
+        btnHelp = new CBButton(CBIntText.get("Help"), CBIntText.get("Click here for Help"));
         CBHelpSystem.useDefaultHelp(btnHelp, HelpIDs.CONFIG_ADVANCED);
 
         //TE: better way to implement keystroke listening...
@@ -136,11 +123,11 @@ public class AdvancedOptions extends JDialog
 
         tabbedPane = new JTabbedPane();
 
-        //Set up the L&F tab...
-        lookAndFeelTab();
-
         // Set up the ldap levels tab...
         ldapLevels();
+
+        //Set up the L&F tab...
+        lookAndFeelTab();
 
         // Set up the log level tab...
         logLevel();
@@ -162,7 +149,7 @@ public class AdvancedOptions extends JDialog
         display.addln(tabbedPane);
         display.addln(buttonPanel);
 
-        setSize(300, 320);
+        setSize(360, 420);
 
         getContentPane().add(display);
     }
@@ -235,7 +222,7 @@ public class AdvancedOptions extends JDialog
         // White space...
         lookAndFeelPanel.addln(new JLabel(" "));
 
-        if (JXplorer.isWindows())
+        if (CBUtility.isWindows())
             addLookAndFeelOption(lookAndFeelButtonGroup, WINDOWS, lookAndFeelPanel, toolTip);
         else
             lookAndFeel[WINDOWS].setSelected(false);
@@ -244,7 +231,7 @@ public class AdvancedOptions extends JDialog
         addLookAndFeelOption(lookAndFeelButtonGroup, MOTIF, lookAndFeelPanel, toolTip);
         addLookAndFeelOption(lookAndFeelButtonGroup, GTK, lookAndFeelPanel, toolTip);
 
-        if (JXplorer.isMac())
+        if (CBUtility.isMac())
             addLookAndFeelOption(lookAndFeelButtonGroup, MAC, lookAndFeelPanel, toolTip);
         else
             lookAndFeel[MAC].setSelected(false);
@@ -578,6 +565,8 @@ public class AdvancedOptions extends JDialog
     {
         ldapLimit = new JTextField();
         ldapTimeout = new JTextField();
+        pagedResults = new JCheckBox();
+        pageSize = new JTextField();
 
         getLdapLevels();
 
@@ -591,6 +580,32 @@ public class AdvancedOptions extends JDialog
         ldapLevelsPanel.addln(new JLabel(" "));        //TE: white space.
         ldapLevelsPanel.add(new JLabel(CBIntText.get("LDAP Timeout")+": "));
         ldapLevelsPanel.add(ldapTimeout);
+        ldapLevelsPanel.newLine();
+        ldapLevelsPanel.addln(new JLabel(" "));        //TE: white space.
+        ldapLevelsPanel.add(new JLabel(CBIntText.get("Use Paged Results")+": "));
+        ldapLevelsPanel.add(pagedResults);
+        ldapLevelsPanel.newLine();
+        ldapLevelsPanel.addln(new JLabel(" "));        //TE: white space.
+        ldapLevelsPanel.add(new JLabel(CBIntText.get("Page Size")+": "));
+        ldapLevelsPanel.add(pageSize);
+
+        pagedResults.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(ActionEvent e)
+            {
+                if (pagedResults.isSelected())
+                {
+                    pageSize.setEnabled(true);
+                    if ("-1".equals(pageSize.getText().trim()))
+                        pageSize.setText("1000");
+                }
+                else
+                {
+                    pageSize.setText("-1");
+                    pageSize.setEnabled(false);
+                }
+            }
+        });
 
         tabbedPane.addTab(CBIntText.get("Search Limits"),
                 new ImageIcon(Theme.getInstance().getDirIcons() + "find.gif"), ldapLevelsPanel,
@@ -605,11 +620,23 @@ public class AdvancedOptions extends JDialog
         // Gets the values from the property file...
         String limit = JXConfig.getProperty("option.ldap.limit");
         String timeout = JXConfig.getProperty("option.ldap.timeout");
+        String size = JXConfig.getProperty("option.ldap.pageSize");
+        String usingPaging = JXConfig.getProperty("option.ldap.pagedResults");
+
 
         ldapLimit.setText(limit);
+        ldapLimit.setColumns(5);
         ldapLimit.setToolTipText(CBIntText.get("Enter the new limit level."));
         ldapTimeout.setText(timeout);
+        ldapTimeout.setColumns(5);
         ldapTimeout.setToolTipText(CBIntText.get("Enter the new timeout level."));
+        pageSize.setText(size);
+        pageSize.setToolTipText(CBIntText.get("Enter the page size for paged results."));
+        pageSize.setColumns(5);
+
+        pagedResults.setSelected("true".equalsIgnoreCase(usingPaging));
+        pagedResults.setToolTipText(CBIntText.get("Whether to use paged results to return large data sets"));
+        pageSize.setEnabled(pagedResults.isSelected());
     }
 
     /**
@@ -664,7 +691,7 @@ public class AdvancedOptions extends JDialog
 
         getPasswordCachingOption();
 
-        urlPanel.addln(new JLabel(CBIntText.get("Cache passwords") + ": "));
+        urlPanel.addln(new JLabel(CBIntText.get("Cache Passwords") + ": "));
         urlPanel.addln(new JLabel(" "));
         urlPanel.addln(cachePwdCombo);
         urlPanel.addln(new JLabel(" "));
@@ -826,26 +853,33 @@ public class AdvancedOptions extends JDialog
     {
         String limit = ldapLimit.getText();
         String timeout = ldapTimeout.getText();
+        boolean usePaging = pagedResults.isSelected();
+        String size = pageSize.getText();
 
         try
         {
             // Make sure the values are of integer type...
             Integer.valueOf(limit);
             Integer.valueOf(timeout);
+            Integer.valueOf(size);
         }
         catch (NumberFormatException e)
         {
-            CBUtility.error("Both Ldap Limit & Ldap timeout must be of Integer type.\n" + e);
+            CBUtility.error("Ldap limit, timeout and page size must be integers.\n" + e);
             getLdapLevels();
         }
 
         // Set the values in the property file...
         JXConfig.setProperty("option.ldap.limit", limit);
         JXConfig.setProperty("option.ldap.timeout", timeout);
+        JXConfig.setProperty("option.ldap.pagedResults", Boolean.toString(usePaging));
+        JXConfig.setProperty("option.ldap.pageSize", (usePaging)?size:"-1");
 
         // Sets the values in searchBroker for immediate use...
         browser.searchBroker.setTimeout(Integer.parseInt(timeout));
         browser.searchBroker.setLimit(Integer.parseInt(limit));
+        browser.searchBroker.setPaging(usePaging, Integer.valueOf(size));
+        browser.getJndiBroker().setPaging(usePaging, Integer.valueOf(size));
     }
 
     /**

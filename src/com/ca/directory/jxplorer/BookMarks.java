@@ -71,7 +71,7 @@ public class BookMarks
 	public BookMarks(JXplorerBrowser jx)
 	{
 		browser = jx;
-        bookmarkPath = CBUtility.getPropertyConfigPath(FILE_NAME);
+        bookmarkPath = CBUtility.getPropertyConfigPath(JXplorer.APPLICATION_NAME, FILE_NAME);
 		propertyList = CBUtility.readPropertyFile(bookmarkPath);
 	}
 

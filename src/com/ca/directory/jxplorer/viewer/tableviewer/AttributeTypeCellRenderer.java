@@ -35,24 +35,41 @@ public class AttributeTypeCellRenderer extends DefaultTableCellRenderer
     public Component getTableCellRendererComponent(JTable table, Object value, 
         boolean isSelected, boolean hasFocus, int row, int column)
     {
-        if (value instanceof AttributeType)
+        if (value instanceof AttributeNameAndType)
         {
-            AttributeType attType = (AttributeType)value;
+            AttributeNameAndType attType = (AttributeNameAndType)value;
             
-            Component c = super.getTableCellRendererComponent(table, attType.getValue(), isSelected, hasFocus, row, column);
+            Component c = super.getTableCellRendererComponent(table, attType.getName(), isSelected, hasFocus, row, column);
             
             if (attType.isMandatory())
             {
                 c.setFont(boldFont);
-            }    
+                c.setForeground(Color.black);
+            }
+            else if (attType.isOperational())
+            {
+                c.setFont(boldFont);
+                c.setForeground(new Color(64,96,64));
+                //c.setForeground(Color.red);
+            }
             else
             {
                 c.setFont(normalFont);    
-            }    
+                c.setForeground(Color.black);
+            }
+
+            if ((row%2)==1)
+                c.setBackground(new Color(249,249,249));
+            else
+                c.setBackground(Color.white);
+
             return c;                
             
         }
-        else    
+        else
+        {
+            System.out.println("WHY are we here?");
             return super.getTableCellRendererComponent(table, new String("error"), isSelected, hasFocus, row, column);
+        }
     }    
 }

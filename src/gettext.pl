@@ -86,7 +86,8 @@ sub print_help
 	" statements, extracting the strings into the file i18n.txt.\n\n" .
 	" USAGE:\n" .
 	" perl gettext.pl [-v|-verbose] [-h|-help] [-d <root directory>] [-f <file extension>] .\n" .
-	" e.g. perl gettext.pl -d /src/backup -f java" .
+	" e.g. perl gettext.pl -d /src/backup -f java \n" .
+	" e.g. perl gettext.pl -v -d /Users/chrisbetts/projects/jxplorer/src \n" .
 	" (nb - must be run from it's own root directory\n");
 }
 

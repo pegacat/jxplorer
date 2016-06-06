@@ -280,7 +280,8 @@ public class CBLocalization
             byte[] data = CBUtility.readStream(new FileInputStream(file));
 
             // Convert the byte array to a String using cunning auto-detecting encoding methods...
-            StringBuffer buffy = new StringBuffer(CBUtility.readI18NByteArray(data));
+//            StringBuffer buffy = new StringBuffer(CBUtility.readI18NByteArray(data));
+            StringBuffer buffy = new StringBuffer(CBUtility.readUnicode(data));
 
             buffy.insert(buffy.length(), '\n');   //TE: make sure the last line has a '\n'!
 

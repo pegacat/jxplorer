@@ -10,8 +10,7 @@ import java.security.PrivilegedAction;
 import java.util.Hashtable;
 
 import javax.naming.NamingException;
-import javax.naming.directory.DirContext;
-import javax.naming.directory.InitialDirContext;
+import javax.naming.ldap.InitialLdapContext;
 
 /**
  * @author vadim
@@ -32,10 +31,10 @@ public class JndiAction implements PrivilegedAction {
 	 */
 	public Object run() {
 		
-		DirContext result = null;
+		InitialLdapContext result = null;
 		
 		try{
-			result = new InitialDirContext(env);
+			result = new InitialLdapContext(env, null);
 		}catch(NamingException ex){
 			ex.printStackTrace();
 		}

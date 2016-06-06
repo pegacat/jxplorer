@@ -42,26 +42,27 @@ else
         JAVAV=${JAVA_LOC}
 fi
 
-JXOPTS=""
+JXOPTS=$JXOPTS" -Dfile.encoding=utf-8"
+
 case $(uname) in
    Darwin*)  
-   JXOPTS="-Xdock:name=\"JXplorer\" -Dcom.apple.macos.useScreenMenuBar=true" 
-   echo "runing OSX verison";;
+   JXOPTS=$JXOPTS "-Xdock:name=\"JXplorer\" -Dapple.laf.useScreenMenuBar=true"
+   echo "runing OSX version";;
 esac
 
 echo "starting JXplorer..."
 
 FAIL=0
 if [ "$1" = "console" ] ; then
-    echo  "$JAVAV $JXOPTS  -cp .:jars/jxplorer.jar:jars/help.jar:jars/jhall.jar:jars/junit.jar com.ca.directory.jxplorer.JXplorer"
-    $JAVAV $JXOPTS  -cp .:jars/jxplorer.jar:jars/help.jar:jars/jhall.jar:jars/junit.jar com.ca.directory.jxplorer.JXplorer
+    echo  "$JAVAV $JXOPTS  -cp ".:jars/*:jasper/lib/*" com.ca.directory.jxplorer.JXplorer $2 $3 $4 $5 $6 $7 $8 $9"
+    $JAVAV $JXOPTS  -cp ".:jars/*:jasper/lib/*" com.ca.directory.jxplorer.JXplorer $2 $3 $4 $5 $6 $7 $8 $9
 
     if [ "$?" != "0" ]; then
         FAIL=1
     fi
 else
-    echo "Use \"jxstart.sh console\" if you want logging to the console"
-    $JAVAV $JXOPTS -cp .:jars/jxplorer.jar:jars/help.jar:jars/jhall.jar:jars/junit.jar com.ca.directory.jxplorer.JXplorer  >/dev/null 2>&1
+    echo "Use \"jxplorer.sh console\" if you want logging to the console"
+    $JAVAV $JXOPTS -Xms2048m -cp ".:jars/*:jasper/lib/*" com.ca.directory.jxplorer.JXplorer $1 $2 $3 $4 $5 $6 $7 $8 $9>/dev/null 2>&1
 
     if [ "$?" != "0" ]; then
         FAIL=1

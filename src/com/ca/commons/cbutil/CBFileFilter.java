@@ -6,6 +6,8 @@ import java.io.FileFilter;
 /**
  * Quick Hack to cover up yet another
  * Swing inadequacy.
+ *
+ * (superseded by javax.swing.filechooser.FileNameExtensionFilter as of java 1.6?)
  */
 
 public class CBFileFilter extends javax.swing.filechooser.FileFilter

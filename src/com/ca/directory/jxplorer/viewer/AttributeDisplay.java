@@ -510,8 +510,8 @@ public class AttributeDisplay extends JTabbedPane
         }
         else
         {
-            dataSource = ds;                             // may be null...
-            Vector ocs = entry.getOrderedOCs();
+            dataSource = ds;                             // may be null, or read only...
+            ArrayList<String> ocs = entry.getOrderedOCs();
     
             // try to create a unique 'signature' for a group of object classes
             // This relies on them being delivered in the same order though.  (Less 
@@ -693,7 +693,7 @@ public class AttributeDisplay extends JTabbedPane
      *    @param ocs the object classes (in order) to find editors for.
      */
 
-    protected void setEditors(DXEntry entry, DataBrokerQueryInterface ds, Vector ocs)
+    protected void setEditors(DXEntry entry, DataBrokerQueryInterface ds, ArrayList<String> ocs)
     {
     
         try

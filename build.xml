@@ -1,11 +1,45 @@
+	<!--
+	   === Run release_all to do a full build and create all installers ===
+
+	  This build file contains build targets that can be used by people downloading the source
+	  to do a clean compile of their own JX version, e.g. clean, build, jar and dist.  (The last
+	  one, 'dist', includes all the previous targets.)
+
+	  *However* it also contains some targets that are specific to Chris Betts's local build, that
+	  are used to produce the packaged versions with the platform specific installers or do other
+	  packaging work.  So generally folks wanting to compile JX on their own would *not* want to
+	  use the 'release', 'build_help', 'build_installers' or 'jar_jxworkbench' targets.
+
+
+... uploading to sourceforge:
+
+sftp pegacat,jxplorer@frs.sourceforge.net
+(Connecting to frs.sourceforge.net...)
+(Password:)
+sftp> cd /home/frs/project/j/jx/jxplorer
+sftp> ls
+(OldFiles  jxplorer)
+sftp> cd jxplorer
+sftp> ls
+... etc ...
+
+	-->
+
 <project name="JXplorer" default="build">
 	<!--
 	  Default property values that may be overriden by developers.
 	-->
 
 	<property name="jars" value="jars"/>
+    <property name="jasper" value="jasper"/>
 	<property name="src" value="src"/>
+    <property name="help" value="help"/>
 	<property name="dist" value="dist"/>
+    <property name="git" value="git"/>
+    <property name="dist_jxworkbench" value="dist_jxworkbench"/>
+    <property name="jasper_jars" value="jasper/lib"/>
+    <property name="jasper_reports" value="jasper/reports"/>
+    <property name="testprovider" value="testprovider"/>
 	<property name="compile.debug" value="on"/>
 	<property name="compile.optimize" value="on"/>
 	<property name="docs" value="docs"/>
@@ -15,16 +49,24 @@
     <!--
       Properties that may not be overriden by developers.
     -->
-    <property name="version_number" value="3.2.2-b1"/> <!-- also update in BitRock jxplorer.xml file-->
+    <!-- VERSION NUMBER - IMPORTANT! -> also update in BitRock jxplorer.xml file and jxworkbench.xml file,
+          and makesure you have a  README.${version_number} file, and that it is listed explicitly in jxplorer.xml and jxworkbench.xml -->
+    <property name="version_number" value="3.3.1.2"/>
     <property name="version" value="JXv${version_number}"/>
+
 
     <property name="classes" value="classes"/>
     <property name="report" value="build_reports/"/>
-    <property name="release" value="release${version}"/>
+    <property name="release" value="../jxplorer_releases/release${version}"/>
 	<property name="installer_project_file" value="jxplorer.xml"/>
 	<property name="installer_output_dir" value="installers"/>
 	<property name="tempdoc_dir" value="tempdoc"/>
 
+    <property name="jxw_version" value="JXW_v${version_number}"/>
+    <property name="release_jxw" value="../jxplorer_releases/release_${jxw_version}"/>
+    <property name="installer_jxw_project_file" value="jxworkbench.xml"/>
+    <property name="installer_jxw_output_dir" value="installers"/>
+    
     <!--
       Include developer's own property values.
     -->
@@ -32,6 +74,8 @@
 
     <path id="lib">
         <fileset dir="${jars}" includes="*.jar"/>
+        <fileset dir="${jasper}/lib" includes="*.jar"/>
+        <fileset dir="${jasper}/lib_extras/" includes="*.jar"/>
     </path>
 
     <target name="init">
@@ -50,8 +94,8 @@
             optimize="${compile.optimize}"
             deprecation="off"
             nowarn="off"
-            target="1.4"
-            source="1.4"
+            target="1.6"
+            source="1.6"
             verbose="off">
         </javac>
     </target>
@@ -75,6 +119,7 @@
     <target name="clean" depends="init" description="Cleans all build artifacts">
     	<delete file="jxplorer.jar"/>
     	<delete file="${build_number_file}"/>
+        <delete dir="${classes}"/>
         <delete dir="${dist}"/>
         <delete dir="${release}"/>
     	<delete dir="${report}"/>
@@ -88,11 +133,12 @@
     <!-- ================================================================== -->
 <!-- IS THERE SOME WAY TO GET THE Class-Path ATTRIBUTE TO USE THE 'lib' PATH DIRECTLY?? -->
 
-    <target name="jar" depends="build" description="Compile and jars jxplorer.jar">
+    <target name="jar" depends="build" description="Compiles and jars jxplorer.jar">
         <jar jarfile="${jars}/jxplorer.jar">
             <fileset dir="${classes}"
                 excludes="com/**/*Test.class
-                          com/**/*TestSuite.class"/>
+                          com/**/*TestSuite.class
+                          com/pegacat/**/*.class"/>
             <manifest>
                 <attribute name="Created-By" value="${user.name}"/>
                 <attribute name="Build-Version" value="${version}"/>
@@ -109,25 +155,104 @@
         </jar>
     </target>
 
+    <target name="jar_jxworkbench" depends="build" description="Compiles and jars jxworkbench.jar">
+        <jar jarfile="${jars}/jxworkbench.jar">
+            <fileset dir="${classes}"
+                includes="com/pegacat/jxworkbench/**/*.class"
+                excludes="com/**/*Test.class
+                          com/**/*TestSuite.class"/>
+            <manifest>
+                <attribute name="Created-By" value="${user.name}"/>
+                <attribute name="Build-Version" value="${version}"/>
+                <section name="com/pegacat/jxworkbench/">
+                    <attribute name="Specification-Title" value="JXplorer extension"/>
+                    <attribute name="Specification-Version" value="${version}"/>
+                    <attribute name="Implementation-Title" value="JXWorkBench http://jxworkbench.com/"/>
+                    <attribute name="Implementation-Version" value="${version} ${init.timestamp}"/>
+                    <attribute name="Implementation-Vendor" value="Pegacat Pty Ltd"/>
+                 </section>
+            </manifest>
+        </jar>
+    </target>
+
+
+    <target name="jar_testprovider" depends="build" description="Compiles and jars testprovider.jar">
+        <jar jarfile="${jars}/testprovider.jar">
+            <fileset dir="${classes}"
+                includes="com/pegacat/testprovider/**/*.class"
+                excludes="com/**/*Test.class
+                          com/**/*TestSuite.class"/>
+                
+            <manifest>
+                <attribute name="Created-By" value="${user.name}"/>
+                <attribute name="Build-Version" value="${version}"/>
+            	<attribute name="Main-Class" value="com.ca.directory.jxplorer.JXplorer"/>
+                <section name="com/ca/directory/jxplorer/">
+                    <attribute name="Specification-Title" value="JXplorer LDAP Test Provider"/>
+                    <attribute name="Specification-Version" value="${version}"/>
+                    <attribute name="Implementation-Title" value="JXplorer http://jxplorer.org/"/>
+                    <attribute name="Implementation-Version" value="${version} ${init.timestamp}"/>
+                    <attribute name="Implementation-Vendor" value="JXplorer Open Source Project"/>
+                 </section>
+            </manifest>
+        </jar>
+    </target>
+
+    <target  name="dist_testprovider" depends="jar_testprovider" description="Creates JNDI test provider package">
+        <delete dir="${testprovider}"/>
+        <mkdir dir="${testprovider}"/>
+        <mkdir dir="${testprovider}/jars"/>
+        <mkdir dir="${testprovider}/src"/>
+        <mkdir dir="${testprovider}/src/com"/>
+        <mkdir dir="${testprovider}/src/com/pegacat"/>
+        <mkdir dir="${testprovider}/src/com/pegacat/testprovider"/>
+
+        <copy todir="${testprovider}/jars">
+            <fileset dir="${jars}" includes="testprovider.jar"/>
+        </copy>
+
+        <copy todir="${testprovider}" overwrite="true">
+            <fileset dir="." includes="TESTPROVIDER.TXT"/>
+        </copy>
+
+        <copy todir="${testprovider}/src/com/pegacat/testprovider" overwrite="true">
+            <fileset dir="src/com/pegacat/testprovider"/>
+        </copy>
+
+    </target>
+
+    <target name="copy_to_local_git" depends="dist"
+            description="copy 'dist' directory to local git repository, prior to pulling new version">
+            <copy todir="${git}">
+                <fileset dir="${dist}" />
+            </copy>
+            <copy file="${git}/jxplorer/README.md" tofile="${git}/README.md"></copy>
+
+    </target>
+
     <target name="dist"
-        description="Build complete JXplorer distribution package (from svn image only!)"
+        description="Build complete JXplorer distribution package"
         depends="jar">
         <delete dir="${dist}"/>
         <mkdir dir="${dist}"/>
         <mkdir dir="${dist}/jxplorer"/>
+        <mkdir dir="${dist}/jxplorer/classes"/>
         <mkdir dir="${dist}/jxplorer/jars"/>
         <copy todir="${dist}/jxplorer/jars">
             <fileset dir="${jars}" includes="*.jar"/>
             <fileset dir="." includes="jxplorer.jar"/>
         </copy>
+        <copy file="README.TXT" tofile="README.${version_number}.TXT"></copy>
+        <copy file="README.TXT" tofile="README.md"></copy>
+
         <copy todir="${dist}/jxplorer" overwrite="true">
-            <fileset dir="." includes="RELEASE.TXT,log4j.xml,licence.txt,jxplorer.sh,jxplorer.ico,jxplorer.bat,example.ldif"/>
+            <fileset dir="." includes="README.${version_number}.TXT,README.TXT, README.md, log4j.xml,licence.txt,jxplorer.sh,jxplorer.ico,jxplorer.bat,example.ldif,csvconfig.txt.default,build.xml"/>
         </copy>
         <!-- copy todir="${dist}/jxplorer/themes" overwrite="true">
             <fileset dir="themes"/>
         </copy -->
-        <copy todir="${dist}/jxplorer/security" overwrite="true">
-            <fileset dir="security"/>
+        <copy todir="${dist}/jxplorer/security.default" overwrite="true">
+            <fileset dir="security.default"/>
         </copy>
         <copy todir="${dist}/jxplorer/plugins" overwrite="true">
             <fileset dir="plugins"/>
@@ -135,14 +260,35 @@
         <copy todir="${dist}/jxplorer/language" overwrite="true">
             <fileset dir="language"/>
         </copy>
+        <copy todir="${dist}/jxplorer/images" overwrite="true">
+            <fileset dir="images"/>
+        </copy>
+        <copy todir="${dist}/jxplorer/templates" overwrite="true">
+            <fileset dir="templates"/>
+        </copy>
+        <copy todir="${dist}/jxplorer/icons" overwrite="true">
+            <fileset dir="icons"/>
+        </copy>
+        <copy todir="${dist}/jxplorer/htmldocs" overwrite="true">
+            <fileset dir="htmldocs"/>
+        </copy>
+        <copy todir="${dist}/jxplorer/src" overwrite="true">
+            <fileset dir="src" excludes="com/pegacat/jxworkbench/**/*.java"/>
+        </copy>
         <copy todir="${dist}/jxplorer/JXplorer LDAP Browser.app" overwrite="true">
             <fileset dir="JXplorer LDAP Browser.app"/>
         </copy>
 
         <fixcrlf srcdir="${dist}"
-            eol="lf"
+            eol="unix"
             eof="remove"
             includes="**/*.sh"
+            />
+
+        <fixcrlf srcdir="${dist}"
+            eol="dos"
+            eof="add"
+            includes="**/*.bat"
             />
 
         <chmod dir="${dist}" perm="755" 
@@ -154,7 +300,83 @@
 
     </target>
 
+    <target name="dist_jxworkbench"
+        description="Build complete JXplorer distribution package"
+        depends="jar, jar_jxworkbench">
+        <delete dir="${dist_jxworkbench}"/>
+        <mkdir dir="${dist_jxworkbench}"/>
+        <mkdir dir="${dist_jxworkbench}/jxplorer"/>
+        <mkdir dir="${dist_jxworkbench}/jxplorer/classes"/>
+        <mkdir dir="${dist_jxworkbench}/jxplorer/jars"/>
+        <mkdir dir="${dist_jxworkbench}/jxplorer/jasper"/>
+        <mkdir dir="${dist_jxworkbench}/jxplorer/jasper/lib"/>
+        <mkdir dir="${dist_jxworkbench}/jxplorer/jasper/reports"/>
 
+        <copy todir="${dist_jxworkbench}/jxplorer/jars">
+            <fileset dir="${jars}" includes="*.jar"/>
+            <fileset dir="." includes="jxplorer.jar"/>
+        </copy>
+        <copy todir="${dist_jxworkbench}/jxplorer/jasper/lib">
+            <fileset dir="${jasper_jars}" includes="*.*"/>
+        </copy>
+        <copy todir="${dist_jxworkbench}/jxplorer/jasper/reports">
+            <fileset dir="${jasper_reports}" includes="*.jrxml"/>
+        </copy>
+
+        <copy todir="${dist_jxworkbench}/jxplorer" overwrite="true">
+            <fileset dir="." includes="README.${version_number}.TXT,log4j.xml,jxworkbench_licence.txt,licence.txt,jxplorer.sh,jxplorer.ico,jxplorer.bat,example.ldif,csvconfig.txt.default,build.xml,jasperreports.properties"/>
+        </copy>
+        <!-- copy todir="${dist_jxworkbench}/jxplorer/themes" overwrite="true">
+            <fileset dir="themes"/>
+        </copy -->
+        <copy todir="${dist_jxworkbench}/jxplorer/security.default" overwrite="true">
+            <fileset dir="security.default"/>
+        </copy>
+        <copy todir="${dist_jxworkbench}/jxplorer/plugins" overwrite="true">
+            <fileset dir="plugins"/>
+        </copy>
+        <copy todir="${dist_jxworkbench}/jxplorer/language" overwrite="true">
+            <fileset dir="language"/>
+        </copy>
+        <copy todir="${dist_jxworkbench}/jxplorer/images" overwrite="true">
+            <fileset dir="images"/>
+        </copy>
+        <copy todir="${dist_jxworkbench}/jxplorer/templates" overwrite="true">
+            <fileset dir="templates"/>
+        </copy>
+        <copy todir="${dist_jxworkbench}/jxplorer/icons" overwrite="true">
+            <fileset dir="icons"/>
+        </copy>
+        <copy todir="${dist_jxworkbench}/jxplorer/htmldocs" overwrite="true">
+            <fileset dir="htmldocs"/>
+        </copy>
+        <copy todir="${dist_jxworkbench}/jxplorer/src" overwrite="true">
+            <fileset dir="src" excludes="com/pegacat/jxworkbench/**/*.java"/>
+        </copy>
+        <copy todir="${dist_jxworkbench}/jxplorer/JXplorer LDAP Browser.app" overwrite="true">
+            <fileset dir="JXplorer LDAP Browser.app"/>
+        </copy>
+
+        <fixcrlf srcdir="${dist_jxworkbench}"
+            eol="unix"
+            eof="remove"
+            includes="**/*.sh"
+            />
+
+        <fixcrlf srcdir="${dist_jxworkbench}"
+            eol="dos"
+            eof="add"
+            includes="**/*.bat"
+            />
+
+        <chmod dir="${dist_jxworkbench}" perm="755" 
+               includes="**/*.sh"/>
+
+        <chmod file="${dist_jxworkbench}/jxplorer/JXplorer LDAP Browser.app/Contents/PkgInfo" perm="755"/>
+
+        <chmod file="${dist_jxworkbench}/jxplorer/JXplorer LDAP Browser.app/Contents/MacOS/JXplorer LDAP Browser" perm="755"/>
+
+    </target>
 
 	<!-- NOTE: The properties for building the installers are specific to the 
 	     build machine. To get a build to work on you machine, you must:
@@ -208,19 +430,19 @@
             <arg value="hpux"/>
         </exec>
 
-        <exec executable="${builder}">
+        <!--exec executable="${builder}">
             <arg value="build"/>
             <arg value="${installer_project_file}"/>
             <arg value="osx"/>
-        </exec>
+        </exec-->
 
-        <zip destfile="${installer_output_dir}/jxplorer-${version_number}-osx-installer.zip" basedir="${installer_output_dir}/jxplorer-${version_number}-osx-installer.app"/>
+        <!--zip destfile="${installer_output_dir}/jxplorer-${version_number}-osx-installer.zip" basedir="${installer_output_dir}/jxplorer-${version_number}-osx-installer.app"/-->
 
-        <delete dir="${installer_output_dir}/jxplorer-${version_number}-osx-installer.app"/>
+        <!--delete dir="${installer_output_dir}/jxplorer-${version_number}-osx-installer.app"/-->
 
-        <copy todir="${release}">
+        <move todir="${release}">
             <fileset dir="${installer_output_dir}"/>
-        </copy>
+        </move>
     </target>
 
 
@@ -228,15 +450,18 @@
          Notes: need to replace installer "installbuilder.icns" file with jx.icns file to give installer package correct icon.
          Notes: having a lot of problems maintaining 'execute' permissions on files within the app package...
          ...may need to manually check, fix and zip by hand...
+
+         XXX - giving up for time being, using 'build_[xx]_small_OSX' instead.
      -->
     <target name="build_installer_mac" description="build install packages for OSX" depends="dist">
-        <property name="installer_dir" value="/Applications/BitRock\ InstallBuilder\ Enterprise\ 5.4.14/bin/"/>
-        <property name="installer_project_file" value="/Users/chrisbetts/projects/jxplorer/jxplorer.xml"/>
-        <property name="builder_output" location="/Users/chrisbetts/projects/jxplorer/installers"/>
-        <property name="builder" location="/Applications/BitRock InstallBuilder Enterprise 5.4.14/bin/Builder.app/Contents/MacOS/installbuilder.sh"/>
+        <property name="installer_dir" value="/Applications/BitRock\ InstallBuilder\ Enterprise\ 7.2.4/bin/"/>
+        <!--property name="installer_project_file" value="/Users/chrisbetts/projects/jxplorer/jxplorer.xml"/-->
+        <!--property name="builder_output" location="/Users/chrisbetts/projects/jxplorer/installers"/-->
+        <property name="builder" location="/Applications/BitRock InstallBuilder Enterprise 7.2.4/bin/Builder.app/Contents/MacOS/installbuilder.sh"/>
 
-        <delete dir="${builder_output}"/>
-        <mkdir dir="${builder_output}"/>
+        <!--delete dir="${builder_output}"/-->
+        <delete file="*osx-installer*"/>
+        <mkdir dir="${installer_output_dir}"/>
 
 
         <exec executable="${builder}">
@@ -246,50 +471,272 @@
         </exec>
 
         <copy todir="${dist}/jxplorer" overwrite="true">
-            <fileset dir="." includes="RELEASE.TXT,log4j.xml,licence.txt,jxplorer.sh,jxplorer.ico,jxplorer.bat,example.ldif"/>
+            <fileset dir="." includes="README.${version_number}.TXT,log4j.xml,licence.txt,jxplorer.sh,jxplorer.ico,jxplorer.bat,example.ldif"/>
         </copy>
 
-        <copy todir="${builder_output}/jxplorer-${version_number}-osx-installer.app/Contents/Resources" overwrite="true">
+        <copy todir="${installer_output_dir}/jxplorer-${version_number}-osx-installer.app/Contents/Resources" overwrite="true">
             <fileset dir="." includes="installbuilder.icns"/>
 
         </copy>
 
-        <zip destfile="${builder_output}/jxplorer-${version_number}-osx-installer.zip" basedir="${builder_output}/jxplorer-${version_number}-osx-installer.app"/>
+        <zip destfile="${installer_output_dir}/jxplorer-${version_number}-osx-installer.zip" basedir="${installer_output_dir}/jxplorer-${version_number}-osx-installer.app"/>
 
         <!--delete dir="${builder_output}/jxplorer-${version_number}-osx-installer.app"/-->
 
 
+        <move todir="${release}">
+            <fileset dir="${installer_output_dir}"/>
+        </move>
+
+
+
+    </target>
+
+    <target  name="build_help" description="jar up the help files in the help directory">
+        <delete file="${jars}/help.jar"/>
+        <jar jarfile="${jars}/help.jar">
+            <fileset dir="${help}"/>
+            <manifest>
+                <attribute name="Created-By" value="${user.name}"/>
+                <attribute name="Build-Version" value="${version}"/>
+                <section name="com/ca/directory/jxplorer/">
+                    <attribute name="Specification-Title" value="JXplorer LDAP browser"/>
+                    <attribute name="Specification-Version" value="${version}"/>
+                    <attribute name="Implementation-Title" value="JXplorer http://jxplorer.org/"/>
+                    <attribute name="Implementation-Version" value="${version} ${init.timestamp}"/>
+                    <attribute name="Implementation-Vendor" value="JXplorer Open Source Project"/>
+                 </section>
+            </manifest>
+        </jar>
+    </target>
+
+        <!-- The bitrock installer is fairly heavy for the mac; this builds a minimal install package for OSX based on
+             the work by Bob Allison (many thanks Bob!)
+     -->
+    <target name="build_small_OSX" description="build install packages for OSX" depends="dist">
+        <!--property name="builder_output" location="/Users/chrisbetts/projects/jxplorer/installers"/-->
+
+        <delete dir="${installer_output_dir}/OSX"/>
+        <mkdir dir="${installer_output_dir}/OSX/jxplorer-${version_number}.app/Contents"/>
+
+        <echo file="README_OSX.TXT">
+Unfortunately we've been having trouble maintaining file permissions on OSX.
+If jxplorer fails to start, check that the file:
+jxplorer-${version_number}.app/Contents/MacOS/jxplorer
+has executable permissions (e.g. go to the directory and >chmod 755 jxplorer).
+        </echo>
+
+        <move file="README_OSX.TXT" todir="${installer_output_dir}/OSX/"/>
+
+        <copy todir="${installer_output_dir}/OSX/jxplorer-${version_number}.app/Contents" overwrite="true">
+            <fileset dir="Contents"/>
+        </copy>
+
+        <copy todir="${installer_output_dir}/OSX/jxplorer-${version_number}.app/Contents/Resources" overwrite="true">
+            <fileset dir="${dist}/jxplorer"/>
+        </copy>
+
+        <chmod file="${installer_output_dir}/OSX/jxplorer-${version_number}.app/Contents/MacOS/jxplorer" perm="755"/>
+
+        <zip destfile="${installer_output_dir}/jxplorer-${version_number}-osx.zip">
+            <zipfileset dir="${installer_output_dir}/OSX" excludes="/jxplorer-${version_number}.app/Contents/MacOS/jxplorer, /jxplorer-${version_number}.app/Contents/Resources/jxplorer.sh"/>
+            <zipfileset dir="${installer_output_dir}/OSX/jxplorer-${version_number}.app/Contents/MacOS" includes="jxplorer" filemode="755" fullpath="jxplorer-${version_number}.app/Contents/MacOS/jxplorer"/>
+            <!--zipfileset dir="${installer_output_dir}/OSX/jxplorer-${version_number}.app/Contents/Resources" includes="jxplorer.sh" filemode="755" fullpath="jxplorer.app/Contents/Resources/jxplorer.sh"/-->
+        </zip>
+
         <copy todir="${release}">
-            <fileset dir="${builder_output}"/>
+            <fileset file="${installer_output_dir}/jxplorer-${version_number}-osx.zip"/>
         </copy>
 
     </target>
 
-    <target name="release"
-        description="Create src and deploy release zips/tar.bz2 files (from svn image only!)"
-        depends="clean, test, dist, javadoc, build_installers">
+
+    <target name="release_jx"
+        description="Create src and deploy all release zips/tar.bz2 files"
+        depends="clean, test, dist, javadoc, build_installers, build_small_OSX, copy_to_local_git">
         <mkdir dir="${release}"/>
         <mkdir dir="temp/jxplorer/src"/>
         <copy todir="temp/jxplorer/src">
-            <fileset dir="${src}"/>
+            <fileset dir="${src}" excludes="com/pegacat/jxworkbench/**/*.java"/>
         </copy>
         <mkdir dir="${tempdoc_dir}/jxplorer/docs"/>
         <move todir="${tempdoc_dir}/jxplorer/docs">
             <fileset dir="${docs}"/>
         </move>
-        <zip destfile="${release}/${version}src.zip" basedir="temp"/>
-        <zip destfile="${release}/${version}deploy.zip" basedir="${dist}"/>
-        <zip destfile="${release}/${version}javadoc.zip" basedir="${tempdoc_dir}"/>
-        <tar tarfile="${release}/${version}src.tar.bz2" basedir="temp" compression="bzip2"/>
-        <tar tarfile="${release}/${version}deploy.tar.bz2" basedir="${dist}" compression="bzip2"/>
-        <tar tarfile="${release}/${version}javadoc.tar.bz2" basedir="${tempdoc_dir}" compression="bzip2"/>
+        <zip destfile="${release}/jxplorer-${version_number}-src.zip" basedir="temp"/>
+        <zip destfile="${release}/jxplorer-${version_number}-project.zip" basedir="${dist}"/>
+        <zip destfile="${release}/jxplorer-${version_number}-javadoc.zip" basedir="${tempdoc_dir}"/>
+        <tar tarfile="${release}/jxplorer-${version_number}-src.tar.bz2" basedir="temp" compression="bzip2"/>
+        <tar tarfile="${release}/jxplorer-${version_number}-project .tar.bz2" basedir="${dist}" compression="bzip2"/>
+        <tar tarfile="${release}/jxplorer-${version_number}-javadoc.tar.bz2" basedir="${tempdoc_dir}" compression="bzip2"/>
+        <zip destfile="${release}/jxplorer-${version_number}-testprovider.zip" basedir="${testprovider}"/>
+
         <delete dir="temp"/>
         <move todir="${docs}">
             <fileset dir="${tempdoc_dir}/jxplorer/docs"/>
         </move>
     	<delete dir="${tempdoc_dir}"/>
+        <delete dir="${dist}"/>
 
     </target>
+
+
+	<!-- NOTE: The properties for building the installers are specific to the
+	     build machine. To get a build to work on you machine, you must:
+	     * Install the BitRock Installerbuilder (http://installbuilder.bitrock.com/index.html?_kk=BitRock&_kt=d6fe5960-81be-43da-89de-f6e7fd7aaebe&gclid=CLjIqqOTuqcCFUMUKgodP3r3Ag)
+	     * Edit the build.properties file to add values for the installer
+	       properties
+	-->
+	<target name="build_jxw_installers" description="build install packages" depends="dist_jxworkbench, build_jxw_small_OSX">
+        <mkdir dir="${installer_jxw_output_dir}"/>
+
+        <exec executable="${builder}">
+            <arg value="build"/>
+            <arg value="${installer_jxw_project_file}"/>
+            <arg value="windows"/>
+        </exec>
+
+        <exec executable="${builder}">
+            <arg value="build"/>
+            <arg value="${installer_jxw_project_file}"/>
+            <arg value="linux"/>
+        </exec>
+
+        <exec executable="${builder}">
+            <arg value="build"/>
+            <arg value="${installer_jxw_project_file}"/>
+            <arg value="freebsd"/>
+        </exec>
+
+        <exec executable="${builder}">
+            <arg value="build"/>
+            <arg value="${installer_jxw_project_file}"/>
+            <arg value="solaris-intel"/>
+        </exec>
+
+        <exec executable="${builder}">
+            <arg value="build"/>
+            <arg value="${installer_jxw_project_file}"/>
+            <arg value="solaris-sparc"/>
+        </exec>
+
+        <exec executable="${builder}">
+            <arg value="build"/>
+            <arg value="${installer_jxw_project_file}"/>
+            <arg value="aix"/>
+        </exec>
+
+        <exec executable="${builder}">
+            <arg value="build"/>
+            <arg value="${installer_jxw_project_file}"/>
+            <arg value="hpux"/>
+        </exec>
+
+        <move  todir="${release}">
+            <fileset dir="${installer_output_dir}">
+
+            </fileset>
+            <mapper  type="glob" from="jxplorer-*" to="jxworkbench-*"/>
+        </move>
+
+        <!--exec executable="${builder}">
+            <arg value="build"/>
+            <arg value="${installer_project_file}"/>
+            <arg value="osx"/>
+        </exec-->
+
+        <!--zip destfile="${installer_output_dir}/jxplorer-${version_number}-osx-installer.zip" basedir="${installer_output_dir}/jxplorer-${version_number}-osx-installer.app"/-->
+
+        <!--delete dir="${installer_output_dir}/jxplorer-${version_number}-osx-installer.app"/-->
+
+        <!--move todir="${release_jxw}">
+            <fileset dir="${installer_jxw_output_dir}"/>
+        </move-->
+    </target>
+
+    <target name="release_jxw"
+        description="Create src and deploy all release JXW zips/tar.bz2 files"
+        depends="clean, test, javadoc, dist_jxworkbench, build_jxw_installers, build_jxw_small_OSX">
+        <mkdir dir="${release_jxw}"/>
+        <mkdir dir="temp/jxplorer/src"/>
+        <copy todir="temp/jxplorer/src">
+            <fileset dir="${src}" excludes="com/pegacat/jxworkbench/**/*.java"/>
+        </copy>
+        <mkdir dir="${tempdoc_dir}/jxplorer/docs"/>
+        <move todir="${tempdoc_dir}/jxplorer/docs">
+            <fileset dir="${docs}"/>
+        </move>
+
+        <!-- not currently distributing jxworkbench code and project details...
+        <zip destfile="${release_jxw}/jxworkbench-${version_number}-src.zip" basedir="temp"/>
+        <zip destfile="${release_jxw}/jxworkbench-${version_number}-project.zip" basedir="${dist_jxworkbench}"/>
+        <zip destfile="${release_jxw}/jxworkbench-${version_number}-javadoc.zip" basedir="${tempdoc_dir}"/>
+        <tar tarfile="${release_jxw}/jxworkbench-${version_number}-src.tar.bz2" basedir="temp" compression="bzip2"/>
+        <tar tarfile="${release_jxw}/jxworkbench-${version_number}-project .tar.bz2" basedir="${dist_jxworkbench}" compression="bzip2"/>
+        <tar tarfile="${release_jxw}/jxworkbench-${version_number}-javadoc.tar.bz2" basedir="${tempdoc_dir}" compression="bzip2"/>
+        <zip destfile="${release_jxw}/jxworkbench-${version_number}-testprovider.zip" basedir="${testprovider}"/>
+        -->
+        <zip destfile="${release}/jxworkbench-${version_number}-project.zip" basedir="${dist_jxworkbench}"/>
+
+        <zip destfile="${release_jxw}/jxworkbench-${version_number}-sample-reports.zip" basedir="${dist_jxworkbench}/jxplorer/jasper/reports"/>
+        <tar destfile="${release_jxw}/jxworkbench-${version_number}-sample-reports.zip" basedir="${dist_jxworkbench}/jxplorer/jasper/reports" compression="bzip2"/>
+        <move  todir="${release}">
+            <fileset dir="${release_jxw}">
+            </fileset>
+        </move>
+
+        <delete dir="temp"/>
+        <move todir="${docs}">
+            <fileset dir="${tempdoc_dir}/jxplorer/docs"/>
+        </move>
+    	<delete dir="${tempdoc_dir}"/>
+        <delete dir="${installer_jxw_output_dir}"/>
+        <delete dir="${dist_jxworkbench}"/>
+
+    </target>
+
+    <target  name="release_all"
+             description="create both JXplorer and JXWorkbench releases"
+             depends="release_jx, release_jxw">
+    </target>
+        
+    <target name="build_jxw_small_OSX" description="build install packages for OSX" depends="dist_jxworkbench">
+
+        <delete dir="${installer_jxw_output_dir}/OSX"/>
+        <mkdir dir="${installer_jxw_output_dir}/OSX/jxworkbench-${version_number}.app/Contents"/>
+
+        <echo file="README_OSX.TXT">
+Unfortunately we've been having trouble maintaining file permissions on OSX.
+If jxworkbench fails to start, check that the file:
+jxworkbench-${version_number}.app/Contents/MacOS/jxplorer
+has executable permissions (e.g. go to the directory and >chmod 755 jxplorer).
+        </echo>
+
+        <move file="README_OSX.TXT" todir="${installer_jxw_output_dir}/OSX/"/>
+
+
+        <copy todir="${installer_jxw_output_dir}/OSX/jxworkbench-${version_number}.app/Contents" overwrite="true">
+            <fileset dir="Contents"/>
+        </copy>
+
+        <copy todir="${installer_jxw_output_dir}/OSX/jxworkbench-${version_number}.app/Contents/Resources" overwrite="true">
+            <fileset dir="${dist_jxworkbench}/jxplorer"/>
+        </copy>
+
+        <chmod file="${installer_jxw_output_dir}/OSX/jxworkbench-${version_number}.app/Contents/MacOS/jxplorer" perm="755"/>
+
+        <zip destfile="${installer_jxw_output_dir}/jxworkbench-${version_number}-osx.zip">
+            <zipfileset dir="${installer_jxw_output_dir}/OSX" excludes="/jxworkbench-${version_number}.app/Contents/MacOS/jxplorer, /jxworkbench-${version_number}.app/Contents/Resources/jxplorer.sh, "/>
+            <zipfileset dir="${installer_jxw_output_dir}/OSX/jxworkbench-${version_number}.app/Contents/MacOS" includes="jxplorer" filemode="755" fullpath="jxworkbench-${version_number}.app/Contents/MacOS/jxplorer"/>
+            <zipfileset dir="${installer_jxw_output_dir}/OSX/jxworkbench-${version_number}.app/Contents/Resources" includes="jxplorer.sh" filemode="755" fullpath="jxworkbench-${version_number}.app/Contents/Resources/jxplorer.sh"/>
+        </zip>
+
+        <copy todir="${release_jxw}">
+            <fileset file="${installer_jxw_output_dir}/jxworkbench-${version_number}-osx.zip"/>
+        </copy>
+
+    </target>
+
 
     <!-- ==================================================================	-->
     <!-- JUnit test targets							                        -->
@@ -334,8 +781,9 @@
             use="true"
             additionalparam="-breakiterator"
             windowtitle="JXplorer Source Documentation">
-            <packageset dir="${src}" defaultexcludes="yes">
+            <packageset dir="src" defaultexcludes="yes">
                 <include name="com/**"/>
+                <exclude name="com/pegacat/jxworkbench/**"/>
             </packageset>
 
             <doctitle><![CDATA[<h1>JXplorer Ldap Browser</h1>]]></doctitle>

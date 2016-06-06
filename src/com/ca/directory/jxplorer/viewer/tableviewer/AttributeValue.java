@@ -30,6 +30,8 @@ public class AttributeValue implements editablebinary, editablestring
     //boolean binary;
     String[] options = null;
 
+    boolean editable = true;
+
     private final static Logger log = Logger.getLogger(AttributeValue.class.getName());
 
     /**
@@ -46,9 +48,6 @@ public class AttributeValue implements editablebinary, editablestring
      */
     public AttributeValue(DXAttribute att, Object v)
     {
-        if (att.getID().equalsIgnoreCase("userPassword"))
-            System.out.println("setting it up...: ");
-
         baseAttribute = att;
         value = v;
         backup = v;
@@ -56,8 +55,23 @@ public class AttributeValue implements editablebinary, editablestring
 
         if (att.hasOptions())
             setOptions(att.getOptions());
-
     }
+
+    /**
+     * Initialise with a DXAttribute object as above, but also set editability.
+     * (Mainly intended to set operational attribute values to being non-editable) 
+     *
+     * @param att
+     * @param v
+     * @param editable
+     */
+    public AttributeValue(DXAttribute att, Object v, boolean editable)
+    {
+        this(att, v);
+        this.editable = editable;
+    }
+
+    public boolean isEditable() { return editable; }
 
     public DXAttribute getBaseAttribute() {return baseAttribute;}
 
@@ -108,9 +122,6 @@ public class AttributeValue implements editablebinary, editablestring
      */
     public void update(Object data)
     {
-        if (getID().equalsIgnoreCase("userPassword"))
-            System.out.println("ello ello ello!");
-
         value = data;
         if (baseAttribute.isString())
             value = getStringValue(); // special space handling...
@@ -211,8 +222,6 @@ public class AttributeValue implements editablebinary, editablestring
      
     public String toString() 
     {
-        if (getID().equalsIgnoreCase("userPassword"))
-            System.out.println("printing out stuff...");
 
         if (value == null) return " ";            		// XXX Hack to get Broken swing printing working
 		
@@ -243,13 +252,14 @@ public class AttributeValue implements editablebinary, editablestring
         else
             changed =  (value != backup);  // if value not the same as original, it's changed!
         
-        if (changed)
-            System.out.println("change in value: " + getID() + " from: " + backup + " to " + value);
+        //if (changed)
+            //System.out.println("change in value: " + getID() + " from: " + backup + " to " + value);
 
         return changed;
     }
 
     public Object  value()    { return value; }
+
     public Object  backup()   { return backup; }
 
     public boolean isNonStringData() { return !baseAttribute.isString(); }

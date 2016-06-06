@@ -10,6 +10,7 @@ package com.ca.commons.cbutil;
 import javax.help.HelpBroker;
 import javax.help.HelpSet;
 import javax.swing.*;
+import java.awt.*;
 import java.net.URL;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -29,6 +30,8 @@ public class CBHelpSystem
 
     private static CBHelpSystem defaultHelpSystem;      // a 'global' help set, usually the first constructed.
 
+    private static Point defaultLocation = new Point(100,100);
+
     private static Logger log = Logger.getLogger(CBHelpSystem.class.getName());
 
     /**
@@ -40,10 +43,13 @@ public class CBHelpSystem
 
     public CBHelpSystem(String helpset_Name)
     {
-        this(helpset_Name, null);
-        if (defaultHelpSystem == null)
-            defaultHelpSystem = this;
-        runDelayedConstructor();
+        this(helpset_Name, null, null);
+    }
+
+    public CBHelpSystem(String helpset_Name, Dimension initialSize)
+    {
+
+        this(helpset_Name, null, initialSize);
     }
 
     /**
@@ -54,43 +60,11 @@ public class CBHelpSystem
      * @param cl           the class loader used to load the help set url.
      */
 //TE:  XXXXXXXXXX why does this get run twice on start up?
-    public CBHelpSystem(String helpset_Name, ClassLoader cl)
+    public CBHelpSystem(String helpset_Name, ClassLoader cl, Dimension initialSize)
     {
         if (cl != null) myClassLoader = cl;
         if (helpset_Name != null) helpSetName = helpset_Name;
-        runDelayedConstructor();
-        if (defaultHelpSystem == null)
-            defaultHelpSystem = this;
-    }
 
-    public boolean ready()
-    {
-        return setup;
-    }
-
-    private synchronized void runDelayedConstructor()
-    {
-/* THREAD PROBLEMS?    
-        Thread worker = new Thread()
-        {
-            public void run()
-            {
-*/
-        doDelayedConstructor();
-/*                
-            }
-        };
-        worker.setPriority(2);
-        worker.start();        
-*/
-    }
-
-    /**
-     * A piece of performance evil; delay actually doing all the help
-     * initialisation until we *really* have to ('cause it's so darn expensive)
-     */
-    protected synchronized void doDelayedConstructor()
-    {
         if (setup == true) return;  // only run once.
 
         if (myClassLoader == null)
@@ -106,12 +80,22 @@ public class CBHelpSystem
         else
         {
             helpBroker = helpSet.createHelpBroker();
+            if (initialSize != null)
+                helpBroker.setSize(initialSize);
         }
 
         log.info("Initial HelpSet created: " + helpSet.toString());
 
-        setup = true;  // we've now constructed the help object!
+        setup = true;  // we've now constructed the help object!        if (defaultHelpSystem == null)
+
+        defaultHelpSystem = this;
     }
+
+    public boolean ready()
+    {
+        return setup;
+    }
+
 
 
     public synchronized HelpSet getHelpSet()
@@ -154,7 +138,7 @@ public class CBHelpSystem
         }
         catch (Exception ee)
         {
-            log.log(Level.WARNING, "Help Set '" + newHelpSetName + "' not found", ee);
+            log.log(Level.WARNING, "Help Set '" + newHelpSetName + "' not found");
         }
 
         return newHelpSet;
@@ -200,11 +184,11 @@ public class CBHelpSystem
 
     public void open()
     {
-        if (setup == false)
-            doDelayedConstructor();
-
         if (helpBroker != null)
+        {
+            helpBroker.setLocation(defaultLocation); // if we ever want to try to center the help browser location, we might start here...
             helpBroker.setDisplayed(true);
+        }
     }
 
 
@@ -217,9 +201,6 @@ public class CBHelpSystem
 
     public void openTab(String tab)
     {
-        if (setup == false)
-            doDelayedConstructor();
-
         if (helpBroker != null)
         {
             try
@@ -233,7 +214,7 @@ public class CBHelpSystem
                 open();
                 return;
             }
-
+            helpBroker.setLocation(defaultLocation); // if we ever want to try to center the help browser location, we might start here...
             helpBroker.setDisplayed(true);
         }
     }
@@ -247,11 +228,11 @@ public class CBHelpSystem
 
     public void open(String contentID)
     {
-        if (setup == false)
-            doDelayedConstructor();
-
         if (helpBroker != null)
+        {
+            helpBroker.setLocation(defaultLocation); // if we ever want to try to center the help browser location, we might start here...
             helpBroker.setDisplayed(true);
+        }
 
         try
         {
@@ -280,7 +261,7 @@ public class CBHelpSystem
 
         if (defaultHelpSystem == null)
         {
-            CBHelpSystem newDefault = new CBHelpSystem(newHelpSet, loader);
+            CBHelpSystem newDefault = new CBHelpSystem(newHelpSet, loader, null);
             //HelpSet bloop = getHelpSet(newHelpSet, loader);
             log.info("trying to set default help system to: " + ((newDefault == null) ? "null" : newDefault.toString()));
             if (newDefault != null)
@@ -306,24 +287,28 @@ public class CBHelpSystem
     public static void useDefaultHelp(JButton button, String helpString)
     {
         // do we want to make a global default help broker...?
-
-        if (helpString == null)
-            return; // nothing to do.
-
-        if (defaultHelpSystem == null)
-            log.warning("No default HelpSystem.");
-
-        if (defaultHelpSystem.ready() == false)
-            defaultHelpSystem.doDelayedConstructor();
-
         try
         {
-            HelpBroker helpBrok = defaultHelpSystem.getHelpSet().createHelpBroker();
-            helpBrok.enableHelpOnButton(button, helpString, defaultHelpSystem.getHelpSet());
+
+            if (helpString == null)
+                return; // nothing to do.
+
+            if (defaultHelpSystem == null)
+                log.warning("No default HelpSystem.");
+
+            if (defaultHelpSystem == null || defaultHelpSystem.ready() == false)
+            {
+                log.warning("using default help system with no name...");
+                defaultHelpSystem = new CBHelpSystem(null);
+            }
+
+            HelpBroker helpBroker = defaultHelpSystem.getHelpSet().createHelpBroker();
+            helpBroker.enableHelpOnButton(button, helpString, defaultHelpSystem.getHelpSet());
         }
         catch (Exception e)
         {
-            log.log(Level.WARNING, "No HelpSet available: ", e);
+            //log.log(Level.WARNING, "No HelpSet available: ", e);
+            log.log(Level.WARNING, "No HelpSet available: ");
         }
     }
 

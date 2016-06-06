@@ -298,7 +298,7 @@ public class SmartModel extends DefaultTreeModel
         if (nodeDN.size()==0) return false;
 
         RDN nodeRDN = nodeDN.getLowestRDN();
-        SmartNode parent = getNodeForDN(nodeDN.parentDN());
+        SmartNode parent = getNodeForDN(nodeDN.getParent());
         SmartNode child = null;
 
         Enumeration children = parent.children();

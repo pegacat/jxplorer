@@ -173,32 +173,53 @@ public class HTMLTemplateDisplay extends JPanel
                                 smartTree.readAndExpandDN(new DN(dn));
                             }
                         }
-                        else if (desc.toLowerCase().startsWith(".." + File.separator + "temp" + File.separator + "audio" + File.separator) || desc.toLowerCase().startsWith(".." + File.separator + ".." + File.separator + "temp" + File.separator + "audio" + File.separator))	//TE: audio handler.
+
+//Ooookay... we've switched to using the java temp directory, so these ../.. style matches don't work any more.  We should be able to just accept the url and launch it?
+
+//                        else if (desc.toLowerCase().startsWith(".." + File.separator + "temp" + File.separator + "audio" + File.separator) || desc.toLowerCase().startsWith(".." + File.separator + ".." + File.separator + "temp" + File.separator + "audio" + File.separator))	//TE: audio handler.
+                        else if (desc.startsWith(CBCache.getAudioDirPath()))
                         {//TE: launches audio files...
-                            if (!System.getProperty("os.name").equalsIgnoreCase("SunOS"))	//TE: Check if the operating system is Sun if so don't attempt to play the audio file.
+
+                            //if (!System.getProperty("os.name").equalsIgnoreCase("SunOS"))	//TE: Check if the operating system is Sun if so don't attempt to play the audio file.
+                            if (CBUtility.isWindows())  // CB: actually, I think this stuff only works on windows?
                             {
-                                String path = CBCache.getAudioDirPath();
-                                String audioFilePath = desc.substring(desc.indexOf("temp", desc.lastIndexOf("\"")));
-                                String audioFileName = audioFilePath.substring(audioFilePath.lastIndexOf("\\"));
-                                String extension = audioFileName.substring(audioFileName.indexOf("."));
+                                //String path = CBCache.getAudioDirPath();
+                                //String audioFilePath = desc.substring(desc.indexOf("temp", desc.lastIndexOf("\"")));
+                                //String audioFileName = audioFilePath.substring(audioFilePath.lastIndexOf("\\"));
+                                //String extension = audioFileName.substring(audioFileName.indexOf("."));
+                                String extension = desc.substring(desc.lastIndexOf("."));
 
                                 if (extension.equalsIgnoreCase(".xxx"))
                                     CBUtility.error(CBIntText.get("Unable to play unknown audio file type"));
                                 else
-                                    CBLauncher.launchProgram(extension, path + audioFileName);
+                                //    CBLauncher.launchProgram(extension, path + audioFileName);
+                                {
+                                    System.out.println("LAUNCHING: " + desc);
+                                    CBLauncher.launchProgram(extension, desc);
+                                }
                             }
+                            else
+                                CBUtility.error(CBIntText.get("content only opens under windows"));
                         }
-                        else if (desc.toLowerCase().startsWith(".." + File.separator + "temp" + File.separator) || desc.toLowerCase().startsWith(".." + File.separator + ".." + File.separator + "temp" + File.separator))	//TE: audio handler.
+                        //else if (desc.toLowerCase().startsWith(".." + File.separator + "temp" + File.separator) || desc.toLowerCase().startsWith(".." + File.separator + ".." + File.separator + "temp" + File.separator))	//TE: audio handler.
+                        else if (desc.startsWith(CBCache.getDirPath()))
                         {//TE: currently launches odDocumentDOC/odSpreadSheetXLS/odMusicMID/odSoundWAV/odMovieAVI files with .doc extension...
-                            if (!System.getProperty("os.name").equalsIgnoreCase("SunOS"))	//TE: Check if the operating system is Sun if so don't attempt to launch the document.
+                            //if (!System.getProperty("os.name").equalsIgnoreCase("SunOS"))	//TE: Check if the operating system is Sun if so don't attempt to launch the document.
+                            if (CBUtility.isWindows())  // CB: actually, I think this stuff only works on windows?
                             {
-                                String path = CBCache.getDirPath();
-                                String filePath = desc.substring(desc.indexOf("temp", desc.lastIndexOf("\"")));
-                                String fileName = filePath.substring(filePath.indexOf("\\"));
-                                String extension = fileName.substring(fileName.indexOf("."));
+                                //String path = CBCache.getDirPath();
+                                //String filePath = desc.substring(desc.indexOf("temp", desc.lastIndexOf("\"")));
+                                //String fileName = filePath.substring(filePath.indexOf("\\"));
+                                //String extension = fileName.substring(fileName.indexOf("."));
+                                //CBLauncher.launchProgram(extension, path + fileName);
 
-                                CBLauncher.launchProgram(extension, path + fileName);
+                                String extension = desc.substring(desc.lastIndexOf("."));
+                                CBLauncher.launchProgram(extension, desc);
+
                             }
+                            else
+                                CBUtility.error(CBIntText.get("content only opens under windows"));
+
                         }
                         else if (!System.getProperty("os.name").equalsIgnoreCase("SunOS") && desc.toLowerCase().startsWith("mailto"))	//TE: spawn default mail client (windows only).
                         {//TE: launches email client...
@@ -260,13 +281,32 @@ public class HTMLTemplateDisplay extends JPanel
                                 }
                             }
                             else
-                            {   //TE: if the user has set (via advanced options) to launch URLs in a browser...
+                            {
+
+                                if (Desktop.isDesktopSupported()) {
+                                    try {
+                                        Desktop.getDesktop().browse(e.getURL().toURI());
+                                    } catch (IOException e1) {
+                                        // TODO Auto-generated catch block
+                                        e1.printStackTrace();
+                                    } catch (URISyntaxException e1) {
+                                        // TODO Auto-generated catch block
+                                        e1.printStackTrace();
+                                    }
+                                }
+
+                             /*   I don't think this code is used?  And the internal java html display is so bad I don't think we should even try... - CB August '13
+
+
+                             //TE: if the user has set (via advanced options) to launch URLs in a browser...
                                 if ((JXConfig.getProperty("option.url.handling")).equalsIgnoreCase("Launch"))
                                     launchClient(desc);
 //TE: otherwise open it in JXplorer...
                                 else
                                     openPage(url);
+                             */
                             }
+
                         }
                     }
                 });
@@ -331,7 +371,6 @@ public class HTMLTemplateDisplay extends JPanel
         editor = getNewEditor();
         if (current == null) // this occasionally happens.  *shrug*
         {
-            //System.out.println("CURRENT IS NULL???");
             current = new Dimension (400,400);
         }
         editor.setSize(current);
@@ -355,8 +394,6 @@ public class HTMLTemplateDisplay extends JPanel
         // this fixes the memory leak, but removes the point of the method -
         // better not to call it at all.
         //if (editor != null) { return editor; }
-
-        //System.out.println("Getting new editor");
 
         JEditorPane newEditor = new JEditorPane();
 
@@ -655,11 +692,10 @@ public class HTMLTemplateDisplay extends JPanel
             File localeSpecificStartFile = new File(htmldocs + startFile + "_" + locale + ".html");
             if (localeSpecificStartFile.exists() == false)
             {
-                log.warning("unable to find locale specific start file: " + localeSpecificStartFile);
                 localeSpecificStartFile = new File(htmldocs + startFile + ".html");
                 if (localeSpecificStartFile.exists() == false)
                 {
-                    log.warning("unable to find locale specific start file: " + localeSpecificStartFile);
+                    log.info("unable to find locale specific start file: " + localeSpecificStartFile);
                     editor.setText("<html><head><title>JXplorer Start Screen</title></head>" +
                                    "<body><h2><font face=\"arial\">Welcome to JXplorer...</font></h2><p>" +
                                    "<font face=\"arial\">This panel will display the results of your directory browsing and searches.</font></p>" +
@@ -865,75 +901,6 @@ public class HTMLTemplateDisplay extends JPanel
         }
         return true;
 
-/*
-        if (subdir == null) subdir = "";
-        if (subdir.length() > 0)
-            if (subdir.endsWith("/") == false)
-                subdir += "/";
-
-        if (baseURL == null) baseURL = "";
-        if (baseURL.length() > 0)
-            if (baseURL.endsWith("/") == false)
-                baseURL += "/";
-
-        URL url;
-
-        String baseTemplatePath = Theme.getInstance().getDirTemplates();
-
-        String fileName = baseTemplatePath + templateURL;    //TE: gets the path & name of each template that is displayed.  I.e when a tab is clicked.
-
-        File template = new File(fileName);
-
-        try
-        {
-            htmlText = new StringBuffer(CBUtility.readTextFile(template));
-
-            url = new URL(baseURL + subdir + templateURL);
-
-            // parse file and set paths correctly
-            htmlText = parseNewTemplate(htmlText, url);
-            baseText = htmlText.toString();  // set the base template text.
-        }
-        catch (Exception e)
-        {
-            try
-            {
-*/
-                /**
-                 * 	Probably not a politically correct way to find out if there are any plugin templates..
-                 *	..but that is what this is doing.  If JX can't find a template in the normal JX dir,
-                 *	then this checks the plugins dir for a (temporary) template dir.  If the template still
-                 *	can't be found then it displays the error message.
-                 *
-                 *	The template is added to the combo box without the 'templates' prefix i.e: templates/person/whatever.html
-                 *	so that normal picking up of the templates can occur in respect of object class.  In other words if
-                 *	there is a plugins dir of 'person' as well as the default one, JX will display the template that is
-                 *	is first in ASCII order.
-                 *
-                 *	This assumes that the user places any templates in a zip/jar file in the following dir format...
-                 *	templates/"objectclass name"/"template name.html". (replacing names in commars).
-                 */
-/*
-                String temp = new String(resourceLoader.getResource("templates/" + templateURL));	//TE: read the html template from the zip/jar file.
-
-                templateURL = "temp" + File.separator + templateURL;			//TE: add the prefix so the HTML file can be found in the zip/jar file.
-
-                htmlText = new StringBuffer(temp);
-                //TODO: get Trudi to explain how this works?
-                url = new URL(JXplorer.getFileURL(localURL) + templateURL);		//TE: point to the templates dir in the plugins dir rather than the one in JX.
-
-                // parse file and set paths correctly
-                htmlText = parseNewTemplate(htmlText, url);	//TE: parse as normal.
-                baseText = htmlText.toString(); 			//TE: important to set this so JX knows where to find any images etc that are referenced by the HTML template.
-            }
-            catch (Exception ee)
-            {
-                return CBUtility.error(display, CBIntText.get("Can't find html template! ") + fileName, e);
-            }
-        }
-
-        return true;
-*/
     }
 
 
@@ -1146,7 +1113,7 @@ public class HTMLTemplateDisplay extends JPanel
     protected void attemptToSetOCSpecificTemplate(DXAttributes entry, String[] templates)
     {
         //String baseOC = ((DXAttributes)entry).getBaseObjectClass();
-        Vector ocs = (entry).getOrderedOCs();
+        ArrayList<String> ocs = (entry).getOrderedOCs();
 
         for (int i = 0; i < ocs.size(); i++)
         {
@@ -1206,31 +1173,43 @@ public class HTMLTemplateDisplay extends JPanel
 
 
         tagstart = htmlText.indexOf(ATTRIBTAG, tagstart);
-        while (tagstart >= 0)
+        while (tagstart >= 0)                              //TODO: this is all a bit ad-hoc and hacky.  If people start using these in earnest we should rewrite this section
         {
             tagend = htmlText.indexOf(">", tagstart);
             String tempTag = htmlText.substring(tagstart, tagend);
+            try
+            {
+                if (tempTag.indexOf("name='")>-1)
+                    tempTag = tempTag.replaceAll("'", "\"");
 
-            String attName = "";
-            if (tempTag.indexOf("get-all-attributes") > 0)		//TE: splat all attribute values onto the page.
-                attName = "all";
-            else											//TE: get the name of the specific attribute to splat.  The next line is basically just getting the attribute name between the quotes e.g. 'cn' from name="cn".
-                attName = tempTag.substring(tempTag.indexOf("name=\"") + 6, tempTag.indexOf("\"", tempTag.indexOf("name=\"") + 6));
+                String attName = "";
+                if (tempTag.indexOf("get-all-attributes") > 0)		//TE: splat all attribute values onto the page.
+                    attName = "all";
+                else											//TE: get the name of the specific attribute to splat.  The next line is basically just getting the attribute name between the quotes e.g. 'cn' from name="cn".
+                    attName = tempTag.substring(tempTag.indexOf("name=\"") + 6, tempTag.indexOf("\"", tempTag.indexOf("name=\"") + 6));
 
-            String modifier = null;
+                String modifier = null;
 
-            if (tempTag.indexOf("style=\"") > 0)				//TE: get the name of the specific attribute to splat.  The next line is basically just getting the style of display from between the quotes e.g. 'list' from style="list".
-                modifier = tempTag.substring(tempTag.indexOf("style=\"") + 7, tempTag.indexOf("\"", tempTag.indexOf("style=\"") + 7));
+                if (tempTag.indexOf("style=\"") > 0)				//TE: get the name of the specific attribute to splat.  The next line is basically just getting the style of display from between the quotes e.g. 'list' from style="list".
+                    modifier = tempTag.substring(tempTag.indexOf("style=\"") + 7, tempTag.indexOf("\"", tempTag.indexOf("style=\"") + 7));
 
-            htmlText.delete(tagstart, tagend + 1);			//TE: remove the tag, we don't need it anymore.
-            if (attName.equalsIgnoreCase("all"))  			//TE: make new tags for all the attributes and splat them into where the old tag use to be.
-                htmlText.insert(tagstart, formattedAllAttributes(currentEntry, modifier));
-            else											//TE: make a new tag for the attribute specified and splat it into where the old tag use to be.
-                htmlText.insert(tagstart, formattedAttribute(attName, currentEntry, modifier));	//TE: splat certain attributes.
+                htmlText.delete(tagstart, tagend + 1);			//TE: remove the tag, we don't need it anymore.
+                if (attName.equalsIgnoreCase("all"))  			//TE: make new tags for all the attributes and splat them into where the old tag use to be.
+                    htmlText.insert(tagstart, formattedAllAttributes(currentEntry, modifier));
+                else											//TE: make a new tag for the attribute specified and splat it into where the old tag use to be.
+                    htmlText.insert(tagstart, formattedAttribute(attName, currentEntry, modifier));	//TE: splat certain attributes.
 
-            //TE: moves the position to the beginning of the next custom tag, if there is one and...
-            //TE: breaks the loop if there are no more tags i.e. tagstart would =-1.
-            tagstart = htmlText.indexOf(ATTRIBTAG, tagstart);
+                //TE: moves the position to the beginning of the next custom tag, if there is one and...
+                //TE: breaks the loop if there are no more tags i.e. tagstart would =-1.
+                tagstart = htmlText.indexOf(ATTRIBTAG, tagstart);
+            }
+            catch (Exception e)
+            {
+                htmlText.delete(tagstart, tagend + 1);
+                String errorMsg = "error parsing {" + tempTag + "}";
+                htmlText.insert(tagstart, errorMsg);
+                tagstart = htmlText.indexOf(ATTRIBTAG, tagstart + errorMsg.length());
+            }
 
         }
         if ((htmlText == null) || (htmlText.length() == 0))
@@ -1406,7 +1385,7 @@ public class HTMLTemplateDisplay extends JPanel
             DXAttribute attribute = null;
             attribute = (DXAttribute) entry.get(name);    //TE: get the attribute values that are being processed.
 
-            int size = 0;
+              int size = 0;
 
             if (attribute != null)
                 size = attribute.size();    //TE: get the number of values the attribute has so we can tell if it is multivalued.
@@ -1614,7 +1593,7 @@ public class HTMLTemplateDisplay extends JPanel
         DXAttribute attribute = null;
         attribute = (DXAttribute) entry.get("jpegPhoto");    					//TE: gets the jpegPhoto attributes of the current entry.
 
-        while ((pos = htmlString.indexOf("Image N/A", pos)) >= 0)
+        while ((pos = htmlString.indexOf("Image N/A", pos)) >= 0)               //  Aaargh... This is pretty magical...! TODO: switch to using <dxattribute> syntax?
         {
             tagStart = pos;
             tagEnd = htmlString.indexOf("<", pos);
@@ -1631,6 +1610,28 @@ public class HTMLTemplateDisplay extends JPanel
                     String htmlCopyEnd = htmlString.substring(htmlString.indexOf("<", tagPos));    	//TE: makes a substring of the end of the htmlString, from the end of the image tag to the end of the htmlString.
 
                     File fileDir = CBCache.getCacheDirectory();    				//TE: get the temp directory.
+
+                    File[] imageFiles = fileDir.listFiles(new FilenameFilter()
+                            {
+                                public boolean accept(File dir, String name)
+                                {
+                                    return name.endsWith(JPEGEXTENSION);
+                                }
+                            });
+
+                    StringBuffer imageTags = new StringBuffer();
+
+                    for (File imageFile:imageFiles)
+                    {
+//                        imageTags.append(new String("<img src=\"" + imageFile.getAbsolutePath() + "\" border=\"1\"><br>"));    //TE: the new image tag.  // CB - note 'toURI()' prepends 'file:' to the path
+                        String imageTag = "<img src=\"" + imageFile.toURI() + "\" border=\"1\"><br>";
+                        imageTags.append(imageTag);    //TE: the new image tag.
+                    }
+
+                    htmlString = htmlCopyStart + imageTags.toString() + htmlCopyEnd;    				//TE: the htmlString with the image tags updated.
+
+
+/*
                     String[] allFiles = fileDir.list();    					//TE: get the files in the temp directory.
 
                     String[] currentFiles = new String[allFiles.length];
@@ -1652,6 +1653,7 @@ public class HTMLTemplateDisplay extends JPanel
                         }
                     }
                     htmlString = htmlCopyStart + imageTags.toString() + htmlCopyEnd;    				//TE: the htmlString with the image tags updated.
+*/
                 }
             }
             pos = tagEnd;
@@ -1721,8 +1723,11 @@ public class HTMLTemplateDisplay extends JPanel
                         if (allFiles[i].startsWith(currentDN) && !allFiles[i].endsWith(JPEGEXTENSION))
                         {
                             currentFiles[x] = allFiles[i].toString();
+                            String audiotag = "<a href=\"" + CBCache.getAudioDirPath() + currentFiles[x] + "\">Sound File</a><br>";
 
-                            audioTags.append(new String("<a href=\"" + ".." + File.separator + ".." + File.separator + "temp" + File.separator + "audio" + File.separator + currentFiles[x] + "\">Sound File</a><br>"));    //TE: the new image tag.
+                            //System.out.println("AUDIO TAG: " + audiotag);
+                            
+                            audioTags.append(audiotag);    //TE: the new image tag.
                             x++;
                         }
                     }
@@ -1891,8 +1896,13 @@ public class HTMLTemplateDisplay extends JPanel
                 if (attValue instanceof byte[])
                 {
                     currentBinaryAttributes.add(name);
-                    //return "[Binary Data]";
-                    return CBBase64.binaryToString((byte[]) attValue);
+
+                    if (a.getID().equalsIgnoreCase("userpassword"))
+                    {
+                        return getPasswordText(attValue);
+                    }
+                    else
+                        return CBBase64.binaryToString((byte[]) attValue);
                 }
             }
             return "Unable to get Att Value for " + name + "!";
@@ -1906,6 +1916,36 @@ public class HTMLTemplateDisplay extends JPanel
         }
     }
 
+    String getPasswordText(Object val)
+    {
+        if (val == null) return "";
+
+        if (!(val instanceof byte[]))
+        {
+            //??
+            if (val instanceof String)
+                return (String)val;
+            else // WTF??
+                return "error parsing pwd";
+
+        }
+
+        byte[] data = (byte[]) val;
+
+        try
+        {
+
+            if (data == null || data.length == 0)
+                return "";
+
+            if (CBParse.isUTF8(data)) // if the password is already 'text' encoded (ASCII or UTF-8) return as is...
+                return new String(data, "UTF-8");
+        }
+        catch (Exception e) {}
+
+        return CBBase64.binaryToString((byte[]) data);
+
+    }
 
     /**
      *    This takes a attribute type name and the complete attribute list, as
@@ -1939,7 +1979,7 @@ public class HTMLTemplateDisplay extends JPanel
      *    to display the attribute in the html text.
      *
      *    @param theAttribute the attribute to format into an HTML fragment
-     *    @param modifier one of list|table|plain, or a null value
+     *    @param modifier one of list|table|options|plain, or a null value
      *     (which is equivalent to list) that sets the html list display
      *     type
      *    @return formatted html text displaying the attribute
@@ -2022,7 +2062,7 @@ public class HTMLTemplateDisplay extends JPanel
      * 	Takes a list of attribute values, and formats them as an
      * 	html list, possibly of a type specified by the modifier.
      * 	@param attlist a list of objects to display.
-     *  	@param modifier one of list|table|plain, or a null value
+     *  	@param modifier one of list|table|select|plain, or a null value
      *  		(which is equivalent to list) that sets the html list display
      *     	type.
      *	@param syntaxOID eg 1.3.6.1.4.1.1466.155.121.1.41 for postalAddress.
@@ -2050,6 +2090,13 @@ public class HTMLTemplateDisplay extends JPanel
             listEnd = "</table>\n";
             itemStart = "<tr><td valign=top>";
             itemEnd = "</td></tr>";
+        }
+        else if (modifier.equalsIgnoreCase("options"))
+        {
+            listStart = "";
+            listEnd = "";
+            itemStart = "<option";  // note missing closing brace; used in hack in formattedListWithModifiers to name options.  (If we ended up doing more of this, we should use a substitution mechanism instead; e.g. <option $1>)
+            itemEnd = "</option>";
         }
         else if (modifier.equalsIgnoreCase("plain"))
         {
@@ -2105,8 +2152,16 @@ public class HTMLTemplateDisplay extends JPanel
             Object temp = attlist.nextElement();
 
             String value = "";
-            if (temp != null) value = (temp instanceof String) ? temp.toString() : "(Binary Value)";
-
+            if (temp != null)
+                if (temp instanceof String)
+                    value = temp.toString();
+                else
+                {
+                    if (syntaxID.equals("userPassword"))
+                        value = getPasswordText(temp);
+                    else
+                        value = "(Binary Value)";
+                }
             /*
              *  Active Directory hack - sometimes AD doesn't publish schema, leading us to mis-identify
              *  large binary values as strings. It seems the second
@@ -2121,7 +2176,14 @@ public class HTMLTemplateDisplay extends JPanel
             else if ((value.toLowerCase()).startsWith("http://"))
                 formattedList.append(itemStart + "<a href=\"" + value + "\">" + value + "</a>" + itemEnd);				//TE: email tag <a href="url">url name</a>.
             else
-                formattedList.append(itemStart + CBParse.toHTML(syntaxParse(value, syntaxOID)) + itemEnd);
+            {
+                // quick hack to allow properly named select 'options'
+                String val = CBParse.toHTML(syntaxParse(value, syntaxOID));
+                if (itemStart.equals("<option"))
+                    formattedList.append(itemStart + " value=\""+ val + "\">" + val + itemEnd);
+                else
+                    formattedList.append(itemStart + val + itemEnd);
+            }
         }
         return new String(listStart + formattedList.toString() + listEnd);
     }
@@ -2149,8 +2211,47 @@ public class HTMLTemplateDisplay extends JPanel
         String[] allFiles = fileDir.list();    		//TE: get the files in the temp directory.
         String fileName;
 
-        for (int i = 0; i < allFiles.length; i++)
+        // TODO: do we need to check the types of things?
+
+        for (String file:allFiles)
         {
+            fileName = file.toString();
+            if (file.startsWith(currentDN))
+            {
+                if (type.equalsIgnoreCase("audio") &&  !file.endsWith(JPEGEXTENSION))			//TE: if the files are temp audio files for the entry, create html for it...
+                {   //TE: i.e <ul><li><a href="..\temp\cn=turtle food,ou=Administration,ou=Corporate,o=DemoCorp,c=AU1.wav">audio</a></li></ul>
+                    htmlStringBuffer.append(new String(listStart + itemStart + "<a href=\"" + CBCache.getAudioDirPath() + fileName + "\" + >audio</a>" + itemEnd + listEnd));
+                }
+                else if (type.equalsIgnoreCase("odMusicMID") && file.startsWith(currentDN) && file.endsWith(MIDEXTENSION))    //TE: if the files are temp odMusicMID files for the entry, create html for it...
+                {   //TE: i.e <ul><li><a href="..\temp\cn=turtle food,ou=Administration,ou=Corporate,o=DemoCorp,c=AU1.mid">audio</a></li></ul>
+                    htmlStringBuffer.append(new String(listStart + itemStart + "<a href=\"" + CBCache.getDirPath() + fileName + "\" + >audio</a>" + itemEnd + listEnd));
+                }
+                else if (type.equalsIgnoreCase("odSoundWAV") && file.startsWith(currentDN) && file.endsWith(WAVEXTENSION))    //TE: if the files are temp odSoundWAV files for the entry, create html for it...
+                {   //TE: i.e <ul><li><a href="..\temp\cn=turtle food,ou=Administration,ou=Corporate,o=DemoCorp,c=AU1.wav">audio</a></li></ul>
+                    htmlStringBuffer.append(new String(listStart + itemStart + "<a href=\"" + CBCache.getDirPath() + fileName + "\" + >audio</a>" + itemEnd + listEnd));
+                }
+                else if (type.equalsIgnoreCase("jpegPhoto") && file.startsWith(currentDN) && file.endsWith(JPEGEXTENSION))    //TE: if the files are temp jpeg files for the entry, create html for it...
+                {   //TE: i.e <ul><li><img src="..\temp\cn=turtle food,ou=Administration,ou=Corporate,o=DemoCorp,c=AU1.jpg" border="1"></li></ul>
+                    htmlStringBuffer.append(new String(listStart + itemStart + "<img src=\"" + CBCache.getDirPath() + fileName + "\" " + "border=\"1\">" + itemEnd + listEnd));
+                }
+                else if (type.equalsIgnoreCase("odDocumentDOC") && file.startsWith(currentDN) && file.endsWith(DOCEXTENSION))    //TE: if the files are temp odDocumentDOC files for the entry, create html for it...
+                {   //TE: i.e <ul><li><a href="..\temp\cn=turtle food,ou=Administration,ou=Corporate,o=DemoCorp,c=AU1.doc">audio</a></li></ul>
+                    htmlStringBuffer.append(new String(listStart + itemStart + "<a href=\"" + CBCache.getDirPath() + fileName + "\" + >document</a>" + itemEnd + listEnd));
+                }
+                else if (type.equalsIgnoreCase("odSpreadSheetXLS") && file.startsWith(currentDN) && file.endsWith(XLSEXTENSION))    //TE: if the files are temp odSpreadSheetXLS files for the entry, create html for it...
+                {   //TE: i.e <ul><li><a href="..\temp\cn=turtle food,ou=Administration,ou=Corporate,o=DemoCorp,c=AU1.doc">audio</a></li></ul>
+                    htmlStringBuffer.append(new String(listStart + itemStart + "<a href=\"" + CBCache.getDirPath() + fileName + "\" + >spreadsheet</a>" + itemEnd + listEnd));
+                }
+                else if (type.equalsIgnoreCase("odMovieAVI") && file.startsWith(currentDN) && file.endsWith(AVIEXTENSION))    //TE: if the files are temp odMovieAVI files for the entry, create html for it...
+                {   //TE: i.e <ul><li><a href="..\temp\cn=turtle food,ou=Administration,ou=Corporate,o=DemoCorp,c=AU1.avi">movie</a></li></ul>
+                    htmlStringBuffer.append(new String(listStart + itemStart + "<a href=\"" + CBCache.getDirPath() + fileName + "\" + >movie</a>" + itemEnd + listEnd));
+                }
+            }
+        }
+        return htmlStringBuffer.toString();
+    }
+            
+/*            
             if (type.equalsIgnoreCase("audio") && allFiles[i].startsWith(currentDN) && !allFiles[i].endsWith(JPEGEXTENSION))			//TE: if the files are temp audio files for the entry, create html for it...
             {   //TE: i.e <ul><li><a href="..\temp\cn=turtle food,ou=Administration,ou=Corporate,o=DemoCorp,c=AU1.wav">audio</a></li></ul>
                 fileName = allFiles[i].toString();
@@ -2186,9 +2287,7 @@ public class HTMLTemplateDisplay extends JPanel
                 fileName = allFiles[i].toString();
                 htmlStringBuffer.append(new String(listStart + itemStart + "<a href=" + "\".." + File.separator + "temp" + File.separator + fileName + "\" + >movie</a>" + itemEnd + listEnd));
             }
-        }
-        return htmlStringBuffer.toString();
-    }
+*/            
 
 
 
@@ -2447,7 +2546,7 @@ public class HTMLTemplateDisplay extends JPanel
 
     public String toString()
     {
-        return htmlText.toString();
+        return (htmlText == null)?"":htmlText.toString();
     }
 
     public String getName()

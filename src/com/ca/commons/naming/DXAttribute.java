@@ -34,6 +34,7 @@ public class DXAttribute extends BasicAttribute implements Comparable
     protected boolean isASN1 = false;
 
     static boolean appendBinaryOption = false; // whether to add ';binary' to the end of non String attribute names.
+    static boolean appendRFC4523BinaryOption = true; // whether to add ';binary' to the end of PKI attributes, as per rfc 4453
 
     String name;               // the name of the attribute (usually identical to the ID, unless ';binary' has been added to the ID)
     String syntaxOID;          // the OID of the Syntax (i.e. "1.3.6.1.4.1.1466.115.121.1.5" for binary)
@@ -57,6 +58,8 @@ public class DXAttribute extends BasicAttribute implements Comparable
     {
         knownAttributeTypes = new Hashtable(100);
     }
+
+    //TODO: Consider moving some of the 'attribute is string/ASN1/byte array' stuff into SchemaOps?
 
     /**
      * Normal constructor for an Attribute with no (current) value.
@@ -131,6 +134,21 @@ public class DXAttribute extends BasicAttribute implements Comparable
         }
     }
 
+
+        /**
+     *
+     * @param id the name of attribute (e.g. 'objectClass')
+     * @param values the values of the attribute (e.g. {'top', 'person', 'inetorgperson'}
+     */
+    public DXAttribute(String id, List values)
+    {
+        super(id);
+
+        for (Object value : values)
+        {
+            add(value);
+        }
+    }
     /**
      * Adds a series of values to the attribute.
      * @param values a bunch of new values to append to the attribute
@@ -152,8 +170,8 @@ public class DXAttribute extends BasicAttribute implements Comparable
 
     /**
      * Attempts to sort the values of the attribute alphabetically.  This is a
-     * relatively expensive operation, and should be used sparingly.  (e.g. at GUI
-     * display time)
+     * relatively expensive operation (but not as expensive as directory access!),
+     * and should be used sparingly.  (e.g. at GUI display time)
      */
     public void sort()
     {
@@ -185,6 +203,11 @@ public class DXAttribute extends BasicAttribute implements Comparable
         schema = defaultSchema;
     }
 
+    public static SchemaOps getDefaultSchema()
+    {
+        return schema;
+    }
+
     /**
      * <p>Code common to all constructors, run at the *end* of each constructor.</p>
      */
@@ -205,6 +228,7 @@ public class DXAttribute extends BasicAttribute implements Comparable
     {
         // quickly handle schema atts.
         String ID = getID();
+
 
         // skip 'synthetic' schemas
         if ("SYNTAXNAMENUMERICOIDDESCEQUALITY".indexOf(ID) != -1) return;
@@ -261,6 +285,30 @@ public class DXAttribute extends BasicAttribute implements Comparable
             else
                 knownAttributeTypes.put(ID, BYTE_ARRAY);
         }
+    }
+
+    /**
+     * This static utility function will quickly return if the attribute is
+     * known to be a string.  It will not read the schema directly however, and
+     * relies on the attribute having been already read in some form from the directory
+     * (e.g. during an entry load).  It is *not* reliable for attributes that have not
+     * actually been read in the current session however.
+     * @param attID
+     * @return
+     */
+    public static boolean isString(String attID)
+    {
+        attID = attID.toLowerCase();
+        if (knownAttributeTypes.containsKey(attID))
+            return (knownAttributeTypes.get(attID).equals(STRING));
+        else if (isKnownASN1Attribute(attID))
+            return false;
+        else if (attID.endsWith(";binary"))
+            return false;
+        else
+            return true; //??
+
+
     }
 
     /**
@@ -485,10 +533,12 @@ public class DXAttribute extends BasicAttribute implements Comparable
      *
      * @deprecated use setString() instead
      */
+    /*
     public void setBinary(boolean bin)
     {
         setString(!bin);
     }
+    */
 
     /**
      * Sets the isNonString status of the attribute.  Shouldn't be required any more;
@@ -683,6 +733,15 @@ public class DXAttribute extends BasicAttribute implements Comparable
         return getID();
     }
 
+    public boolean isObjectClass()
+    {
+        String id = getID();
+        if (id.equalsIgnoreCase("objectclass") || id.equalsIgnoreCase("oc")) // 'oc' included for backward compatibility with eTrust directory
+            return true;
+
+        return false;
+    }
+
     /**
      * General descriptive string: used mainly for debugging...
      */
@@ -731,6 +790,45 @@ public class DXAttribute extends BasicAttribute implements Comparable
 
     }
 
+    /**
+     * Utility function; returns a simple formatted string for any attribute.  Will not print out nicely for binary att vals.
+     * @param att
+     * @return
+     */
+    public static String toFormattedString(Attribute att)
+    {
+        if (att == null)
+            return "<empty>"; // should never happen... ho ho.
+
+        try
+        {
+            StringBuffer buffy = new StringBuffer(att.getID());
+            if (att.size()==0)
+            {
+                buffy.append(": - ");
+            }
+            else if (att.size()==1)
+            {
+                buffy.append(": ").append(att.get(0).toString());
+            }
+            else
+            {
+                buffy.append(": ").append(att.get(0).toString());
+                int paddingSize = att.getID().length()+2;
+                char[] padding = new char[paddingSize];
+                for (int i=0; i<paddingSize; i++)
+                    padding[i] = ' ';
+                for (int attIndex =1; attIndex <att.size(); attIndex++)
+                    buffy.append("\n").append(padding).append(att.get(attIndex).toString());
+            }
+            return buffy.toString();
+        }
+        catch (Exception e)
+        {
+            return att.getID() + ": (error: " + e.getMessage() + ")";
+        }
+    }
+
     // ugly, ugly hack to add ';binary' when writting data to dir, but
     // not otherwise.
     public static void setVerboseBinary(boolean status)
@@ -740,13 +838,22 @@ public class DXAttribute extends BasicAttribute implements Comparable
     }
 
     /**
+     * hack to allow ';binary' to be added to a small number of PKI attributes, as per RFC 4453
+     * @param status
+     */
+    public static void setRFC4523BinaryHandling(boolean status)
+    {
+        appendRFC4523BinaryOption = status;
+    }
+
+    /**
      * This returns the name of the attribute.
      * @return the attribute name; e.g. 'commonName'
      */
 
     //TODO:  should this use the OID instead?  Would solve problems with loonies who
     //TODO:  use different names for the same attribute in different place
-
+    //TODO: ALSO - need to get this in synch with 'getName()' - inconsistent use of IDs...!
     public String getID()
     {
         String id = super.getID();
@@ -761,7 +868,40 @@ public class DXAttribute extends BasicAttribute implements Comparable
             }
 
         }
+        // added support for RFC 4523; explicitly append ';binary' to PKI related attributes.
+        else if (appendRFC4523BinaryOption && (!id.endsWith(";binary")))
+        {
+            if (isRFC4523Attribute(id))
+                return id + ";binary";
+
+            String lowerCaseId = id.toLowerCase();
+
+        }
         return id;
+    }
+
+    /* values taken from RFC 4523 */
+        static String[] rfc4523Vals = new String[] {
+                "certificatelist",
+                "certificatepair",
+                "supportedalgorithm",
+                "usercertificate",
+                "cacertificate",
+                "crosscertificatepair",
+                "certificaterevocationlist",
+                "authorityrevocationlist",
+                "deltarevocationlist",
+                "supportedalgorithms"};
+
+    private static boolean isRFC4523Attribute(String attName)
+    {
+        String lowerCaseId = attName.toLowerCase();
+
+        for (String val: rfc4523Vals)
+            if (lowerCaseId.equals(val))
+                return true;
+
+        return false;
     }
 
     /**
@@ -773,14 +913,11 @@ public class DXAttribute extends BasicAttribute implements Comparable
      * @return whether an otherwise unknown attribute is an ASN1 structure
      */
 
-    public boolean isKnownASN1Attribute(final String attribute)
+    public static boolean isKnownASN1Attribute(String attribute)
     {
         final String search = attribute.toLowerCase();
-        if (search.indexOf("certificate") >= 0)
-            return true;
-        else if (search.indexOf("revocation") >= 0)
-            return true;
-        else if (search.indexOf("supportedalgorithms") >= 0)
+
+        if (isRFC4523Attribute(search))
             return true;
         else if (search.indexOf("userpkcs12") >= 0)
             return true;
@@ -794,12 +931,11 @@ public class DXAttribute extends BasicAttribute implements Comparable
      * for multivalued attributes (use get() otherwise).
      *
      * @return all the values of this attribute in a String Array.
-     *         XXX - assumes all values are strings??
      */
 
     public Object[] getValues()
     {
-        Object[] values = new String[size()];
+        Object[] values = new Object[size()];
 
         try
         {
@@ -854,7 +990,7 @@ public class DXAttribute extends BasicAttribute implements Comparable
 
     public boolean isSingleValued()
     {/* TE */
-        return schema.isAttributeSingleValued(getName());
+        return (schema==null?false:schema.isAttributeSingleValued(getName()));
     }
 
     /**

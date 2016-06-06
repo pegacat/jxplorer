@@ -6,7 +6,11 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.*;
 import java.net.URL;
-import java.util.*;
+import java.nio.channels.FileChannel;
+import java.util.Comparator;
+import java.util.Enumeration;
+import java.util.Locale;
+import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -21,7 +25,8 @@ public class CBUtility
 
     private static Cursor savedCursor;
     private static Frame displayFrame = null;
-
+    private static String defaultConfigDirectory = null;
+    
     private static Logger log = Logger.getLogger(CBUtility.class.getName());
 
     private CBUtility()
@@ -161,9 +166,62 @@ public class CBUtility
         while (bytes_read < size)
             bytes_read += in.read(data, bytes_read, size - bytes_read);
 
-        return readI18NByteArray(data);
+        //return readI18NByteArray(data);
+        return readUnicode(data);
     }
 
+    /**
+     * This will try to work out whether this is unicode double bytes (utf-16),
+     * or unicode in utf-8 format (or equivalently, 7bit ASCII).
+     * <p/>
+     * If it fails to parse, it will fall back on the default local encoding.
+     *
+     * @param data
+     * @return
+     */
+    public static String readUnicode(byte[] data)
+    {
+        try
+        {
+            if (CBParse.isUnicode(data))
+            {
+                log.finer("reading unicode 16 bit text");
+                String text = new String(data, "UTF-16");  // return as 16 bit unicode
+                if (text.length() > 0) return text;
+            }
+            else
+            {
+                log.finer("reading utf8 text");
+                String text = new String(data, "UTF-8");   // return as UTF-8
+                if (text.length() > 0)
+                    return translateJavaUnicodeEscapes(text);
+            }
+
+            return new String(data); // ?? not sure why this would ever happen
+
+            /*   If anything goes wrong (UnsupportedEncodingException, or hopefully if
+            *   the utf-8 string turns out not to be) fall back on using the
+            *   default encoding.
+            */
+        }
+
+        catch (Exception e)
+        {
+            log.warning("Confused Reading File: " + e.toString() + "\n -> reverting to default encoding");
+            return new String(data);  // return as default locale encoding
+        }
+    }
+
+    /**
+     * This does magic to try to distinguish between Unicode (UTF-16), Unicode (UTF-8) and local encoding.
+     * <p/>
+     * IF you know you have Unicode, you should *not* use this!  It uses probablistic detection and may
+     * misinterpret UTF-8 as local encoding.
+     *
+     * @param data
+     * @return
+     * @deprecated almost always you should use readUnicode() instead
+     */
     public static String readI18NByteArray(byte[] data)
     {
         // Try to work out whether this is unicode double bytes (utf-16),
@@ -199,45 +257,16 @@ public class CBUtility
                     log.finer("reading local encoding text");
 
                     String newString = new String(data);
-                    if (newString.indexOf("\\u") == -1)
-                    {
-                        return newString;    // no need for special processing.
-                    }
 
-                    // MANUALLY (!) decode \ u java unicode escape strings...
-                    // (Why?  Because someone may be in a foreign locale, but
-                    // still using broken java unicode escape syntax from standard
-                    // property files.)
-
-                    StringBuffer buffer = new StringBuffer(newString);
-
-                    int pos = 0;
-                    while (pos + 6 < buffer.length())
-                    {
-                        if (buffer.charAt(pos) != '\\')
-                            pos++;
-                        else if (buffer.charAt(pos + 1) != 'u')
-                            pos += 2;
-                        else
-                        {
-                            String unicode = buffer.substring(pos + 2, pos + 6);
-                            int uni = Integer.parseInt(unicode, 16);
-                            buffer = buffer.delete(pos, pos + 6);
-                            buffer = buffer.insert(pos, (char) uni);
-                            pos++;
-                        }
-
-                    }
-
-                    return buffer.toString();  // return as default locale encoding
+                    return translateJavaUnicodeEscapes(newString);
                 }
             }
         }
 
-                /*   If anything goes wrong (UnsupportedEncodingException, or hopefully if
-                 *   the utf-8 string turns out not to be) fall back on using the
-                 *   default encoding.
-                 */
+        /*   If anything goes wrong (UnsupportedEncodingException, or hopefully if
+        *   the utf-8 string turns out not to be) fall back on using the
+        *   default encoding.
+        */
 
         catch (Exception e)
         {
@@ -264,6 +293,40 @@ public class CBUtility
             values[count++] = en.nextElement().toString();
         }
         return values;
+    }
+
+    public static String translateJavaUnicodeEscapes(String text)
+    {
+        if (text.indexOf("\\u") == -1)
+        {
+            return text;    // no need for special processing.
+        }
+
+        // MANUALLY (!) decode \ u java unicode escape strings...
+        // (Why?  Because someone may be in a foreign locale, but
+        // still using broken java unicode escape syntax from standard
+        // property files.)
+
+        StringBuffer buffer = new StringBuffer(text);
+
+        int pos = 0;
+        while (pos + 6 < buffer.length())
+        {
+            if (buffer.charAt(pos) != '\\')
+                pos++;
+            else if (buffer.charAt(pos + 1) != 'u')
+                pos += 2;
+            else
+            {
+                String unicode = buffer.substring(pos + 2, pos + 6);
+                int uni = Integer.parseInt(unicode, 16);
+                buffer = buffer.delete(pos, pos + 6);
+                buffer = buffer.insert(pos, (char) uni);
+                pos++;
+            }
+        }
+
+        return buffer.toString();  // return as default locale encoding
     }
 
     /**
@@ -311,7 +374,7 @@ public class CBUtility
         for (int i = 0; i < strings.length; i++)
             props.put(strings[i], strings[i]);     // so it's redundant.  sue me.
 
-        writePropertyFile(fileName, props, "generated string array list");
+        writePropertyFile(fileName, props, "# generated string array list");
     }
 
 
@@ -625,6 +688,10 @@ public class CBUtility
         C.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
     }
 
+    public static Cursor getCursor(Component C)
+    {
+        return C.getCursor();
+    }
 
     /**
      * Saves a cursor.  One cursor.  That's all. Just one.  Try to
@@ -666,7 +733,6 @@ public class CBUtility
      */
 
     //public static int getLogDebugLevel() { return debugLevel; }
-
 
 
     /**
@@ -752,6 +818,7 @@ public class CBUtility
         if (debugLevel >= level) log(S);
     }
 */
+
     /**
      * Simple logging utility.  Writes log data to a file or console,
      * or ignores it, depending on the value of the logging and logfile
@@ -1072,265 +1139,6 @@ public class CBUtility
     }
 
 
-    /**
-     * @deprecated use CBParse method instead
-     */
-    public static String bytes2Hex(byte[] bytes)
-    {
-        StringBuffer ret = new StringBuffer(bytes.length * 2);
-        for (int i = 0; i < bytes.length; i++)
-        {
-            ret.append(CBParse.byte2Hex(bytes[i]));
-        }
-        return ret.toString();
-    }
-
-
-    /**
-     * @deprecated use CBParse method instead
-     */
-    public static String string2Hex(String orig)
-    {
-        StringBuffer ret = new StringBuffer(orig.length() * 2);
-        char[] c = orig.toCharArray();
-        for (int i = 0; i < c.length; i++)
-        {
-            ret.append(CBParse.char2Hex(c[i]));
-        }
-        return ret.toString();
-    }
-
-    /**
-     * @deprecated use CBParse method instead
-     */
-    static public String byte2Hex(byte b)
-    {
-        // Returns hex String representation of byte b
-        final char hexDigit[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
-        char[] array = {hexDigit[(b >> 4) & 0x0f], hexDigit[b & 0x0f]};
-        return new String(array);
-    }
-
-    /**
-     * @deprecated use CBParse method instead
-     */
-    static public String char2Hex(char c)
-    {
-        // Returns hex String representation of char c
-        byte hi = (byte) (c >>> 8);
-        byte lo = (byte) (c & 0xff);
-        return CBParse.byte2Hex(hi) + CBParse.byte2Hex(lo);
-    }
-
-    /**
-     * @deprecated use CBParse method instead
-     */
-    static public byte hex2Byte(char hex1, char hex2)
-    {
-        byte a = CBParse.hexChar2Byte(hex1);
-        byte b = CBParse.hexChar2Byte(hex2);
-        return (byte) ((a << 4) + b);
-    }
-
-    /**
-     * Convert a single character to a byte...
-     *
-     * @deprecated use CBParse method instead
-     */
-
-    static public byte hexChar2Byte(char hex)
-    {
-        if (hex <= '9')
-            return ((byte) (hex - 48)); // ('0' -> '9')
-        else if (hex <= 'F')
-            return ((byte) (hex - 55)); // ('A' -> 'F')
-        else
-            return ((byte) (hex - 87)); // ('a' -> 'f')
-    }
-
-    /**
-     * From Van Bui - prints out a hex string formatted with
-     * spaces between each hex word of length wordlength.
-     *
-     * @param in         input array of bytes to convert
-     * @param wordlength the length of hex words to print otu.
-     * @deprecated use CBParse method instead
-     */
-    public static String bytes2HexSplit(byte[] in, int wordlength)
-    {
-        String hex = CBParse.bytes2Hex(in);
-        StringBuffer buff = new StringBuffer();
-
-        for (int i = 0; i < hex.length(); i++)
-        {
-            buff.append(hex.charAt(i));
-            if ((i + 1) % wordlength == 0)
-                buff.append(" ");
-        }
-
-        return buff.toString();
-    }
-
-    /**
-     * From Van Bui - prints out a hex string formatted with
-     * spaces between each hex word of length wordlength, and
-     * new lines every linelength.
-     *
-     * @param in         input array of bytes to convert
-     * @param wordlength the length of hex words to print otu.
-     * @param linelength the length of a line to print before inserting
-     *                   a line feed.
-     * @deprecated use CBParse method instead
-     */
-
-    public static String bytes2HexSplit(byte[] in, int wordlength, int linelength)
-    {
-        String hex = CBParse.bytes2Hex(in);
-        StringBuffer buff = new StringBuffer();
-
-        for (int i = 0; i < hex.length(); i++)
-        {
-            buff.append(hex.charAt(i));
-            if ((i + 1) % wordlength == 0)
-                buff.append(" ");
-            if ((i + 1) % linelength == 0)
-                buff.append("\n");
-        }
-
-        return buff.toString();
-    }
-
-    /**
-     * Determines whether a given byte sequence is a valid utf-8
-     * encoding.  While this does not mean that the byte *is* a
-     * utf-8 encoded string, the chance of a random byte sequence
-     * happening to be utf8 is roughly (1/2 ** (byte array length)).<p>
-     * Note that '7 bit ascii' is *always* a valid utf-8 string...<p>
-     * see rfc 2279
-     *
-     * @deprecated use CBParse method instead
-     */
-    public static boolean isUTF8(byte[] sequence)
-    {
-        boolean debug = false;
-        if (debug) log.warning("\n\n Starting UTF8 Check\n\n");
-        int numberBytesInChar;
-
-        for (int i = 0; i < sequence.length; i++)
-        {
-            byte b = sequence[i];
-            if (debug) System.out.println("testing byte: " + CBParse.byte2Hex(b));
-            if (((b >> 6) & 0x03) == 2)
-            {
-                if (debug) System.out.println("start byte is invalid utf8 - has 10... start");
-                return false;
-            }
-            byte test = b;
-            numberBytesInChar = 0;
-            while ((test & 0x80) > 0)
-            {
-                test <<= 1;
-                numberBytesInChar++;
-            }
-
-            if (numberBytesInChar > 1)  // check that extended bytes are also good...
-            {
-                for (int j = 1; j < numberBytesInChar; j++)
-                {
-                    if (i + j >= sequence.length)
-                    {
-                        if (debug) System.out.println("following byte length is invalid - overruns end... ");
-                        return false;           // not a character encoding - probably random bytes
-                    }
-                    if (debug) System.out.println("testing byte: " + CBParse.byte2Hex(sequence[i + j]));
-                    if (((sequence[i + j] >> 6) & 0x03) != 2)
-                    {
-                        if (debug) System.out.println("following byte is invalid utf8 - does *not* have 10... start");
-                        return false;
-                    }
-                }
-                i += numberBytesInChar - 1;  // increment i to the next utf8 character start position.
-            }
-        }
-
-        return true;
-    }
-
-    /**
-     * Determines whether a given byte sequence is a valid utf-8
-     * encoding, encoding (at least in part) something *other* than
-     * normal Ascii (i.e.
-     * it is utf-8 encoding something that is not just 7-bit ascii,
-     * which in utf-8 is indistinguishable from the original text).<p>
-     * <p/>
-     * While this does not mean that the bytes *are* a
-     * utf-8 encoded string, the chance of a random byte sequence
-     * (containing bytes with the high-bit set)
-     * happening to be utf8 is roughly (1/2 ** (byte array length)).<p>
-     * see rfc 2279
-     *
-     * @deprecated use CBParse method instead
-     */
-
-    public static boolean isNonAsciiUTF8(byte[] sequence)
-    {
-        log.finest("testing sequence for utf8: " + CBParse.bytes2Hex(sequence));
-        boolean nonAsciiDetected = false;
-
-        int numberBytesInChar;
-        for (int i = 0; i < sequence.length - 3; i++)
-        {
-            byte b = sequence[i];
-            if (((b >> 6) & 0x03) == 2) return false;
-            byte test = b;
-            numberBytesInChar = 0;
-            while ((test & 0x80) > 0)
-            {
-                test <<= 1;
-                numberBytesInChar++;
-            }
-
-            // check if multi-byte utf8 sequence found
-            if (numberBytesInChar > 1)  // check that extended bytes are also good...
-            {
-                nonAsciiDetected = true;
-                for (int j = 1; j < numberBytesInChar; j++)
-                {
-                    if (((sequence[i + j] >> 6) & 0x03) != 2)
-                        return false;
-                }
-                i += numberBytesInChar - 1;  // increment i to the next utf8 character start position.
-            }
-        }
-
-        return nonAsciiDetected;
-    }
-
-
-    /**
-     * This uses the implicit 'unicode marker' at the start of a
-     * Unicode file to determine whether a file is a unicode file.
-     * At the beginning of every unicode file is a two byte code
-     * indicating the endien-ness of the file (either FFFE or FEFF).
-     * If either of these sequences is found, this function returns
-     * true, otherwise it returns false.  <i>Technically</i> this isn't
-     * a sure test, since a) something else could have this signiture,
-     * and b) unicode files are not absolutely required to have this
-     * signiture (but most do).
-     *
-     * @deprecated use CBParse method instead
-     */
-
-    public static boolean isUnicode(byte[] sequence)
-    {
-        if (sequence.length >= 2)
-        {
-            if (sequence[0] == (byte) 0xFF && sequence[1] == (byte) 0xFE) return true;
-            if (sequence[0] == (byte) 0xFE && sequence[1] == (byte) 0xFF) return true;
-        }
-        return false;
-    }
-
     /*
      *    Some refugees from com.ca.pki.util.StaticUtil
      */
@@ -1410,10 +1218,208 @@ public class CBUtility
             }
             catch (ClassCastException e)
             {
-                System.out.println("Error sorting values - invalid string in sort." + e);
+                //System.out.println("Error sorting values - invalid string in sort." + e);
                 return 0;
             }
         }
+    }
+
+
+    /**
+     * Test for solaris (usually to disable features that appear to be more than
+     * usually broken on that platform - e.g. drag and drop).
+     */
+
+    public static boolean isSolaris()
+    {
+        String os = System.getProperty("os.name");
+        if (os == null) return false;
+
+        os = os.toLowerCase();
+        if (os.indexOf("sun") > -1) return true;
+        if (os.indexOf("solaris") > -1) return true;
+        return false;
+    }
+
+
+    /**
+     * Test for Linux (usually to disable features that appear to be more than
+     * usually broken on that platform - e.g. JAVA L&F).
+     *
+     * @return true if Linux OS, false otherwise.
+     */
+
+    public static boolean isLinux()
+    {
+        String os = System.getProperty("os.name");
+
+        if (os != null && os.toLowerCase().indexOf("linux") > -1)
+            return true;
+
+        return false;
+    }
+
+    /**
+     * Test for Linux (usually to disable features that appear to be more than
+     * usually broken on that platform - e.g. JAVA L&F).
+     *
+     * @return true if Linux OS, false otherwise.
+     */
+
+    public static boolean isMac()
+    {
+        String os = System.getProperty("mrj.version"); // mac specific call as per http://developer.apple.com/technotes/tn/tn2042.html
+        return (os != null);
+    }
+
+    /**
+     * Test for Windows (usually to disable features that appear to be more than
+     * usually broken on that platform - e.g. JAVA L&F).
+     *
+     * @return true if Windows OS, false otherwise.
+     */
+
+    public static boolean isWindows()
+    {
+        String os = System.getProperty("os.name"); // mac specific call as per http://developer.apple.com/technotes/tn/tn2042.html
+
+        if (os != null && os.toLowerCase().indexOf("win") > -1)
+            return true;
+
+        return false;
+    }
+
+    public static boolean isWindowsVistaOrBetter()
+    {
+        if (isWindows())
+        {
+            String version = System.getProperty("os.version");
+            Float versionF = new Float(version);
+            if (versionF >= 6)
+                return true;
+        }
+        return false;
+    }
+
+
+    /**
+     * Checks if we have write permissions to a potential configuration directory.
+     * If we have theoretical write permission, but the actual directory doesn't exist, create it.
+     *
+     * @param workingDirectory
+     * @return
+     */
+    public static boolean checkAndCreateWorkingDirectory(String workingDirectory)
+    {
+        File jx = new File(workingDirectory);
+
+        //TODO: there's probably a neater way of doing this; can't use jx.canWrite() as the file may not exist yet -
+        //TODO: could try checking the parent directory, but what if it doesn't exist??  Stuff it - stick with this for now. - CB '12
+
+        try
+        {
+            if (!jx.exists())
+                jx.mkdirs();
+
+            File testFile = new File(jx, "jx_file_write.test");
+
+            if (testFile.exists())
+                testFile.delete();
+
+
+            FileOutputStream out = new FileOutputStream(testFile);
+            out.write("bloop".getBytes());
+            out.close();
+
+        }
+        catch (Exception e)
+        {
+            //e.printStackTrace();
+            log.warning("ERROR: unable to save config or store user data in " + workingDirectory + " (may try elsewhere)");
+            return false;
+        }
+        return true;
+    }
+
+
+    /**
+     * Where JX stores its config files is a vexed issue; many systems (esp. Windows) want applications to store
+     * config in a separate area, well away from the app directory, for a variety of historical, management and
+     * security reasons.  Personally, I like having all my config files in the same directory; it makes moving
+     * applications very easy and for a cross platform app it reduces all the hunting around for files.
+     * <p/>
+     * *However* the latest versions of windows prevent apps from writing to their own directories, so I guess
+     * we'd better accomodate them.
+     * <p/>
+     * This function checks if we have write permission to our directory, and if not attempts (on windows Vista/7) to
+     * create a directory in APPDATA/jxplorer, or %USER%/Library/Application Support/jxplorer on OSX.
+     * <p/>
+     * The user may also force this behaviour either by setting -Djxplorer.config=home, or may specify an explicit
+     * path using -Djxplorer.config=my/path/here.
+     *
+     * @param applicationName the name of the application to get the config file for.  (May be used on windows/OSX to create
+     * a new directory as .../Application Support/appname (Windows) or ~user/Libarary/appname (OSX) - 
+     * @return
+     */
+    public static String getConfigDirectory(String applicationName)
+    {
+        if (defaultConfigDirectory != null)
+            return defaultConfigDirectory;
+        
+        boolean forceUseOfApplicationsDir = false;
+        if (System.getProperty(applicationName + ".config") != null)
+        {
+            defaultConfigDirectory = System.getProperty(applicationName + ".config");
+            if (defaultConfigDirectory.equalsIgnoreCase("home") || defaultConfigDirectory.equalsIgnoreCase("user.home"))
+            {
+                forceUseOfApplicationsDir = true;
+            }
+            else
+            {
+                if (checkAndCreateWorkingDirectory(defaultConfigDirectory))
+                    return defaultConfigDirectory;
+            }
+        }
+
+        // by default, try to save in the app directory...
+        if (!forceUseOfApplicationsDir)
+        {
+            defaultConfigDirectory = System.getProperty("user.dir") + File.separator;
+            if (checkAndCreateWorkingDirectory(defaultConfigDirectory))
+                return defaultConfigDirectory;
+            System.out.println("unable to use user.dir");
+        }
+
+        // we can't write to our 'normal' directory - see if we're on recent Windows ...
+        if (isWindowsVistaOrBetter())
+        {
+            System.out.println("On Windows");
+            //TODO: Confirm getenv??
+            defaultConfigDirectory = System.getenv("APPDATA") + File.separator + applicationName + File.separator;
+            if (checkAndCreateWorkingDirectory(defaultConfigDirectory))
+                return defaultConfigDirectory;
+            System.out.println("unable to use windows default dir: " + defaultConfigDirectory);
+            
+            //log.severe("ERROR: unable to save config or store user data in Windows Directory: " + workingDirectory);
+        }
+        else if (isMac())  // TODO: this doesn't seem to work??
+        {
+            defaultConfigDirectory = System.getProperty("user.home") + File.separator + "Library" + File.separator + applicationName +  File.separator;
+//            workingDirectory = System.getProperty("user.home") + File.separator + "Library" + File.separator + "Application Support" + File.separator + "jxplorer" + File.separator;
+            if (checkAndCreateWorkingDirectory(defaultConfigDirectory))
+                return defaultConfigDirectory;
+
+            //log.severe("ERROR: unable to save config or store user data in OSX Directory: " + workingDirectory);
+
+        }
+
+        // try default 'user home' location...
+        defaultConfigDirectory = System.getProperty("user.home") + File.separator + applicationName;
+        if (checkAndCreateWorkingDirectory(defaultConfigDirectory))
+            return defaultConfigDirectory;
+
+        log.severe("ERROR: unable to save config or store user data - running on defaults only.  \nChange permissions in app directory or manually set a writeable configuration directory on the command line to fix.");
+        return "";
     }
 
     /**
@@ -1424,54 +1430,16 @@ public class CBUtility
      * location in the user.dir directory the program is run from.
      *
      * @param configFileName the name of the actual file - e.g. "bookmarks.txt"
-     * 
      * @return the property config path
      */
-    public static String getPropertyConfigPath(String configFileName)
+    public static String getPropertyConfigPath(String applicationName, String configFileName)
     {
-        String pathToConfigFile;
+        String configDir = getConfigDirectory(applicationName) + configFileName;
 
-        // the potential path to a config file in the user home directory
-        String userHomeConfigDir = System.getProperty("user.home") + File.separator + "jxplorer";
-        String userHomeConfigFilePath = userHomeConfigDir + File.separator + configFileName;
+        log.fine("USING CONFIG DIR: " + configDir);
 
-        // the default config location is to the directory JXplorer is run from.
-        String defaultConfigFilePath = System.getProperty("user.dir") + File.separator + configFileName;
+        return configDir;
 
-        // see if a config file has been explicitly set
-        if (System.getProperty("jxplorer.config") != null)
-        {
-            pathToConfigFile = System.getProperty("jxplorer.config");
-
-            // check if we are being forced to use the user.home directory (we will create the file if it
-            // doesn't exist)
-            if (pathToConfigFile.equalsIgnoreCase("home") || pathToConfigFile.equalsIgnoreCase("user.home"))
-            {
-                // quick sanity check that there is a 'jxplorer' config directory under user home for us to save to
-                File configDir = new File(userHomeConfigDir);
-                if (configDir.exists() == false)
-                {
-                    configDir.mkdir(); // - if not, we'll create it.
-                }
-
-                return userHomeConfigFilePath;
-            }
-            // otherwise return the parameter - again we will create it if it doesn't exist
-            if (pathToConfigFile.endsWith(File.separator))
-                return pathToConfigFile + configFileName;
-            else
-                return pathToConfigFile + File.separator + configFileName;
-        }
-
-        // try the user home directory next... if the user home directory config file exists read the config from there
-        if (new File(userHomeConfigFilePath).exists())
-        {
-            return userHomeConfigFilePath;
-        }
-
-        // if there is no config file in the user.home directory, and we haven't been told otherwise, default to
-        // the directory JXplorer is run from.
-        return defaultConfigFilePath;
     }
 
     /**
@@ -1480,7 +1448,7 @@ public class CBUtility
      *
      * @param log
      * @return the active working log level - e.g. whether a particular log call will be called because this,
-     * or a parent, logger is set to a particular log level.
+     *         or a parent, logger is set to a particular log level.
      */
     public static Level getTrueLogLevel(Logger log)
     {
@@ -1498,4 +1466,34 @@ public class CBUtility
 
         return Level.ALL;
     }
+
+    /**
+     * (Copied from stackoverflow).  Utility method for copying an arbitrary file.
+     * @param sourceFile
+     * @param destFile
+     * @throws IOException
+     */
+    public static void copyFile(File sourceFile, File destFile) throws IOException {
+        if(!destFile.exists()) {
+            destFile.createNewFile();
+        }
+
+        FileChannel source = null;
+        FileChannel destination = null;
+
+        try {
+            source = new FileInputStream(sourceFile).getChannel();
+            destination = new FileOutputStream(destFile).getChannel();
+            destination.transferFrom(source, 0, source.size());
+        }
+        finally {
+            if(source != null) {
+                source.close();
+            }
+            if(destination != null) {
+                destination.close();
+            }
+        }
+    }
+
 }

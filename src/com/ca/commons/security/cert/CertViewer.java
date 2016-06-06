@@ -285,8 +285,8 @@ public class CertViewer extends CBDialog
 
         displayCert(cert);  // setup tab panes.
 
-        saveButton = new CBButton(CBIntText.get("Copy to File"), CBIntText.get("Copy to File."));
-        loadButton = new CBButton(CBIntText.get("Read from File"), CBIntText.get("Read from File."));
+        saveButton = new CBButton(CBIntText.get("Copy to File"), CBIntText.get("Copy to File"));
+        loadButton = new CBButton(CBIntText.get("Read from File"), CBIntText.get("Read from File"));
 
         // Since this inherits from CBDialog, it already has 'ok' and
         // 'cancel'buttons; depending on what mode we're in, we will

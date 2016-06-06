@@ -11,6 +11,7 @@ import javax.net.ssl.SSLSocketFactory;
 
 import java.security.*;
 import java.awt.*;
+import java.util.ArrayList;
 
 import javax.net.ssl.*;    // jdk 1.4 includes ssl in standard distro
 
@@ -96,7 +97,7 @@ public class JXSSLSocketFactory extends SSLSocketFactory
         return myClassLoader;
     }
 
-
+    static boolean debug = false;
 
     /**
      *  <p>Enable debugging...</p>
@@ -123,6 +124,8 @@ public class JXSSLSocketFactory extends SSLSocketFactory
             record debugging can be widened with:
             plaintext   hex dump of record plaintext
         */
+
+        debug = true;
 
         if (status == true)
             System.setProperty("javax.net.debug", "ssl,handshake,verbose");
@@ -456,35 +459,46 @@ public class JXSSLSocketFactory extends SSLSocketFactory
      */
 	private static void optionallySetSSLSocketProtocol(SSLSocket newSocket)
 	{
-        //DEBUG
-        /*
-        String[] enabledProtocols = newSocket.getEnabledProtocols();
-        for (int i=0; i<enabledProtocols.length; i++)
+        if (debug)
         {
-            System.out.println("Enabled Protocol: " + i + " = " + enabledProtocols[i]);
+            String[] enabledProtocols = newSocket.getEnabledProtocols();
+            for (int i = 0; i < enabledProtocols.length; i++)
+            {
+                System.out.println("Available SSL Protocol: " + i + " = " + enabledProtocols[i]);
+            }
         }
-        */
 
-        String protocol = System.getProperty("option.ssl.protocol");
+        String protocol = System.getProperty("option.ssl.protocol");  // may be 'TLS', 'TLSv1', 'TLSv1,TLSv1.1', 'any' etc.
         if (protocol.equalsIgnoreCase("any"))
              return;  // nothing to do
 
-        System.out.println("DEBUG: setting SSL to use only '" + protocol + "' ssl protocol");
-
-        // reads supported protocols; e.g. "{SSLv2Hello, SSLv3, TLSv1}"
+        // reads supported protocols; e.g. one of {SSLv2Hello(2), SSLv3, TLSv1, TLSv1.1, TLSv1.2}
         String[] availableProtocols = newSocket.getSupportedProtocols();
+        ArrayList<String> protocolsToSet = new ArrayList<String>();
 
-        for (int i=0; i<availableProtocols.length; i++)
+        for (int i=0; i<availableProtocols.length; i++)  //iterates through available protocols, e.g. 'SSLv2Hello(1)', 'SSLv3' etc.
         {
-            if (availableProtocols[i].equals(protocol))
+            String anAvailableProtocol = availableProtocols[i];
+            if (protocol.contains(anAvailableProtocol) || anAvailableProtocol.startsWith(protocol))  // do exact match, or begins with
             {
-                newSocket.setEnabledProtocols(new String[] {protocol});
-                return;
+                protocolsToSet.add(anAvailableProtocol);
+                if (debug) System.out.println("SSL: enabling protocol '" + anAvailableProtocol + "'");
             }
         }
-        System.out.println("WARNING: Unable to set SSL to use '" + protocol + "'.  Available Protocols are:");
-        for (int i=0; i<availableProtocols.length; i++)
-            System.out.println(availableProtocols[i]);
+
+        if (protocolsToSet.size()==0)
+        {
+            System.out.println("WARNING: Unable to set SSL to use '" + protocol + "'.  Available Protocols are:");
+            for (int i=0; i<availableProtocols.length; i++)
+                System.out.println(availableProtocols[i]);
+
+        }
+        else
+        {
+            String[] protocols = protocolsToSet.toArray(new String[]{});
+
+            newSocket.setEnabledProtocols(protocols);
+        }
 	}
 
 

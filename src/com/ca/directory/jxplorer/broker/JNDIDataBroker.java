@@ -2,6 +2,7 @@ package com.ca.directory.jxplorer.broker;
 
 import javax.naming.*;
 import javax.naming.directory.*;
+import javax.naming.ldap.LdapContext;
 
 
 import java.util.*;
@@ -29,7 +30,6 @@ import com.ca.commons.jndi.*;
 
 public class JNDIDataBroker extends DataBroker
 {
-//  	private static final String DEFAULT_CTX = "com.sun.jndi.ldap.LdapCtxFactory";
     private static final int    SEARCHLIMIT = 0;
     private static final int    SEARCHTIMEOUT = 0;
 
@@ -54,9 +54,19 @@ public class JNDIDataBroker extends DataBroker
 
     public static final int SEARCH_SUB_TREE = 2;
 
-  	private DirContext ctx;
-//    private DirContext schemactx;
-//    private Attributes schemaOps;
+    /**
+     *    Magic value for search filters that returns only the DN of an entry
+     */
+
+    public static final String[] RETURN_ONLY_DN = new String[] {"1.1"};
+
+    /**
+     *    Magic value for search filters that returns all entries
+     */
+    public static final String RETURN_ALL_ENTRIES = "(objectClass=*)";
+
+  	private LdapContext ctx;
+
     private boolean tracing = false;
     private boolean connectionError = true;
 
@@ -68,6 +78,7 @@ public class JNDIDataBroker extends DataBroker
 
   	int limit   = SEARCHLIMIT;             			// default number of results returned.
     int timeout = SEARCHTIMEOUT;           			// default timeout.
+    boolean pagedResults = false;                   // whether to us LDAP paged results handling for large data sets
 
     static int threadID = 1;               			// debug identifier for thread tracking
     static final boolean DEBUGTHREADS = false; 		// debug flag for threadiness
@@ -79,6 +90,10 @@ public class JNDIDataBroker extends DataBroker
 
     private final static Logger log = Logger.getLogger(JNDIDataBroker.class.getName());
 
+    protected static boolean lockReadOnly = false;  // whether the entire browser should be 'locked' into read only mode.
+    protected boolean readOnly = false;             // whether to allow write access to the directory - note, this is for convenience, not security!  It prevents accidental modification only.
+
+
    /**
 	*  	Helper class for DataBroker, this encapsulates an ldap-like connection
 	*  	request that is placed on the DataBroker queue for eventual resolution.
@@ -89,7 +104,6 @@ public class JNDIDataBroker extends DataBroker
     public class DataConnectionQuery extends DataQuery
     {
 		public final ConnectionData conData;
-
 
 	   /**
 		*   Defines a request to open a connection to an LDAP (only) server.
@@ -104,9 +118,9 @@ public class JNDIDataBroker extends DataBroker
 
             setExtendedData("version", String.valueOf(conData.version));
             setExtendedData("url", conData.getURL());
+
+            readOnly = lockReadOnly?true:conData.readOnly;
 		}
-
-
 
 	   /**
 		*    Utility name translation method
@@ -116,6 +130,23 @@ public class JNDIDataBroker extends DataBroker
         {
             return super.getTypeString() + " Connection Request";
         }
+    }
+
+    /**
+     * Forces ALL jndi brokers to be read only, regardless of what is set in the connection data.
+     */
+    public static void lockToReadOnlyMode()
+    {
+        lockReadOnly = true;
+    }
+
+    /**
+     * Returns whether this data broker only allows 'read' operations, and has disabled all directory 'write' applications.
+     * @return
+     */
+    public boolean isReadOnly()
+    {
+        return readOnly;
     }
 
 
@@ -157,16 +188,19 @@ public class JNDIDataBroker extends DataBroker
     public void registerDirectoryConnection(JNDIDataBroker cloneMe)
     {
         ctx = cloneMe.ctx;
-//        schemaOps = cloneMe.schemaOps;
+//      schemaOps = cloneMe.schemaOps;
         tracing = cloneMe.tracing;
         connectionError = cloneMe.connectionError;
         attributeNames = cloneMe.attributeNames;
 
         limit   = cloneMe.limit;
         timeout = cloneMe.timeout;
+        pagedResults = cloneMe.pagedResults;
 
         dirOps = cloneMe.dirOps;
         schemaOps = cloneMe.schemaOps;
+
+        readOnly = cloneMe.readOnly;
 
         specialObjectClasses = cloneMe.specialObjectClasses;  // OS390 hack
     }
@@ -365,8 +399,8 @@ public class JNDIDataBroker extends DataBroker
         }
         catch (Exception e)
         {
-            request.setException(e);
             e.printStackTrace();
+            request.setException(e);
         }
     }
 
@@ -383,35 +417,9 @@ public class JNDIDataBroker extends DataBroker
         disconnect(); // clear out any existing cobwebs...
 
 		ConnectionData cData = request.conData;
-
-        String url = cData.url;
-
-        connectionError = false;
-
-        ctx = null;    // null the current directory context (can't be used again).
-
-        //  Try to get a directory context using above info.
-
         try
         {
-            dirOps = new CBGraphicsOps(cData);        	// this wraps up ctx for basic operations
-            ctx = dirOps.getContext();
-
-            if (ctx == null)
-                throw new NamingException("unable to open connection: unknown condition, no error returned.");
-
-            // make a bogus, fast, directory request to trigger some activity on the context.  Without this the
-            // context may *appear* to be open since jndi sometimes won't actually try to use it until a request is made
-            // (e.g. with DSML, SSL connections etc.)
-
-            String base = (request.conData.baseDN==null)?"":request.conData.baseDN;
-
-            //XXX bogus request failing - why??? (ans SASL error in jdk 1.4.0 - 1.4.1)
-            //ctx.search(base, "objectClass=*", new SearchControls(SearchControls.OBJECT_SCOPE, 0, 0, new String[]{}, false, false));
-            if (dirOps.exists(base) == false)
-                cData.baseDN = getActualDN(cData.baseDN);	//TE: (for bug 2363) - try to solve case sensitive DN problem.
-
-            // At this stage we should have a valid ldap context
+            openConnection(cData);
         }
         // can throw NamingException, GeneralSecurityException, IOException
         catch (Exception ne)        // An error has occurred.  Exit connection routine
@@ -424,9 +432,70 @@ public class JNDIDataBroker extends DataBroker
             return request;
         }
 
+
+        request.setStatus(true); 		// success!
+        request.finish();
+        return request;
+ 	}
+
+    /**
+     * This partially initialises the JNDI Broker by directly applying a context.
+     * (to be used for internal test cases only).
+     * @param testCtx
+     * @throws Exception
+     */
+    public void openTestConnection(LdapContext testCtx)
+            throws Exception
+    {
+        ctx = testCtx;
+        dirOps = new CBGraphicsOps(ctx);
+//        schemaOps = new SchemaOps(ctx);
+
+    }
+
+    /**
+     * This initialises the JNDIDataBroker with an active LDAP connection.
+     * Within 'normal JXplorer' this is usually called as the result of the evaluation of a
+     * DataConnectionQuery being picked up from the query queue and being executed by
+     * 'openConnection(DataConnectionQuery)', but it can also be executed directly by
+     * unthreaded code that wants to create a JNDIDataBroker directly (note however that this
+     * method may block for a minute or more if the LDAP server is unresponsive.)
+     * @param cData a connection data object.
+     * @throws Exception
+     */
+    public void openConnection(ConnectionData cData)
+              throws Exception
+    {
+        String url = cData.url;
+
+        connectionError = false;
+
+        ctx = null;    // null the current directory context (can't be used again).
+
+        //  Try to get a directory context using above info.
+
+        dirOps = new CBGraphicsOps(cData);        	// this wraps up ctx for basic operations
+        ctx = dirOps.getContext();
+
+        if (ctx == null)
+            throw new NamingException("unable to open connection: unknown condition, no error returned.");
+
+        // make a bogus, fast, directory request to trigger some activity on the context.  Without this the
+        // context may *appear* to be open since jndi sometimes won't actually try to use it until a request is made
+        // (e.g. with DSML, SSL connections etc.)
+
+        String base = (cData.baseDN==null)?"":cData.baseDN;
+
+        //XXX bogus request failing - why??? (ans SASL error in jdk 1.4.0 - 1.4.1)
+        //ctx.search(base, "objectClass=*", new SearchControls(SearchControls.OBJECT_SCOPE, 0, 0, new String[]{}, false, false));
+        if (dirOps.exists(base) == false)
+            cData.baseDN = getActualDN(cData.baseDN);	//TE: (for bug 2363) - try to solve case sensitive DN problem.
+
+        // At this stage we should have a valid ldap context
+
         try
         {
-            schemaOps = new SchemaOps(ctx); 
+            schemaOps = new SchemaOps(ctx);
         }        		// this wraps up ctx for basic operations
         catch (NamingException e)
         {
@@ -457,12 +526,7 @@ public class JNDIDataBroker extends DataBroker
             log.info("Successfully connected to " + url + " using " + cData.protocol + " version 2");
         else
             log.info("Successfully connected to " + url + " using " + cData.protocol + " version " + cData.version);
-
-        request.setStatus(true); 		// success!
-        request.finish();
-        return request;
- 	}
-	
+}
 	
 
    /**
@@ -668,6 +732,14 @@ public class JNDIDataBroker extends DataBroker
 
     public void setTimeout(int maxTime) { timeout = maxTime; }
 
+    public void setPaging(boolean usePaging, int pageSize)
+    {
+        pagedResults = usePaging;
+        if (usePaging)
+            JNDIOps.setPageSize(pageSize);
+        else
+            JNDIOps.setPageSize(JNDIOps.NO_PAGING); // if we're not using paging, ignore page size
+    }
 
 
    /**
@@ -769,6 +841,9 @@ public class JNDIDataBroker extends DataBroker
     public void deleteTree(DN nodeDN)
         throws NamingException
     {
+        if (readOnly)
+            throw new NamingException(CBIntText.get("JXplorer is in read only mode; no directory modifications allowed"));
+
          dirOps.deleteTree(nodeDN);
     }
 
@@ -786,6 +861,9 @@ public class JNDIDataBroker extends DataBroker
     public void moveTree(DN oldNodeDN, DN newNodeDN)       // may be a single node.
         throws NamingException
     {
+        if (readOnly)
+            throw new NamingException(CBIntText.get("JXplorer is in read only mode; no directory modifications allowed"));
+
         dirOps.moveTree(oldNodeDN, newNodeDN);
     }
 
@@ -802,7 +880,9 @@ public class JNDIDataBroker extends DataBroker
     public void unthreadedCopy(DN oldNodeDN, DN newNodeDN)       // may be a single node.
         throws NamingException
     {
-        dirOps.copyTree(oldNodeDN, newNodeDN);
+        if (readOnly)
+            throw new NamingException(CBIntText.get("JXplorer is in read only mode; no directory modifications allowed"));
+        dirOps.copyTree(oldNodeDN, newNodeDN, true);  // TODO: check if we need more sophisticated handling of DN renaming...
     }
 
 
@@ -963,13 +1043,16 @@ public class JNDIDataBroker extends DataBroker
 
    /**
     *  	Update an entry with the designated DN.
-    * 	@param oldEntry the old entry containing teh old set of attributes.
+    * 	@param oldEntry the old entry containing the old set of attributes.
     *  	@param newEntry the new entry containing the replacement set of attributes.
     */
 
     public void unthreadedModify(DXEntry oldEntry, DXEntry newEntry)
         throws NamingException
     {
+        if (readOnly)
+            throw new NamingException(CBIntText.get("JXplorer is in read only mode; no directory modifications allowed"));
+
         if (useSpecialWriteAllAttsMode()) // do magic for Mitch
             doSpecialWriteAllAttsHandling(oldEntry, newEntry);
         else
@@ -1020,9 +1103,9 @@ public class JNDIDataBroker extends DataBroker
             mods = new ModificationItem[dels.size() + reps.size() + adds.size()];
 
             int modIndex = 0;
-            modIndex = loadMods(mods, dels.getAll(), DirContext.REMOVE_ATTRIBUTE, modIndex);
-            modIndex = loadMods(mods, adds.getAll(), DirContext.ADD_ATTRIBUTE, modIndex);
-            modIndex = loadMods(mods, reps.getAll(), DirContext.REPLACE_ATTRIBUTE, modIndex);
+            modIndex = loadMods(mods, dels.getAll(), LdapContext.REMOVE_ATTRIBUTE, modIndex);
+            modIndex = loadMods(mods, adds.getAll(), LdapContext.ADD_ATTRIBUTE, modIndex);
+            modIndex = loadMods(mods, reps.getAll(), LdapContext.REPLACE_ATTRIBUTE, modIndex);
 
             dirOps.modifyAttributes(nodeDN, mods);
         }
@@ -1120,7 +1203,7 @@ public class JNDIDataBroker extends DataBroker
 
     public boolean isModifiable()
     {
-        return true;
+        return (!readOnly);
     }
 
 
@@ -1175,12 +1258,15 @@ public class JNDIDataBroker extends DataBroker
 	*/
 
     public void modifyAttributes(DN dn, ModificationItem[] mods)
-        throws AttributeModificationException, NamingException
+        throws NamingException
     {
-            if (ctx == null)
-                throw new NamingException("no directory context to work with");
+        if (ctx == null)
+            throw new NamingException("no directory context to work with");
 
-            ctx.modifyAttributes(dn, mods);
+        if (readOnly)
+            throw new NamingException(CBIntText.get("JXplorer is in read only mode; no directory modifications allowed"));
+
+        ctx.modifyAttributes(dn, mods);
     }
 
    /**
@@ -1209,7 +1295,7 @@ public class JNDIDataBroker extends DataBroker
     *	@return the directory operations object.
 	*/
 
-    public CBGraphicsOps getDirOp() { return dirOps; }
+    // public CBGraphicsOps getDirOp() { return dirOps; }
 
 
 
@@ -1217,8 +1303,34 @@ public class JNDIDataBroker extends DataBroker
     *	@return the directory operations context.
 	*/
 
-    public DirContext getDirContext() { return (dirOps==null)?null:dirOps.getContext(); }
+    public LdapContext getLdapContext()
+        throws NamingException
+    {
+        if (readOnly)
+            throw new NamingException(CBIntText.get("JXplorer is in read only mode; no directory modifications allowed"));
 
+        return (dirOps==null)?null:dirOps.getContext();
+    }
+
+
+    /**
+     * Adds the provided LDAP environement values (e.g. 'java.naming.ldap.derefAliases=finding')
+     * to the underlying LDAP context.
+     *
+     * @param key
+     * @param value
+     * @throws NamingException
+     */
+    public void addToEnvironment(String key, String value)
+            throws NamingException
+    {
+        if (dirOps != null && dirOps.getContext() != null)
+        {
+            dirOps.getContext().addToEnvironment(key, value);
+        }
+        else
+            throw new NamingException("Unable to set environement variables; no valid environment found"); // unexpected exception
+    }
 
 
    /**
@@ -1227,7 +1339,8 @@ public class JNDIDataBroker extends DataBroker
 	*  	support this functionality, but some include a
 	*  	<i>namingcontexts</i> attribute for their empty
 	*  	entry...
-	*  	@return the rootDN, or null if none was found.
+	*  	@return the rootDN, or null if none was found. Under rare circumstances this may return multiple roots,
+    *           however this will not always be handled gracefully!
 	*/
 
     public DN[] readFallbackRoot()
@@ -1296,7 +1409,7 @@ public class JNDIDataBroker extends DataBroker
         }
         catch( Exception e)
         {
-            log.warning("Unexpected exception setting search alias handling behaviour in context to " + JXConfig.getProperty("option.ldap.searchAliasBehaviour") + "\n    " + e);
+            log.warning("Unexpected Exception setting search alias handling behaviour in context to " + JXConfig.getProperty("option.ldap.searchAliasBehaviour") + "\n    " + e);
         }
     }
 
@@ -1328,5 +1441,7 @@ public class JNDIDataBroker extends DataBroker
     {
         return schemaOps;
     }
+
+    public String id() { return "JNDIDataBroker " + id;};
 
 }

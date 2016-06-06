@@ -12,7 +12,9 @@
 package com.ca.directory.jxplorer;
 
 
-/** 
+import java.security.SecureRandom;
+
+/**
 * This class provides a Java-based implementation of the unix crypt command.
 *
 * it was picked up from the web at 
@@ -575,7 +577,22 @@ public class jcrypt
       return(out);
    }
 
-   /**
+
+
+    static final String AB = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+
+    static SecureRandom rnd = new SecureRandom();
+
+    public static String randomString( int len ){
+        StringBuilder sb = new StringBuilder( len );
+        for( int i = 0; i < len; i++ )
+            sb.append( AB.charAt( rnd.nextInt(AB.length()) ) );
+        return sb.toString();
+    }
+
+
+
+    /**
    * Encrypts a passwd.
    *
    * @param original Password or key before encryption.
@@ -584,6 +601,10 @@ public class jcrypt
   */
    public static final String crypt( String original, String salt)
    {
+       if (salt==null || salt.length()==0)
+           salt = randomString(2);
+
+
 	  while(salt.length() < 2)
          salt += "A";
 
@@ -675,6 +696,8 @@ public class jcrypt
    */
    public static void main(String args[])
    {
+       System.out.println("test: " + jcrypt.crypt("helloworld", null));
+
       if(args.length >= 2)
       {
          System.out.println
@@ -682,6 +705,22 @@ public class jcrypt
             "[" + args[0] + "] [" + args[1] + "] => [" +
             jcrypt.crypt(args[1], args[0]) + "]"
          );
+      }
+      else
+      {
+          if (!"0pnSC65.QhkYc".equals(jcrypt.crypt("helloworld", "0p")))
+              System.out.println("ERROR - jcrypt source corrupted");
+
+          if (!"kiV2nC14UfcK6".equals(jcrypt.crypt("good4you?", "ki")))
+              System.out.println("ERROR - jcrypt source corrupted");
+
+
+          //"helloworld", "0p"
+         System.out.println
+                 (
+                         "[helloworld] [0p] => [" +
+                                 jcrypt.crypt("helloworld", "0p") + "]"
+                 );
       }
    }
 }

@@ -8,7 +8,7 @@ package com.ca.commons.naming;
 
 import junit.framework.*;
 import javax.naming.directory.BasicAttribute;
-import javax.naming.directory.DirContext;
+import javax.naming.ldap.LdapContext;
 import javax.naming.directory.Attributes;
 import javax.naming.directory.Attribute;
 import javax.naming.NamingException;
@@ -110,8 +110,8 @@ public class DXAttributesTest extends TestCase
     {
         ConnectionData cData = new ConnectionData();
         cData.setURL("ldap://betch01:19389");
-        DirContext ctx = BasicOps.openContext(cData);
-        //DirContext ctx = BasicOps.openContext("ldap://betch01:19389");
+        LdapContext ctx = BasicOps.openContext(cData);
+        //LdapContext ctx = BasicOps.openContext("ldap://betch01:19389");
         DXAttributes a = new DXAttributes(ctx.getAttributes("ou=Manufacturing,o=DEMOCORP,c=AU"));
         SchemaOps schemaOps = new SchemaOps(ctx);
         ctx.addToEnvironment("java.naming.ldap.attributes.binary", schemaOps.getNewBinaryAttributes());
@@ -133,8 +133,8 @@ public class DXAttributesTest extends TestCase
     {
         ConnectionData cData = new ConnectionData();
         cData.setURL("ldap://betch01:19389");
-        DirContext ctx = BasicOps.openContext(cData);
-        //DirContext ctx = BasicOps.openContext("ldap://betch01:19389");
+        LdapContext ctx = BasicOps.openContext(cData);
+        //LdapContext ctx = BasicOps.openContext("ldap://betch01:19389");
         DXAttributes a = new DXAttributes(ctx.getAttributes("ou=Manufacturing,o=DEMOCORP,c=AU"));
         SchemaOps schemaOps = new SchemaOps(ctx);
         ctx.addToEnvironment("java.naming.ldap.attributes.binary", schemaOps.getNewBinaryAttributes());
@@ -155,13 +155,12 @@ public class DXAttributesTest extends TestCase
     {
         ConnectionData cData = new ConnectionData();
         cData.setURL("ldap://betch01:19389");
-        DirContext ctx = BasicOps.openContext(cData);
+        LdapContext ctx = BasicOps.openContext(cData);
 
-        //DirContext ctx = BasicOps.openContext("ldap://betch01:19389");
+        //LdapContext ctx = BasicOps.openContext("ldap://betch01:19389");
         DXAttributes a = new DXAttributes(ctx.getAttributes("ou=Manufacturing,o=DEMOCORP,c=AU"));
         SchemaOps schemaOps = new SchemaOps(ctx);
         ctx.addToEnvironment("java.naming.ldap.attributes.binary", schemaOps.getNewBinaryAttributes());
-//        DXAttributes.setDefaultSchema(schemaOps);
         DXAttribute.setDefaultSchema(schemaOps);
         a.expandAllAttributes();
     }
@@ -178,8 +177,8 @@ public class DXAttributesTest extends TestCase
     {
         ConnectionData cData = new ConnectionData();
         cData.setURL("ldap://betch01:19389");
-        DirContext ctx = BasicOps.openContext(cData);
-        //DirContext ctx = BasicOps.openContext("ldap://betch01:19389");
+        LdapContext ctx = BasicOps.openContext(cData);
+        //LdapContext ctx = BasicOps.openContext("ldap://betch01:19389");
         DXAttributes a = new DXAttributes(ctx.getAttributes("ou=Manufacturing,o=DEMOCORP,c=AU"));
         SchemaOps schemaOps = new SchemaOps(ctx);
         ctx.addToEnvironment("java.naming.ldap.attributes.binary", schemaOps.getNewBinaryAttributes());

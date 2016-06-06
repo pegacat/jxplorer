@@ -8,9 +8,7 @@ import java.net.URISyntaxException;
 import java.util.logging.Logger;
 
 
-import javax.swing.JLabel;
-import javax.swing.JPasswordField;
-import javax.swing.JTextField;
+import javax.swing.*;
 import javax.swing.border.TitledBorder;
 
 import com.ca.commons.jndi.ConnectionData;
@@ -35,10 +33,12 @@ public abstract class CBOpenConWin extends CBDialog
 
     protected JTextField hostName, port, baseDN, managerDN;
     protected CBJComboBox version, level;
-    //protected JCheckBox useSSL;                // whether to use SSL
+    protected JCheckBox readOnly;                // whether to open a read only connection.
     protected JPasswordField password;
-    protected JLabel hostLabel, portLabel, userMessage;
+    protected JLabel hostLabel, portLabel, userMessage, readOnlyLabel;
     protected CBSaveLoadTemplate myTemplater;
+
+    protected CBPanel securityPanel;
 
     static int threadID = 1;             // naming variable for thread debugging
     static final boolean DEBUGTHREADS = false;
@@ -60,6 +60,14 @@ public abstract class CBOpenConWin extends CBDialog
 
     private final static Logger log = Logger.getLogger(CBOpenConWin.class.getName());
 
+    protected String[] securityOptions = {
+            CBIntText.get("Anonymous"),
+            CBIntText.get("User + Password"),
+            CBIntText.get("SSL + Anonymous"),
+            CBIntText.get("SSL + User + Password"),
+            CBIntText.get("SSL + SASL + Keystore Password"),
+            CBIntText.get("GSSAPI") // Vadim: GSSAPI
+        };
 
     /**
      * <p>CBOpenConWin allows the user to open an ldap connection.  The jndiBroker
@@ -71,6 +79,7 @@ public abstract class CBOpenConWin extends CBDialog
      * <p/>
      *
      * @param owner         the owning frame (used for look and feel propagation etc.)
+     * @param applicationName the name of the application (used to find the config file on some systems)
      * @param statusDisplay a label used to give status feedback to the user.
      * @param clientcerts   the client certificate keystore (optional if 'simple ssl' is used).
      * @param cacerts       the trusted server certificate keystore (required for ssl)
@@ -80,10 +89,10 @@ public abstract class CBOpenConWin extends CBDialog
      * @deprecated use constructor that takes Help ID.
      */
 
-    public CBOpenConWin(Frame owner, JLabel statusDisplay, String clientcerts, String cacerts,
+    public CBOpenConWin(Frame owner, String applicationName, JLabel statusDisplay, String clientcerts, String cacerts,
                         String referral, String aliasType)
     {
-        this(owner, statusDisplay, clientcerts, cacerts, referral, aliasType, null);
+        this(owner, applicationName, statusDisplay, clientcerts, cacerts, referral, aliasType, null);
     }
 
 
@@ -97,6 +106,7 @@ public abstract class CBOpenConWin extends CBDialog
      * <p/>
      *
      * @param owner         the owning frame (used for look and feel propagation etc.)
+     * @param applicationName the name of the application (used to find the config file on some systems)
      * @param statusDisplay a label used to give status feedback to the user.
      * @param clientcerts   the client certificate keystore (optional if 'simple ssl' is used).
      * @param cacerts       the trusted server certificate keystore (required for ssl)
@@ -105,10 +115,10 @@ public abstract class CBOpenConWin extends CBDialog
      *                      (default is "searching");
      *  @param helpID the help ID to attach to the Help button.
      */
-    public CBOpenConWin(Frame owner, JLabel statusDisplay, String clientcerts, String cacerts,
+    public CBOpenConWin(Frame owner, String applicationName, JLabel statusDisplay, String clientcerts, String cacerts,
                         String referral, String aliasType, String helpID)
     {
-        this(owner, statusDisplay, clientcerts, cacerts, helpID);
+        this(owner, applicationName, statusDisplay, clientcerts, cacerts, helpID);
 
         newCon.referralType = referral;
         newCon.aliasType = aliasType;
@@ -128,15 +138,16 @@ public abstract class CBOpenConWin extends CBDialog
      * passing details of keystores through.</p>
      *
      * @param owner         the owning frame (used for look and feel propagation etc.)
+     * @param applicationName the name of the application (used to find the config file on some systems)
      * @param statusDisplay a label used to give status feedback to the user.
      * @param clientcerts   the client certificate keystore (optional if 'simple ssl' is used).
      * @param cacerts       the trusted server certificate keystore (required for ssl)
      * @deprecated use constructor that takes Help ID.
      */
 
-    public CBOpenConWin(Frame owner, JLabel statusDisplay, String clientcerts, String cacerts)
+    public CBOpenConWin(Frame owner, String applicationName, JLabel statusDisplay, String clientcerts, String cacerts)
     {
-        this(owner, statusDisplay, clientcerts, cacerts, null);
+        this(owner, applicationName, statusDisplay, clientcerts, cacerts, null);
     }
 
     /**
@@ -151,13 +162,14 @@ public abstract class CBOpenConWin extends CBDialog
      * <p>This constructor allows for setting up ssl connections, by
      * passing details of keystores through.</p>
      *
-     * @param owner         the owning frame (used for look and feel propagation etc.)
-     * @param statusDisplay a label used to give status feedback to the user.
-     * @param clientcerts   the client certificate keystore (optional if 'simple ssl' is used).
-     * @param cacerts       the trusted server certificate keystore (required for ssl)
-     * @param helpID the help ID to attach to the Help button.
+     * @param owner           the owning frame (used for look and feel propagation etc.)
+     * @param applicationName the name of the application (used to find the config file on some systems)
+     * @param statusDisplay   a label used to give status feedback to the user.
+     * @param clientcerts     the client certificate keystore (optional if 'simple ssl' is used).
+     * @param cacerts         the trusted server certificate keystore (required for ssl)
+     * @param helpID          the help ID to attach to the Help button.
      */
-    public CBOpenConWin(Frame owner, JLabel statusDisplay, String clientcerts, String cacerts, String helpID)
+    public CBOpenConWin(Frame owner, String applicationName, JLabel statusDisplay, String clientcerts, String cacerts, String helpID)
     {
         super(owner, CBIntText.get("Open LDAP connection"), helpID); // create modal dialog ...
 
@@ -166,10 +178,10 @@ public abstract class CBOpenConWin extends CBDialog
         newCon.clientcerts = clientcerts;
         newCon.cacerts = cacerts;
 
-        initGUI(statusDisplay);
+        initGUI(applicationName, statusDisplay);
     }
 
-    protected void initGUI(JLabel statusDisplay)
+    protected void initGUI(String applicationName, JLabel statusDisplay)
     {
         String oldConnection = "";
         int oldPortNo = 389;
@@ -199,8 +211,8 @@ public abstract class CBOpenConWin extends CBDialog
         temp.setToolTipText(CBIntText.get("For all but the oldest servers, this should be 'LDAP v3'."));
         version.setToolTipText(CBIntText.get("For all but the oldest servers, this should be 'LDAP v3'."));
 
-        display.addLine(new JLabel("")); // padding
 
+        display.add(new JLabel(""));
         display.newLine();  //TE: hack to add space for an extra component to be added in...ie. the DSML URL field...DO NOT REMOVE (see addExtraComponent).
 
         /**
@@ -214,6 +226,11 @@ public abstract class CBOpenConWin extends CBDialog
         temp.setToolTipText(CBIntText.get("The base to start browsing from; e.g.") + " 'o=Democorp,c=au'");
         inset.makeWide();
         inset.addln(baseDN = new JTextField(String.valueOf(oldBaseDN), 30));
+        inset.makeLight();
+        inset.add(new JLabel(""));
+        inset.addGreedyWide(new JLabel(""));
+        inset.add(readOnlyLabel = new JLabel("  " + CBIntText.get("Read Only") + ": "));
+        inset.addLine(readOnly = new JCheckBox()); // padding
 
 
         display.addLines(inset, 1);
@@ -223,36 +240,29 @@ public abstract class CBOpenConWin extends CBDialog
          *    Security Panel for anonymous vs user/password vs SASL
          */
 
-        CBPanel ssl = new CBPanel();
+        securityPanel = new CBPanel();
 
-        String[] securityOptions = {
-            CBIntText.get("Anonymous"),
-            CBIntText.get("User + Password"),
-            CBIntText.get("SSL + Anonymous"),
-            CBIntText.get("SSL + User + Password"),
-            CBIntText.get("SSL + SASL + Keystore Password"),
-            CBIntText.get("GSSAPI") // Vadim: GSSAPI
-        };
 
-        ssl.setBorder(new TitledBorder(CBIntText.get("Security")));
 
-        ssl.makeLight();
-        ssl.add(temp = new JLabel(CBIntText.get("Level") + ":"));
+        securityPanel.setBorder(new TitledBorder(CBIntText.get("Security")));
+
+        securityPanel.makeLight();
+        securityPanel.add(temp = new JLabel(CBIntText.get("Level") + ":"));
         temp.setToolTipText(CBIntText.get("The level of authentication."));
 
         level = new CBJComboBox(securityOptions);
         level.setToolTipText(CBIntText.get("Before using SSL, make sure you've set up your keystores in the 'Security' menu."));
-        ssl.addln(level);
+        securityPanel.addln(level);
 
-        ssl.add(temp = new JLabel(CBIntText.get("User DN") + ":  "));
-        ssl.addln(managerDN = new JTextField(30));
+        securityPanel.add(temp = new JLabel(CBIntText.get("User DN") + ":  "));
+        securityPanel.addln(managerDN = new JTextField(30));
         temp.setToolTipText(CBIntText.get("To log on as an authenticated user, enter your user dn here."));
 
-        ssl.add(temp = new JLabel(CBIntText.get("Password") + ":   "));
-        ssl.addLine(password = new JPasswordField(30));
+        securityPanel.add(temp = new JLabel(CBIntText.get("Password") + ":   "));
+        securityPanel.addLine(password = new JPasswordField(30));
         temp.setToolTipText(CBIntText.get("Set your user password (or SASL keystore password) here."));
 
-        display.addLines(ssl, 3);
+        display.addLines(securityPanel, 3);
 
         OK.setToolTipText(CBIntText.get("Click here to connect using current settings."));
 
@@ -261,7 +271,9 @@ public abstract class CBOpenConWin extends CBDialog
          * that allows the user to save and restore the state of edit fields in a dialog
          */
 
-        display.addWide(myTemplater = new CBSaveLoadTemplate("connections.txt"), 5);
+        myTemplater = getNewCBSaveLoadTemplate(applicationName, "connections.txt"); //TODO: make this a constant?
+
+        display.addWide(myTemplater, 5);
 
         addExtraComponent();            //TE: allows the user to insert a component and not mess up the template handling.
 
@@ -291,6 +303,10 @@ public abstract class CBOpenConWin extends CBDialog
         (myTemplater.getLoadComboBox()).addActionListener(securityListener);
     }
 
+    protected CBSaveLoadTemplate getNewCBSaveLoadTemplate(String applicationName, String templateName)
+    {
+        return new CBSaveLoadTemplate(applicationName, templateName);
+    }
 
     /**
      * Use this method to insert an extra component.  It is intended for
@@ -446,82 +462,117 @@ public abstract class CBOpenConWin extends CBDialog
         return "ldap://" + host + ":" + port;
     }
 
+    /**
+     * This assembles a connection data object from the UI fields filled in by the user.
+     * In a pinch, this method can be used to read off the saved connection details
+     * from a user template, without actually showing a UI.
+     * @return
+     * @throws Exception
+     */
+    public ConnectionData getConnectionData()
+            throws Exception
+    {
+        return getConnectionData(null);
+    }
 
+    /**
+     * Allows an external password to be supplied
+     * @return
+     * @throws Exception
+     */
+    public ConnectionData getConnectionData(char[] defaultPwd)
+            throws Exception
+    {
+
+        // XXX TODO: this is kinda weird - this line blew away the setup of ssl info and broke SSL, why did I stick it in, and when?
+        //ConnectionData connection = new ConnectionData();
+        
+        ConnectionData connection = newCon;
+
+
+        log.fine("read values: " + hostName.getText() + ":" + port.getText());
+
+        /*
+         *    Read Host and Port
+         */
+
+        String url = getURL();  // throws exceptions if URL is bad.
+
+        connection.setURL(url);
+
+        if (userMessage != null) // possibly null in batch mode
+            userMessage.setText(CBIntText.get("Opening Connection To") + " " + url);
+
+        /*
+         *   ldap version number
+         */
+
+        if (version.getSelectedItem() == LDAPV2)
+            connection.version = 2;
+        else // default for both ldap and dsml
+            connection.version = 3;
+
+        /*
+         *    Security Magic
+         */
+
+        int securityLevel = checkSecurityLevel();
+
+        connection.userDN = null;
+        connection.clearPasswords();
+
+        connection.useGSSAPI = false;
+
+        if (securityLevel == USER_AUTH || securityLevel == SSL_USER_AUTH)
+        {
+            connection.userDN = managerDN.getText().trim();
+
+            connection.pwd = (defaultPwd==null)?password.getPassword():defaultPwd;
+            if ((connection.pwd.length) == 0)
+            {					//TE: make sure the user has entered a password.
+                throw new Exception(CBIntText.get("No Password Provided.  Please enter a password."));
+            }
+        }
+        else if (securityLevel == SASL)
+        {
+            connection.clientKeystorePwd = (defaultPwd==null)?password.getPassword():defaultPwd;
+
+            if ((connection.clientKeystorePwd.length) == 0)
+            {				//TE: make sure the user has entered a password.
+                throw new Exception(CBIntText.get("No Password Provided.  Please enter a password."));
+            }
+        }
+        //Vadim: GSSAPI
+        else if (securityLevel == GSSAPI)
+        {
+            // username & password are only used if an existing kerberos keystore cannot be found;
+            // we'll prompt the user for them elsewhere if neccessary.
+
+            connection.useGSSAPI = true;
+        }
+
+        setVisible(false);
+
+        connection.useSSL = (securityLevel >= SSL_NO_AUTH && securityLevel != GSSAPI);
+
+        connection.baseDN = baseDN.getText();
+
+        connection.templateName = myTemplater.getCurrentTemplateName();
+
+        connection.readOnly = readOnly.isSelected();
+
+        return connection;
+    }
+        
     /**
      * Over-ride base class method that is called when the OK button is hit.
      */
 
     public void doOK()
     {
-
         try
         {
-            log.fine("read values: " + hostName.getText() + ":" + port.getText());
-
-            /*
-             *    Read Host and Port
-             */
-
-            String url = getURL();  // throws exceptions if URL is bad.
-
-            newCon.setURL(url);
-
-            userMessage.setText(CBIntText.get("Opening Connection To") + " " + url);
-
-            /*
-             *   ldap version number
-             */
-
-            if (version.getSelectedItem() == LDAPV2)
-                newCon.version = 2;
-            else // default for both ldap and dsml
-                newCon.version = 3;
-
-
-            /*
-             *    Security Magic
-             */
-
-            int securityLevel = checkSecurityLevel();
-
-            newCon.userDN = null;
-            newCon.clearPasswords();
-
-            newCon.useGSSAPI = false;
-
-            if (securityLevel == USER_AUTH || securityLevel == SSL_USER_AUTH)
-            {
-                newCon.userDN = managerDN.getText().trim();
-                newCon.pwd = password.getPassword();
-                if ((newCon.pwd.length) == 0)
-                {					//TE: make sure the user has entered a password.
-                    throw new Exception(CBIntText.get("No Password Provided.  Please enter a password."));
-                }
-            }
-            else if (securityLevel == SASL)
-            {
-                newCon.clientKeystorePwd = password.getPassword();
-                if ((newCon.clientKeystorePwd.length) == 0)
-                {				//TE: make sure the user has entered a password.
-                    throw new Exception(CBIntText.get("No Password Provided.  Please enter a password."));
-                }
-            }
-            //Vadim: GSSAPI
-            else if (securityLevel == GSSAPI)
-            {
-                // username & password are only used if an existing kerberos keystore cannot be found;
-                // we'll prompt the user for them elsewhere if neccessary.
-
-                newCon.useGSSAPI = true;
-            }
-
-            setVisible(false);
-
-            newCon.useSSL = (securityLevel >= SSL_NO_AUTH && securityLevel != GSSAPI);
-
-            newCon.baseDN = baseDN.getText();
-
-
+            newCon = getConnectionData();
         }
         catch (Exception err)
         {   // a bunch of things may throw exceptions; at this stage we haven't tried
@@ -529,10 +580,6 @@ public abstract class CBOpenConWin extends CBDialog
 
             new CBErrorWin(this, "Error in data provided: "  + err.getMessage(), err); // automatically visible one-shot.
 
-            //JOptionPane.showMessageDialog(this.getContentPane(),
-            //        CBIntText.get("Error in data provided.  (probably unable to parse " +
-            //        " the port number, or password.) "),
-            //        CBIntText.get("Couldn't Connect"), JOptionPane.ERROR_MESSAGE);
             err.printStackTrace();
 
             password.setText("");
@@ -549,7 +596,6 @@ public abstract class CBOpenConWin extends CBDialog
         // Now the data has been read, send it off to the connect method to make the connection.
 
         connect(newCon);
-
     }
 
     /**

@@ -1,0 +1,45 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+<head>
+<!--
+
+  @(#)package.html	
+
+  Copyright Apache?
+
+-->
+</head>
+<body bgcolor="white">
+
+<p>This is a fairly comprehensive stand alone JNDI Provider that can be run
+via unit tests for stand alone testing, without any use of networking or
+external resources.</p>
+
+
+<h2>Package Specification</h2>
+
+<p>The test provider package is a reasonably complete JNDI provider for
+testing JNDI functions without using an external directory.  It allows
+for fake data to be loaded in test cases, and retrieved with simple
+searches of the form (attribute=value), and allows for returning specified
+attribute lists.</p>
+
+<p>It does not allow for more complex multi-item searches (&(att1=val1)(att2=val2)),
+or searches with other operators than equals, although there is some support
+for wild cards and simple searches.</p>
+
+<p>The package includes a context factory etc., so that it can be registered
+with the Sun JNDI provider system using a command such as:</p>
+
+<code>
+jndienv.put(Context.INITIAL_CONTEXT_FACTORY, "org.apache.clients.testprovider.TestProviderContextFactory");
+</code>
+
+<p>Alternatively a test context can be created directly using a command such as:</p>
+
+<code>
+new TestProviderContextFactory().getInitialContext(new Hashtable());
+</code>
+
+</body>
+</html>

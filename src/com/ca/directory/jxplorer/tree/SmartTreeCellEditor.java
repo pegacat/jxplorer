@@ -47,6 +47,8 @@ public class SmartTreeCellEditor extends DefaultTreeCellEditor
         // supress editing timer when a popup operation is in progress...
         if (((SmartTree)tree).popupToolVisible() == true)
             return false;
+        //else if (((SmartTree)tree).isModifiable() == false)  // unnecessary - simply setEditable(false) in SmartTree
+        //    return false;
         else
             return super.shouldStartEditingTimer(event);
     }
@@ -61,6 +63,7 @@ public class SmartTreeCellEditor extends DefaultTreeCellEditor
      
     protected TreeCellEditor createTreeCellEditor() 
     {
+
         MyTreeCellEditor editor = new MyTreeCellEditor();      
         // One click to edit.
         editor.setClickCountToStart(1);
@@ -136,7 +139,10 @@ public class SmartTreeCellEditor extends DefaultTreeCellEditor
     {
         if (tree == null)   // this should never happen.  But if there's no tree,
             return false;   // don't edit it!     
-        
+
+        if (((SmartTree)tree).isModifiable() == false)              // unnecessary?  setEditable(false) in SmartTree instead?
+            return false;   // don't edit read-only trees!
+
         TreePath path = tree.getSelectionPath();
         
         if (path == null)   // no path == no editing!

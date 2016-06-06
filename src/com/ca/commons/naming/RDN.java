@@ -42,6 +42,9 @@ import javax.naming.InvalidNameException;
  *    @author Chris Betts
  */
 
+// TODO: refactoring opportunity: javax.naming now includes Rdn class - evaluate as replacement for this class.
+// TODO: suggest refactoring this class to extend Rdn, then consider if this class is still required.
+
 public class RDN
 {
     /**

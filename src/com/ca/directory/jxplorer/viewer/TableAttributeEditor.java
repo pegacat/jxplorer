@@ -4,7 +4,6 @@ import com.ca.commons.cbutil.*;
 import com.ca.commons.naming.*;
 import com.ca.directory.jxplorer.*;
 import com.ca.directory.jxplorer.broker.DataBrokerQueryInterface;
-import com.ca.directory.jxplorer.tree.NewEntryWin;
 import com.ca.directory.jxplorer.viewer.tableviewer.*;
 import com.ca.directory.jxplorer.viewer.tableviewer.AttributeValue;
 
@@ -51,6 +50,11 @@ public class TableAttributeEditor extends JPanel
     DXEntry currentEntry = null;
 
     /**
+     * Copy of the original entry.
+     */
+	DXEntry originalEntry = null;
+
+    /**
      * Copy of the current DN.
      */
     DN currentDN = null;
@@ -78,6 +82,8 @@ public class TableAttributeEditor extends JPanel
     ClassLoader myLoader;
 
     final AttributeValueCellEditor myEditor;
+
+    public String title = CBIntText.get("Table Editor");
 
     /**
      * Constructor initialises the table and a popup tool, as well as initialising the required GUI elements. It adds
@@ -108,7 +114,7 @@ public class TableAttributeEditor extends JPanel
         // Set the renderer for the attribute type...
         final AttributeTypeCellRenderer typeRenderer = new AttributeTypeCellRenderer();
 
-        attributeTable.setDefaultRenderer(AttributeType.class, typeRenderer);
+        attributeTable.setDefaultRenderer(AttributeNameAndType.class, typeRenderer);
 
         // Set the renderer for the attribute value...
         final AttributeValueCellRenderer valueRenderer = new AttributeValueCellRenderer();
@@ -148,9 +154,15 @@ public class TableAttributeEditor extends JPanel
         add(tableScroller, BorderLayout.CENTER);
         add(buttonPanel, BorderLayout.SOUTH);
 
+        if ("true".equals(JXConfig.getProperty("lock.read.only")))
+            title = CBIntText.get("Table Viewer");
+        else
+            title = CBIntText.get("Table Editor");
+
+
         setVisible(true);
 
-        // Opens a dialog that displays any operational attributes of the current entry.
+        // triggers adding operational attributes of the current entry.
         opAttrs.addActionListener(new ActionListener()
         {
             public void actionPerformed(ActionEvent e)
@@ -164,7 +176,9 @@ public class TableAttributeEditor extends JPanel
             public void actionPerformed(ActionEvent e)
             {
                 myEditor.stopCellEditing();
-                tableData.reset();
+                //tableData.reset();
+                displayEntry(originalEntry, dataSource, false);
+
             }
         });
 
@@ -209,7 +223,7 @@ public class TableAttributeEditor extends JPanel
                 attributeTable.addRowSelectionInterval(row, row);
                 attributeTable.repaint();
 
-                popupTableTool.registerCurrentRow((AttributeType) attributeTable.getValueAt(row, 0), (AttributeValue) attributeTable.getValueAt(row, 1), row, tableData.getRDN());         // active path also set by valueChanged
+                popupTableTool.registerCurrentRow((AttributeNameAndType) attributeTable.getValueAt(row, 0), (AttributeValue) attributeTable.getValueAt(row, 1), row, tableData.getRDN());         // active path also set by valueChanged
                 popupTableTool.show(attributeTable, e.getX(), e.getY());
                 popupTableTool.registerCellEditor(myEditor);    //TE: for bug fix 3107.
                 return true;
@@ -294,8 +308,7 @@ public class TableAttributeEditor extends JPanel
         }
         else
         {
-            NewEntryWin userData = new NewEntryWin(dataSource, newDN, newEntry.getAsNonNullAttributes(),
-                    this, CBUtility.getParentFrame(this));
+            ChangeObjectClassWin userData = new ChangeObjectClassWin(dataSource, newDN, newEntry.getAsNonNullAttributes(), this, CBUtility.getParentFrame(this), false);
             userData.setSize(400, 250);
             CBUtility.center(userData, owner);    // TE: centres window.
             userData.setVisible(true);
@@ -326,6 +339,7 @@ public class TableAttributeEditor extends JPanel
         writeTableData();
     }
 
+    private boolean showingOperationalAttributes = false;
     /**
      * Opens a dialog that displays the operational attributes of the current entry.
      */
@@ -338,46 +352,51 @@ public class TableAttributeEditor extends JPanel
         else
             return;
 
+        showingOperationalAttributes = !showingOperationalAttributes;
+
         // EJP 17 August 2010.
-        String[] opAttrs = {"+"};
+        // CB 14 August 2012 - some directories (looking at you Active Directory) don't support the '+' operator... so do it manually as well...
+        String[] opAttrs = {"+","createTimeStamp", "creatorsName", "entryFlags", "federationBoundary", "localEntryID", "modifiersName", "modifyTimeStamp", "structuralObjectClass", "subordinateCount", "subschemaSubentry"};
         DXEntry entry = null;
-        try
-        {
-            entry = (jx.getSearchBroker()).unthreadedReadEntry(currentDN, opAttrs);
-        StringBuffer buffy = new StringBuffer("DN: " + currentDN.toString() + "\n\n");
 
-        // Get the attribute values...
-            // EJP 17 August 2010: use the actual attributes returned.
-			NamingEnumeration ne = null;
-			
-			try
-			{
-				ne = entry.getAll();
-				while (ne.hasMore())
-				{
-					DXAttribute att = (DXAttribute)ne.next();
-					buffy.append(att.getName()+": "+att.get().toString()+"\n\n");
-				}	
-			}
-			finally
-			{
-                if(ne != null)
-				    ne.close();
-			}
-
-			// Dialog setup...
-			JTextArea area = new JTextArea(buffy.toString());
-			area.setFont(new Font("SansSerif", Font.PLAIN, 11));
-			area.setLineWrap(true);
-			area.setWrapStyleWord(true);
-			JScrollPane scrollPane = new JScrollPane(area);
-			scrollPane.setPreferredSize(new Dimension(300, 125));
-			scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-			JOptionPane.showMessageDialog(jx, scrollPane, CBIntText.get("Properties (Operational Attributes)"), JOptionPane.INFORMATION_MESSAGE);
-		}
-        catch (NamingException e)
+        if (showingOperationalAttributes)
         {
-            CBUtility.error(TableAttributeEditor.this, CBIntText.get("Unable to read entry " + currentDN), e);
+            try
+            {
+                entry = (jx.getSearchBroker()).unthreadedReadEntry(currentDN, opAttrs);
+                StringBuffer buffy = new StringBuffer("DN: " + currentDN.toString() + "\n\n");
+
+                // Get the attribute values...
+                // EJP 17 August 2010: use the actual attributes returned.
+                NamingEnumeration ne = null;
+
+                try
+                {
+                    ne = entry.getAll();
+                    while (ne.hasMore())
+                    {
+                        DXAttribute att = (DXAttribute) ne.next();
+                        buffy.append(att.getName() + ": " + att.get().toString() + "\n");
+
+                        tableData.insertOperationalAttribute(att);
+                    }
+                } finally
+                {
+                    if (ne != null)
+                        ne.close();
+                }
+
+                tableData.fireTableDataChanged();
+            } catch (NamingException e)
+            {
+                CBUtility.error(TableAttributeEditor.this, CBIntText.get("Unable to read entry " + currentDN), e);
+            }
+        }
+        else
+        {
+            tableData.removeOperationalAttributes();
+            tableData.fireTableDataChanged();
+
         }
     }
 
@@ -438,7 +457,7 @@ public class TableAttributeEditor extends JPanel
     public void processVirtualEntry()
     {
 
-        NewEntryWin userData = null;
+        ChangeObjectClassWin userData = null;
         if (dataSource.getSchemaOps() == null)
         {
             JOptionPane.showMessageDialog(owner, CBIntText.get("Because there is no schema currently published by the\ndirectory, changing an entry's object class is unavailable."), CBIntText.get("No Schema"), JOptionPane.INFORMATION_MESSAGE);
@@ -447,7 +466,7 @@ public class TableAttributeEditor extends JPanel
         else
         {
             shutVirtualEntryDialog();				//TE: kill the prompt window.
-            userData = new NewEntryWin(dataSource, currentEntry.getDN(), this, owner, true);
+            userData = new ChangeObjectClassWin(dataSource, currentEntry.getDN(), null, this, owner, true);
             userData.setSize(400, 250);
             CBUtility.center(userData, owner);    	//TE: centres window.
             userData.setVisible(true);
@@ -469,7 +488,7 @@ public class TableAttributeEditor extends JPanel
         {
             try
             {
-                DXOps dxOps = new DXOps(dataSource.getDirContext());
+                DXOps dxOps = new DXOps(dataSource.getLdapContext());
                 dxOps.addAttribute(currentEntry.getDN(), userData.newObjectClasses);
                 dataSource.getEntry(currentEntry.getDN());			//TE: hack??  forces the entry to be read again - otherwise we don't display the naming value.
             }
@@ -503,12 +522,21 @@ public class TableAttributeEditor extends JPanel
      * @param entry the entry to be displayed by all the editors
      * @param ds the datasource the editors may use for more info
      */
-    public void displayEntry(DXEntry entry, DataBrokerQueryInterface ds)
+     public void displayEntry(DXEntry entry, DataBrokerQueryInterface ds)
+     {
+		displayEntry(entry, ds, true);
+	}
+
+    private void displayEntry(DXEntry entry, DataBrokerQueryInterface ds, boolean storeOriginalEntry)
     {
         myEditor.stopCellEditing();
 
 
 //        checkedDN = null; // hack - resets promptForSave.
+               // Store original Entry for reset
+        		if (entry != null && storeOriginalEntry && entry.getStatus() == DXEntry.NORMAL)
+        			originalEntry = new DXEntry(entry);
+
 
         // Set the globals...
         currentEntry = entry;
@@ -516,7 +544,7 @@ public class TableAttributeEditor extends JPanel
 
         if (entry != null && entry.size() == 0)
         {
-// If there is an entry and it's size is zero - it's probably is a virtual entry.
+// If there is an entry and its size is zero - it's probably a virtual entry.
 // We need to give the user the option of adding an object class to it i.e. so that
 // it can be added to the directory as a real entry.
 //
@@ -587,9 +615,9 @@ public class TableAttributeEditor extends JPanel
                 //TE: added the isEmpty check see bug: 3194.
                 else if (!oldEntry.getDN().isEmpty() && entry.getDN().equals(oldEntry.getDN()) == false)
                 {
-                    DN oldParent = oldEntry.getDN().parentDN();
+                    DN oldParent = oldEntry.getDN().getParent();
 
-                    DN newParent = entry.getDN().parentDN();
+                    DN newParent = entry.getDN().getParent();
 
                     if (oldParent.equals(newParent) == false)
                     {
@@ -616,21 +644,13 @@ public class TableAttributeEditor extends JPanel
         // only enable buttons if DataBrokerQueryInterface
         // is valid *and* we can modify data...
 
-        if (dataSource == null || entry == null)
+        if (dataSource == null || entry == null || dataSource.isModifiable()==false)
         {
-            submit.setEnabled(false);
-            reset.setEnabled(false);
-            changeClass.setEnabled(false);
-            opAttrs.setEnabled(false);
+            setReadWrite(false, entry);
         }
         else
         {
-            submit.setEnabled(true);
-            reset.setEnabled(true);
-            opAttrs.setEnabled(true);
-
-            if (entry.get("objectclass") != null)  // only allow class changes if we can find
-                changeClass.setEnabled(true);      // some to start with!
+            setReadWrite(true, entry);
         }
 
 //        myEditor.stopCellEditing();
@@ -650,6 +670,19 @@ public class TableAttributeEditor extends JPanel
         }
 
         tableScroller.getVerticalScrollBar().setValue(0);   // Sets the scroll bar back to the top.
+    }
+
+    protected void setReadWrite(boolean writeable, DXEntry entry)
+    {
+        submit.setEnabled(writeable);
+        reset.setEnabled(writeable);
+        changeClass.setEnabled(writeable);
+        opAttrs.setEnabled(writeable);
+        myEditor.setEnabled(writeable);
+        popupTableTool.setReadWrite(writeable);
+
+        if (entry!=null && entry.get("objectclass") != null)  // only allow class changes if we can find
+            changeClass.setEnabled(true);      // some to start with!
     }
 
     public JComponent getDisplayComponent()
@@ -767,7 +800,13 @@ public class TableAttributeEditor extends JPanel
 
     public String getName()
     {
-        return CBIntText.get("Table Editor");
+        return title;
+        //CBIntText.get("Table Editor");
+    }
+
+    public void setName(String title)
+    {
+        this.title = title;
     }
 
     public ImageIcon getIcon()

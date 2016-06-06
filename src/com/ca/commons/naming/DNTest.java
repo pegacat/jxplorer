@@ -11,6 +11,8 @@ import junit.framework.*;
 
 import javax.naming.InvalidNameException;
 import javax.naming.NamingException;
+import java.util.ArrayList;
+import java.util.Collections;
 
 
 /**
@@ -52,7 +54,7 @@ public class DNTest extends TestCase
     public static final String DERDN4Val = "P 2.01 Koordinierung\\, Controlling\\, Strategische Personalplanung (P 2.01)";
     public static final String DERDN3Val = "P 2 Personalbetreuung\\, Stellenwirtschaft";
     public static final String DERDN2Val = "Personal- und Organisationsreferat";
-    public static final String DERDN1Val = "Landeshauptstadt München";
+    public static final String DERDN1Val = "Landeshauptstadt Munchen";
     public static final String DERDN0Val = "DE";
 
     public static final String DERDN5 = DERDN5Att + '=' + DERDN5Val;
@@ -255,7 +257,7 @@ public class DNTest extends TestCase
     public void testParentDN()
     {
         DN veryLongDN = new DN("cn=new level,"+bigComplicatedDN);
-        assertEquals(veryLongDN.parentDN(), new DN(bigComplicatedDN));
+        assertEquals(veryLongDN.getParent(), new DN(bigComplicatedDN));
     }
 
     public void testReverse()
@@ -276,110 +278,28 @@ public class DNTest extends TestCase
     }
 
 
-
-    //    NN   N      A       MM   MM  EEEEEE
-    //    NNN  N     A A      M MMM M  EE
-    //    N NN N    A   A     M  M  M  EEEE         (Interface Def.)
-    //    N  NNN   AAAAAAA    M  M  M  EE
-    //    N   NN  AA     AA   M  M  M  EEEEEE
-
-    public void testAdd()
+    public void testSorting()
     {
-        assertTrue(true); // placeholder
-        //Name add(int posn, RDN rdn)
-    }
+        ArrayList<DN> list = new ArrayList<DN>();
 
-    public void testStringAdd()
-    {
-        assertTrue(true); // placeholder
-        //    public Name add(String rdn)
-    }
-
-    public void testAddAll()
-    {
-        assertTrue(true); // placeholder
-        //public Name addAll(int posn, Name n)
-    }
+        list.add(new DN("cn=fred,ou=legal,o=pegacat,c=au"));
+        list.add(new DN("o=pegacat,c=au"));
+        list.add(new DN("cn=nigel,ou=legal,o=pegacat,c=au"));
+        list.add(new DN("cn=fred,ou=HR,o=pegacat,c=au"));
+        list.add(new DN("cn=greg,ou=legal,o=ibm,c=us"));
+        list.add(new DN("c=au"));
+        list.add(new DN("c=us"));
+        
 
 
-    /*
-     *    Adds the components of a name -- in order -- to the end of this name.
-     */
-    public void testAddAllName()
-    {
-        assertTrue(true); // placeholder
-        //public Name addAll(Name suffix)
-    }
+        Collections.sort(list);
 
-    public void testClone()
-    {
-        assertTrue(true); // placeholder
+        for(DN dn: list)
+            System.out.println("DN: " + dn.toString());
+
+        assertEquals("first element should be c=au", list.get(0).toString(), "c=au");
+        assertEquals("fifth element should be c=us", list.get(5).toString(), "c=us");
     }
 
 
-    /*
-     *     Compares this name with another name for order.
-     *     ... for the time being, ordering is alphabetical by rdns ordered
-     *     right to left.  Damn but the ldap rdn ordering system is screwed.
-     */
-    public void testCompareTo()
-    {
-        assertTrue(true); // placeholder
-        //public int compareTo(Object obj)
-    }
-
-
-    public void testEndsWith()
-    {
-        assertTrue(true); // placeholder
-        //public boolean endsWith(Name n)
-    }
-
-    public void testGet()
-    {
-        //public String get(int posn)
-        assertTrue(true); // placeholder
-    }
-
-    public void testGetAll()
-    {
-        assertTrue(true); // placeholder
-        //public java.util.Enumeration getAll()  // returns en of strings...
-    }
-
-    public void testGetPrefix()
-    {
-        assertTrue(true); // placeholder
-            //public Name getPrefix(int posn)
-    }
-
-    public void testGetSuffix()
-    {
-        assertTrue(true); // placeholder
-        //public Name getSuffix(int posn)
-    }
-
-    public void testIsEmpty()
-    {
-        assertTrue(true); // placeholder
-        //public boolean isEmpty()
-    }
-
-    public void testRemove()
-    {
-        //public Object remove(int posn)
-        assertTrue(true); // placeholder
-    }
-
-    public void testSize()
-    {
-        //public int size()
-        assertTrue(true); // placeholder
-    }
-
-    public void testStartsWithName()
-    {
-        //public boolean startsWith(Name n)
-        assertTrue(true); // placeholder
-    }
 }

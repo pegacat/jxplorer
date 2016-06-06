@@ -9,6 +9,7 @@ import com.ca.directory.jxplorer.JXConfig;
 
 import javax.naming.*;
 import javax.naming.directory.*;
+import javax.naming.ldap.LdapContext;
 import java.util.ArrayList;
 import java.util.logging.Logger;
 
@@ -29,7 +30,7 @@ public class CBGraphicsOps extends DXOps
      *    Initialise with the directory context.
      */
      
-    public CBGraphicsOps(DirContext ctx)
+    public CBGraphicsOps(LdapContext ctx)
         throws NamingException
     {
         super(ctx);
@@ -209,7 +210,7 @@ public class CBGraphicsOps extends DXOps
                                             connectionData.caKeystorePwd, connectionData.clientKeystorePwd,
                                             connectionData.caKeystoreType, connectionData.clientKeystoreType, CBUtility.getDefaultDisplay());
 
-                    JXSSLSocketFactory.setDebug(JXConfig.debugLevel >= 9);
+                    JXSSLSocketFactory.setDebug(JXConfig.debugLevel >= 9 || JXConfig.debugSSL == true);
 
                     connectionData.sslSocketFactory = "com.ca.commons.security.JXSSLSocketFactory";
                 }
@@ -217,7 +218,7 @@ public class CBGraphicsOps extends DXOps
                 // method signiture of the over-ridden method.
                 catch (Exception e)
                 {
-                    NamingException ne = new NamingException("error pre-initialising SSL for JNDI connection: " + e.toString());
+                    NamingException ne = new NamingException("error pre-initialising SSL for JNDI connection: " + e.toString() + "\ncon: " + connectionData.toString());
                     ne.setRootCause(e);
                     throw ne;
                 }

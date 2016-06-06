@@ -117,6 +117,11 @@ public class DataQuery
         id = noRequests++;
     }
 
+    public DN getRequestDN()
+    {
+        return requestDN;
+    }
+
     /**
      *    Constructor for List, Read Entry, Exists, and get Recommended Object Class requests.
      */

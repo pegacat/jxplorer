@@ -7,12 +7,12 @@ import com.ca.commons.naming.DXAttribute;
 import com.ca.commons.naming.LdifUtility;
 import com.ca.commons.security.cert.CertViewer;
 import com.ca.directory.BuildNumber;
+import com.ca.directory.jxplorer.broker.JNDIDataBroker;
 
 import javax.swing.*;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.lang.reflect.Constructor;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Properties;
@@ -38,10 +38,14 @@ public class JXConfig
     public static final String CA_PATH_PROPERTY = "option.ssl.cacerts";
     public static final String ALLOW_CONNECTION_CERT_IMPORT = "option.ssl.import.cert.during.connection";
 
+    public static final String LANGUAGE_OVERRIDE="force.locale";
+    public static final String LANGUAGE_OVERRIDE_DEFAULT="default";
+
     private static Logger log = Logger.getLogger(JXConfig.class.getName());
     public static String version = BuildNumber.value;
     public static boolean debug = false;
     public static int debugLevel = 0;
+    public static boolean debugSSL = false;
 
 
     /**
@@ -57,12 +61,47 @@ public class JXConfig
         if (System.getProperty(key) != null)
             return System.getProperty(key);
 
-        if (myProperties.containsKey(key))
+        if (myProperties != null && myProperties.containsKey(key))
             return myProperties.getProperty(key);
 
         return null;
     }
 
+    /**
+     * Convenience function to return a positive integer config value.
+     * Returns -1 if the value is not available or cannot be parsed
+
+     *
+     * @param key  the property key
+     * @return the int value of the property, or -1 if missing or an error
+     */
+    public static int getIntProperty(String key)
+    {
+        return getIntProperty(key, -1);
+    }
+
+    /**
+     * Convenience function to return a positive integer config value.
+     * Returns -1 if the value is not available or cannot be parsed
+
+     *
+     * @param key  the property key
+     * @return the int value of the property,
+     * @param defaultValue the default value for the property if none is found pre-defined
+     */
+    public static int getIntProperty(String key, int defaultValue)
+    {
+        try
+        {
+            String val = getProperty(key);
+
+            return (val==null)?defaultValue:Integer.parseInt(val);
+        }
+        catch (Exception e)
+        {
+            return defaultValue;
+        }
+    }
 
     /**
      * Convenience function to access the internal JXplorer properties list.
@@ -152,11 +191,19 @@ public class JXConfig
         return setDefaultProperty(key, value);
     }
 
-    public static void loadProperties()
+    /**
+     * Reads the initial config file, providing defaults if necessary
+     */
+    public static void setupProperties()
     {
-        loadProperties(null);
+        setupProperties(null);
     }
 
+    public static String getLocalDirectory()
+    {
+        return System.getProperty("user.dir") + File.separator;
+    }
+    
 
     /**
      * Initialises the myProperties property list, and sets
@@ -166,15 +213,31 @@ public class JXConfig
      * is system dependant) while URLs use '/' always.
      */
 
-
-    public static void loadProperties(Properties suppliedProperties)
+    public static String getConfigDirectory()
     {
-        localDir = System.getProperty("user.dir") + File.separator;
+        String configDir = CBUtility.getConfigDirectory(JXplorer.APPLICATION_NAME);
+
+        log.info("JX using configDirectory: " + configDir);
+
+        return configDir;
+    }
+
+    /**
+     * Reads the initial config file, providing defaults if necessary.
+     * @param suppliedProperties an initial set of default properties that takes precedence over any read file values or defaults
+     */
+    public static void setupProperties(Properties suppliedProperties)
+    {
+        localDir = getLocalDirectory();  // the application local directory, with a bunch of installed resource files
+
+        String configDir = getConfigDirectory(); // the writeable configuration directory
 
         if (suppliedProperties == null)  // the usual case
         {
             String configFileName = "jxconfig.txt";
-            propertyFile = CBUtility.getPropertyConfigPath(configFileName);
+
+            //checks for custom config file location; either passed on the command line or forced on us by security permissions (e.g. Win 7)
+            propertyFile = CBUtility.getPropertyConfigPath(JXplorer.APPLICATION_NAME, configFileName);
 
             myProperties = CBUtility.readPropertyFile(propertyFile);
 
@@ -208,14 +271,14 @@ public class JXConfig
          *    XXX this is wierd.  Rewrite it all nicer.
          */
 
-        setProperty("dir.comment", "this sets the directories that JXplorer reads its resources from.");
+        setProperty("dir.comment", "this sets the directories that JXplorer reads its static resources from.");
         setDefaultLocationProperty("dir.local", localDir);
         setDefaultLocationProperty("dir.help", localDir + "help" + File.separator);
         setDefaultLocationProperty("dir.plugins", localDir + "plugins" + File.separator);
 
-        setDefaultProperty("width", "800", "set by client GUI - don't change");
+        setDefaultProperty("width", "1000", "set by client GUI - don't change");
 
-        setDefaultProperty("height", "600", "set by client GUI - don't change");
+        setDefaultProperty("height", "700", "set by client GUI - don't change");
 
         setDefaultProperty("baseDN", "c=au", "the default base DN for an empty connection - rarely used");
 
@@ -225,8 +288,9 @@ public class JXConfig
 
         setDefaultProperty(".level", "WARNING", "(java loggin variable) - allowable values are 'OFF', 'SEVERE', 'WARNING', 'INFO', 'FINE', 'FINER', 'FINEST' and 'ALL'");
 
-        setDefaultProperty("com.ca.level", "UNUSED", " (java loggin variable) partial logging is also available.  Be warned that the Sun logging system is a very buggy partial reimplementation of log4j, and doesn't seem to do inheritance well.");
+        setDefaultProperty("com.ca.level", "WARNING", " (java loggin variable) partial logging is also available.  Be warned that the Sun logging system is a very buggy partial reimplementation of log4j, and doesn't seem to do inheritance well.");
 
+        setDefaultProperty(LANGUAGE_OVERRIDE, LANGUAGE_OVERRIDE_DEFAULT, "use this to set local language detection ('default') or force the use of a particular language. (e.g. 'en' / 'en.US' / 'de' / 'zh.CN' / 'zh.TW'");
 
         //setDefaultProperty("logging", "console");
         //setProperty("logging.comment", "allowable log modes: none | console | file | both");
@@ -258,8 +322,11 @@ public class JXConfig
 
         setDefaultProperty("option.ldap.limit", "0", "The maximum number of entries to return - '0' = 'all the server allows'");
 
-        setDefaultProperty("option.ldap.referral", JNDIOps.DEFAULT_REFERRAL_HANDLING, "this is a jdni variable determinning how referrals are handled: 'ignore','follow' or 'throw'");   // 'ignore'
+        setDefaultProperty("option.ldap.referral", JNDIOps.DEFAULT_REFERRAL_HANDLING, "this is a jdni variable determining how referrals are handled: 'ignore','follow' or 'throw'");   // 'ignore'
 
+        setDefaultProperty("option.ldap.pagedResults", "false", "set this to true to use paged results for large data sets, if your directory supports it (e.g AD)");
+
+        setDefaultProperty("option.ldap.pageSize", "-1", "Sets the page size for paged results, if paged results are used.  (Generally 1000 is a good size)");
 
         setDefaultProperty("option.ldap.browseAliasBehaviour", JNDIOps.DEFAULT_ALIAS_HANDLING, "jndi variable setting how aliases are handled while browsing: 'always','never','finding','searching'");        // behaviour when browsing tree (= 'finding')
 
@@ -269,7 +336,9 @@ public class JXConfig
 
         setDefaultProperty("option.url.handling", "JXplorer", "override URL handling to launch JXplorer rather than default browser");                      //TE: set the URL handling to displaying JXplorer rather than launch into default browser.
 
-        setDefaultProperty("option.ldap.sendVerboseBinarySuffix", "false", "some directories require ';binary' to be explicitly appended to binary attribute names: 'true' or 'false'");
+        setDefaultProperty("option.ldap.sendVerboseBinarySuffix", "false", "some directories require ';binary' to be explicitly appended to binary attribute names: 'true' or 'false' (default)");
+
+        setDefaultProperty("option.ldap.useRFC4523BinarySuffix", "true", "append ';binary' to certificate attributes as per RFC 4453: 'true' (default) or 'false'");
 
         setDefaultProperty("option.drag.and.drop", "true", "set to 'false' to disable drag and drop in the left hand tree view");
 
@@ -284,12 +353,20 @@ public class JXConfig
             log.fine("using verbose binary suffix ';binary'");  // Warning: logger may not yet be initialised
             DXAttribute.setVerboseBinary(true);  // default if 'false'
         }
+
+        if ("false".equals(getProperty("option.ldap.useRFC4523BinarySuffix")))
+        {
+            log.fine("using binary suffix ';binary'");  // Warning: logger may not yet be initialised
+            DXAttribute.setRFC4523BinaryHandling(false);  // default is 'true'
+        }
+
+
         /*
          *    Security defaults
          */
 
-        setDefaultProperty(CA_PATH_PROPERTY, localDir + "security" + File.separator + "cacerts");
-        setDefaultProperty(CLIENT_PATH_PROPERTY, localDir + "security" + File.separator + "clientcerts");
+        setDefaultProperty(CA_PATH_PROPERTY, configDir + "security" + File.separator + "cacerts");
+        setDefaultProperty(CLIENT_PATH_PROPERTY, configDir + "security" + File.separator + "clientcerts");
         setDefaultProperty(CLIENT_TYPE_PROPERTY, "JKS");
         setDefaultProperty(CA_TYPE_PROPERTY, "JKS");
         setDefaultProperty(ALLOW_CONNECTION_CERT_IMPORT, "true");
@@ -305,10 +382,15 @@ public class JXConfig
         setDefaultProperty("ldap.sslsocketfactory", "com.ca.commons.jndi.JndiSocketFactory");
         setProperty("ldap.sslsocketfactory.comment", "This is the built in ssl factory - it can be changed if required.");
 
-        // special hack to allow forcing of TLSv1 as the only allowed SSL protocol...
-        setDefaultProperty("option.ssl.protocol", "any", "Force JXplorer to only use one specific SSL protocol, rather than negotiating a normal SSL connection. e.g. just 'TLSv1' or 'SSLv3';  default is 'any'");
-        // special special hack to add to system properties, so it can be picked up by seprate com.ca.security.commons.JXSSLSocketFactory
-        System.setProperty("option.ssl.protocol", myProperties.getProperty("option.ssl.protocol"));
+        // special hack to allow forcing of TLS{x} or TLSv1 as the only allowed SSL protocol... option are 'TLSv1', 'SSLv3', 'any', 'TLSv1,TLSv1.1', or simply 'TLS' for all TLS protocols, or (not recommended) 'SSL' for only old SSL protocols
+        setDefaultProperty("option.ssl.protocol", "any", "Force JXplorer to only use some specific SSL protocols, rather than negotiating a normal SSL connection. e.g. just 'TLS' or 'TLSv1' or 'TLSv1,TLSv1.1' (or 'any' to negotiate)");
+
+        // special special hack to add to system properties, so it can be picked up by separate com.ca.security.commons.JXSSLSocketFactory
+        String ssl = myProperties.getProperty("option.ssl.protocol");
+        if (ssl!=null)
+            System.setProperty("option.ssl.protocol", ssl);
+
+        setDefaultProperty("option.ssl.debug", "true", "print out SSL debug messages");
 
         setDefaultProperty("gui.lookandfeel", UIManager.getSystemLookAndFeelClassName());    //TE: sets the default look and feel to the system default.
         setDefaultProperty("gui.lookandfeel.comment", "Can set to com.sun.java.swing.plaf.mac.MacLookAndFeel for OSX");    //TE: sets the default look and feel to the system default.
@@ -346,9 +428,14 @@ public class JXConfig
             LdifUtility.setSupportXML_LDIF_RFC(true);
 
 
+        // support for 'read only' browser creation
+        setDefaultProperty("lock.read.only", "false", "if true, this locks the browser into read only mode and no directory modifications can be made");
+        if ("true".equals(getProperty("lock.read.only")))
+            JNDIDataBroker.lockToReadOnlyMode();
+
         // write out default property file if non exists...
 
-        if (new File(propertyFile).exists() == false)
+        if (propertyFile != null && new File(propertyFile).exists() == false)
             writePropertyFile();
 }
 
@@ -406,10 +493,17 @@ public class JXConfig
             logManager.reset();
 
             logManager.readConfiguration(new FileInputStream(JXConfig.propertyFile));
-            System.out.println("XXX logging initially level " + CBUtility.getTrueLogLevel(log) + " with " + log.getHandlers().length + " parents=" + log.getUseParentHandlers());
+            System.out.println("logging level set from config to: " + CBUtility.getTrueLogLevel(log) + " with " + log.getHandlers().length + " parents=" + log.getUseParentHandlers());
 
             log.info("Using configuration file: " + JXConfig.propertyFile);
             log.info("logging initialised to global level " + CBUtility.getTrueLogLevel(log));
+
+            // Try to disable swing errors...
+
+            Logger swinglog = Logger.getLogger("javax.swing");
+            swinglog.setLevel(Level.SEVERE);
+
+            debugSSL = getProperty("option.ssl.debug").equalsIgnoreCase("true");
 
             // DEBUG BLOCK
             /*
@@ -472,5 +566,10 @@ public class JXConfig
         Handler handler = new ConsoleHandler();
         handler.setLevel(Level.ALL);
         mainLogger.addHandler(handler);
+
+        //TODO: figure out how to end verbose swing logs...
+        Logger swinglog = Logger.getLogger("javax.swing");
+        swinglog.setLevel(Level.SEVERE);
+
     }
 }

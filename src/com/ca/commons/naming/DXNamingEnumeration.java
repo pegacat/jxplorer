@@ -55,36 +55,6 @@ public class DXNamingEnumeration implements NamingEnumeration
             return myCollator.compare(o1.toString(), o2.toString());
         }
     }
-
-
-/*
-    class SimpleComparator implements Comparable
-    {
-        Object myObject;
-        String compareString;
-
-        public SimpleComparator(Object o)
-        {
-            myObject = (o==null)?"null":o;
-
-            if (myObject instanceof DXAttribute)
-                compareString = ((DXAttribute)myObject).getID().toLowerCase();
-            else
-                compareString = myObject.toString().toLowerCase();
-        }
-
-        public int compareTo(Object compObject)
-        {
-            return compareString.compareTo(compObject.toString());
-        }
-
-        public String toString() { return compareString; }
-
-        public Object getObject() {return myObject; }
-    }
-*/
-
-                                // with this if needed in future...
     /**
      *    The constructor does nothing except initialise class variables.
      */
@@ -100,6 +70,17 @@ public class DXNamingEnumeration implements NamingEnumeration
             add(ne.nextElement());
     }
 
+
+    /**
+     *    The constructor takes a collection and uses
+     *    it to initialise with.
+     */
+
+    public DXNamingEnumeration(Collection <?> c)
+    {
+        data = new ArrayList();
+        data.addAll(c);
+    }
 
 
     /**
@@ -120,12 +101,12 @@ public class DXNamingEnumeration implements NamingEnumeration
      *    Note that since the enumeration is supposed to be read-only,
      *    the initialising ArrayList is <i>not</i> cloned, but used as is.
      */
-
+    /* replaced by Collection based constructor above for simplicity...
     public DXNamingEnumeration(ArrayList listData)
     {
         data = listData;
     }
-
+    */
     /**
      *    Adds an object to the enumeration.
      *    @param o object to be added.

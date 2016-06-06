@@ -3,11 +3,18 @@ package com.ca.commons.jndi;
 
 
 
+import com.ca.commons.naming.DXAttribute;
+import com.ca.commons.naming.DXAttributes;
+import com.ca.commons.naming.DXNamingEnumeration;
+
+
 import javax.naming.*;
 import javax.naming.directory.*;
+import javax.naming.ldap.*;
 import javax.security.auth.login.LoginContext;
 import javax.security.auth.login.LoginException;
 import javax.security.auth.Subject;
+import java.io.IOException;
 import java.util.*;
 import java.util.logging.Logger;
 
@@ -26,8 +33,12 @@ import java.util.logging.Logger;
 
 public class JNDIOps
 {
+    // WARNING: Paging set globally.  If needed per-connection, UI and config will need to be adjusted to allow per-connection configuration.
+    public static final int NO_PAGING = -1;
+    private static int pageSize = NO_PAGING;  // default page size for paged results.
 
     private static final String DEFAULT_CTX = "com.sun.jndi.ldap.LdapCtxFactory";
+
 
     /**
      * To speed up existance checks, we use a single static constraints object that
@@ -54,7 +65,7 @@ public class JNDIOps
 
     //AJR: converted protected member variable into private, added getContext / setContext accessors.
     //NOTE: used Context rather than Ctx to match existing getContext() in BasicOps
-    private DirContext ctx = null;
+    private LdapContext ctx = null;
 
     private static Logger log = Logger.getLogger(JNDIOps.class.getName());  // ...It's round it's heavy it's wood... It's better than bad, it's good...
 
@@ -68,10 +79,17 @@ public class JNDIOps
     }
 
     /**
+     * The page size for paged results.  Defaults to '-1' (not used).
+     * A positive number flags the use of paged results.
+     * @param newSize
+     */
+    public static void setPageSize(int newSize) {pageSize = newSize;}
+
+    /**
      * Initialise a Basic Operation object with a context.
      */
 
-    public JNDIOps(DirContext c)
+    public JNDIOps(LdapContext c)
     {
         setContext(c);
     }
@@ -142,7 +160,7 @@ public class JNDIOps
             throw new NamingException("login problem: " + ex);
         }
 
-        DirContext newCtx = (DirContext) Subject.doAs(lc.getSubject(), new JndiAction(env));
+        LdapContext newCtx = (LdapContext) Subject.doAs(lc.getSubject(), new JndiAction(env));
 
 
         if (newCtx == null)
@@ -481,16 +499,16 @@ public class JNDIOps
 
 
     /**
-     * This is a raw interface to javax.naming.directory.InitialDirContext, that allows
+     * This is a raw interface to javax.naming.directory.InitialLdapContext, that allows
      * an arbitrary environment string to be passed through.  Often it will be
      * convenient to create that environment list using a set...Properties call (or just
      * use one of the constructors to create a JNDIOps object.
      *
      * @param env a list of environment variables for the context
-     * @return a newly created DirContext.
+     * @return a newly created LdapContext.
      */
 
-    public static DirContext openContext(Hashtable env)
+    public static LdapContext openContext(Hashtable env)
             throws NamingException
     {
         /* DEBUG code - do not remove
@@ -508,7 +526,7 @@ public class JNDIOps
         */
 
 
-        DirContext ctx = new InitialDirContext(env);
+        LdapContext ctx = new InitialLdapContext(env, null);
 
         if (ctx == null)
             throw new NamingException("Internal Error with jndi connection: No Context was returned, however no exception was reported by jndi.");
@@ -536,8 +554,14 @@ public class JNDIOps
         Name rdn = newDN.getSuffix(newDN.size() - 1);
         Name oldRdn = oldDN.getSuffix(oldDN.size() - 1);
 
-        if (oldRdn.toString().equals(rdn.toString()) == false) // do nothing if names the same.
-            ctx.rename(oldDN, rdn);
+        if (oldRdn.toString().equals(rdn.toString()) == false)
+            ctx.rename(oldDN, rdn);                            // this should always work
+        else
+        {
+            log.fine("EXPERIMENTAL: ATTEMPTING FULL RENAME: " + oldDN + " to " + newDN);
+            ctx.rename(oldDN, newDN);   // this should fail on directories (openldap) unable to do internal node renames
+                                        // (unless it's just the leaf node)
+        }                               // - but will be caught and handled by AdvancedOps 'recMoveTree()'
     }
 
 
@@ -552,7 +576,45 @@ public class JNDIOps
     public void copyEntry(Name fromDN, Name toDN)
             throws NamingException
     {
-        addEntry(toDN, read(fromDN));
+        Attributes originalAtts = read(fromDN);
+
+        // if we have different RDNs, stuff around to make sure we have the right attribute values...
+        if (!fromDN.get(fromDN.size()-1).equals(toDN.get(toDN.size()-1)))
+        {
+            try
+            {
+                        // TODO: clean this up when we convert to LdapName throughout...?
+                LdapName to = new LdapName(toDN.toString());
+                Rdn rdn = to.getRdn(to.size()-1);
+                DXAttributes rdnAtts = new DXAttributes(rdn.toAttributes());
+
+                for (DXAttribute att:rdnAtts)
+                {
+                    for (Object value:att.getValues())
+                    {
+                        if (originalAtts.get(att.getID())!=null)
+                        {
+                            if (!originalAtts.get(att.getID()).contains(value))
+                            {
+                                Attribute original = originalAtts.get(att.getID());
+                                original.add(value);
+                            }
+                            // else ... we're good, entry already contains rdn naming value
+                        }
+                        else
+                        {
+                            originalAtts.put(att);  // new att... toss it in (shouldn't ever happen though? Naming atts are mandatory?)
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                log.severe("unexpected error trying to add naming att/val to entry: " + e.getMessage() );
+            }
+        }
+
+        addEntry(toDN, originalAtts);
     }
 
 
@@ -590,7 +652,7 @@ public class JNDIOps
      * @param nodeDN the DN to check
      * @return the existence of the nodeDN (or false if an error occurs).
      */
-
+    //todo: merge 'exists' methods
     public boolean exists(Name nodeDN)
             throws NamingException
     {
@@ -686,7 +748,9 @@ public class JNDIOps
     public synchronized Attributes read(Name dn, String[] returnAttributes)
             throws NamingException
     {
-        return ctx.getAttributes(dn, returnAttributes);
+        Attributes atts = ctx.getAttributes(dn, returnAttributes);
+
+        return atts;
     }
 
     /**
@@ -695,8 +759,8 @@ public class JNDIOps
      *
      * @param dn       distinguished name of object to modify
      * @param mod_type the modification type to be performed; one of
-     *                 DirContext.REPLACE_ATTRIBUTE, DirContext.DELETE_ATTRIBUTE, or
-     *                 DirContext.ADD_ATTRIBUTE.
+     *                 LdapContext.REPLACE_ATTRIBUTE, LdapContext.DELETE_ATTRIBUTE, or
+     *                 LdapContext.ADD_ATTRIBUTE.
      * @param attr     the new attributes to update the object with.
      */
 
@@ -731,7 +795,7 @@ public class JNDIOps
     public void updateEntry(Name dn, Attributes atts)
             throws NamingException
     {
-        modifyAttributes(dn, DirContext.REPLACE_ATTRIBUTE, atts);
+        modifyAttributes(dn, LdapContext.REPLACE_ATTRIBUTE, atts);
     }
 
 
@@ -747,7 +811,7 @@ public class JNDIOps
     {
         BasicAttributes atts = new BasicAttributes();
         atts.put(a);
-        modifyAttributes(dn, DirContext.REMOVE_ATTRIBUTE, atts);
+        modifyAttributes(dn, LdapContext.REMOVE_ATTRIBUTE, atts);
     }
 
     /**
@@ -762,7 +826,7 @@ public class JNDIOps
     public void deleteAttributes(Name dn, Attributes a)
             throws NamingException
     {
-        modifyAttributes(dn, DirContext.REMOVE_ATTRIBUTE, a);
+        modifyAttributes(dn, LdapContext.REMOVE_ATTRIBUTE, a);
     }
 
     /**
@@ -777,7 +841,7 @@ public class JNDIOps
     {
         BasicAttributes atts = new BasicAttributes();
         atts.put(a);
-        modifyAttributes(dn, DirContext.REPLACE_ATTRIBUTE, atts);
+        modifyAttributes(dn, LdapContext.REPLACE_ATTRIBUTE, atts);
     }
 
     /**
@@ -790,7 +854,7 @@ public class JNDIOps
     public void updateAttributes(Name dn, Attributes a)
             throws NamingException
     {
-        modifyAttributes(dn, DirContext.REPLACE_ATTRIBUTE, a);
+        modifyAttributes(dn, LdapContext.REPLACE_ATTRIBUTE, a);
     }
 
     /**
@@ -805,7 +869,7 @@ public class JNDIOps
     {
         BasicAttributes atts = new BasicAttributes();
         atts.put(a);
-        modifyAttributes(dn, DirContext.ADD_ATTRIBUTE, atts);
+        modifyAttributes(dn, LdapContext.ADD_ATTRIBUTE, atts);
     }
 
     /**
@@ -818,7 +882,7 @@ public class JNDIOps
     public void addAttributes(Name dn, Attributes a)
             throws NamingException
     {
-        modifyAttributes(dn, DirContext.ADD_ATTRIBUTE, a);
+        modifyAttributes(dn, LdapContext.ADD_ATTRIBUTE, a);
     }
 
 
@@ -933,20 +997,7 @@ public class JNDIOps
     protected NamingEnumeration rawSearchOneLevel(Name searchbase, String filter, int limit,
                                                   int timeout, String[] returnAttributes) throws NamingException
     {
-        /* specify search constraints to search one level */
-        SearchControls constraints = new SearchControls();
-
-        constraints.setSearchScope(SearchControls.ONELEVEL_SCOPE);
-        constraints.setCountLimit(limit);
-        constraints.setTimeLimit(timeout);
-
-        constraints.setReturningAttributes(returnAttributes);
-
-//        NamingEnumeration results = ctx.search(searchbase, filter, null);
-        NamingEnumeration results = ctx.search(searchbase, filter, constraints);
-
-        return results;
-
+        return rawSearch(searchbase, filter, limit, timeout, returnAttributes, SearchControls.ONELEVEL_SCOPE);
     }
 
     /**
@@ -1027,7 +1078,10 @@ public class JNDIOps
         if (returnAttributes != null && returnAttributes.length == 0)
             returnAttributes = new String[]{"objectClass"};
 
-        /* specify search constraints to search subtree */
+        return rawSearch(searchbase, filter, limit, timeout, returnAttributes, SearchControls.SUBTREE_SCOPE);
+
+        /*
+        // specify search constraints to search subtree
         SearchControls constraints1 = new SearchControls();
 
         constraints1.setSearchScope(SearchControls.SUBTREE_SCOPE);
@@ -1037,9 +1091,8 @@ public class JNDIOps
         constraints1.setReturningAttributes(returnAttributes);
         SearchControls constraints = constraints1;
 
-        System.out.println("subtree search- base: " + searchbase + " filter: " + filter);
-
         return ctx.search(searchbase, filter, constraints);
+        */
     }
 
 
@@ -1094,12 +1147,14 @@ public class JNDIOps
                                                    int timeout, String[] returnAttributes)
             throws NamingException
     {
-        NamingEnumeration result = null;
+        //NamingEnumeration result = null;
 
         if (returnAttributes != null && returnAttributes.length == 0)
             returnAttributes = new String[]{"objectClass"};
 
-        /* specify search constraints to search subtree */
+        return rawSearch(searchbase, filter, limit, timeout, returnAttributes, SearchControls.OBJECT_SCOPE);
+        /*
+        // specify search constraints to search subtree
         SearchControls constraints = new SearchControls();
 
         constraints.setSearchScope(SearchControls.OBJECT_SCOPE);
@@ -1111,7 +1166,127 @@ public class JNDIOps
         result = ctx.search(searchbase, filter, constraints);
 
         return result;
+        */
     }
+
+    /**
+     * This is the underlying method for all searches.
+     *
+     * @param searchbase       the domain name (relative to initial context in ldap) to seach from.
+     * @param filter           the non-null filter to use for the search
+     * @param limit            the maximum number of results to return
+     * @param timeout          the maximum time to wait before abandoning the search
+     * @param returnAttributes an array of strings containing the names of attributes to search. (null = all, empty array = none)
+     * @param scope
+     * @return list of search results ('SearchResult's); entries matching the search filter.
+     */
+    protected NamingEnumeration rawSearch(Name searchbase, String filter, int limit, int timeout,
+                                          String[] returnAttributes, int scope)
+            throws NamingException
+    {
+
+        SearchControls constraints = new SearchControls();
+
+        constraints.setSearchScope(scope);
+        constraints.setCountLimit(limit);
+        constraints.setTimeLimit(timeout);
+
+        constraints.setReturningAttributes(returnAttributes);
+
+        try
+        {
+            if (pageSize>=0) // do stuff...
+            {
+                byte[] cookie;
+                try
+                {
+                    ctx.setRequestControls(new Control[]{new PagedResultsControl(pageSize, Control.NONCRITICAL)});
+                    // do paged requests loop
+                    DXNamingEnumeration result = new DXNamingEnumeration();
+                    do
+                    {   //TODO: consider adding type safety througout API; e.g. insert <SearchResult> here...
+                        NamingEnumeration pageResult = ctx.search(searchbase, filter, constraints);
+
+                        while (pageResult.hasMoreElements())
+                        {
+                            result.add(pageResult.next());
+                        }
+
+                        // Examine the paged results control response
+                        cookie = getPagingCookie(ctx.getResponseControls());
+                        // Re-activate paged results
+                        ctx.setRequestControls(new Control[]{new PagedResultsControl(pageSize, cookie, Control.CRITICAL)});
+                        log.fine ("*** PAGING TOTAL SO FAR: " + result.size());
+                    }
+                    while (cookie != null);
+
+                    ctx.setRequestControls(null); // clear the context
+                    return result;
+                }
+                catch (IOException e)
+                {
+                    ctx.setRequestControls(null); // clear the context
+                    throw new NamingException("unexpected error creating page request controls: " + e.getMessage());
+                }
+            }
+            else
+            {
+                NamingEnumeration result = ctx.search(searchbase, filter, constraints);
+                return result;
+            }
+        }
+        catch (NamingException e)
+        {
+            log.warning("error in rawSearch with filter: " + filter + " from base: " + searchbase + " => " + e.getMessage());
+            throw e;
+        }
+    }
+
+
+    /**
+     * This checks to see if the response controls include a paged response control.  If
+     * it does, we set a cookie to allow us to continue searching to the next page.
+     *
+     * @param controls
+     * @return
+     */
+    private byte[] getPagingCookie(Control[] controls)
+    {
+        if (controls != null)
+        {
+            byte[] cookie;
+            for (int i = 0; i < controls.length; i++)
+            {
+                if (controls[i] instanceof PagedResultsResponseControl)
+                {
+                    PagedResultsResponseControl pagedResponse = (PagedResultsResponseControl) controls[i];
+
+                    //TODO Remove debug code
+                    int total = pagedResponse.getResultSize();
+                    if (total != 0)
+                    {
+                            log.fine("***************** END-OF-PAGE (read : " + total + ") *****************\n");
+                    }
+                    else
+                    {
+                            log.fine("***************** END-OF-PAGE (total: unknown) ***************\n");
+                    }
+
+                    cookie = pagedResponse.getCookie();
+                    return cookie;
+                }
+            }
+        }
+        else
+        {
+            log.fine("No paged result control was sent from the server");
+        }
+        return null;
+    }
+
+
+
+
 
 
     /**
@@ -1148,25 +1323,7 @@ public class JNDIOps
             throws NamingException
     {
         return rawSearchBaseEntry(nameParser.parse(searchbase), filter, limit, timeout, returnAttributes);
-/*
-         NamingEnumeration result = null;
 
-         if (returnAttributes != null  &&  returnAttributes.length == 0)
-             returnAttributes = new String[] {"objectClass"};
-
-         // specify search constraints to search subtree
-         SearchControls constraints = new SearchControls();
-
-         constraints.setSearchScope(SearchControls.OBJECT_SCOPE);
-         constraints.setCountLimit(limit);
-         constraints.setTimeLimit(timeout);
-
-         constraints.setReturningAttributes(returnAttributes);
-
-         result = ctx.search(searchbase, filter, constraints);
-
-         return result;
-*/
     }
 
 
@@ -1303,8 +1460,8 @@ public class JNDIOps
      *
      * @param dn       distinguished name of object to modify
      * @param mod_type the modification type to be performed; one of
-     *                 DirContext.REPLACE_ATTRIBUTE, DirContext.DELETE_ATTRIBUTE, or
-     *                 DirContext.ADD_ATTRIBUTE.
+     *                 LdapContext.REPLACE_ATTRIBUTE, LdapContext.DELETE_ATTRIBUTE, or
+     *                 LdapContext.ADD_ATTRIBUTE.
      * @param attr     the new attributes to update the object with.
      */
 
@@ -1339,7 +1496,7 @@ public class JNDIOps
     public void updateEntry(String dn, Attributes atts)
             throws NamingException
     {
-        modifyAttributes(dn, DirContext.REPLACE_ATTRIBUTE, atts);
+        modifyAttributes(dn, LdapContext.REPLACE_ATTRIBUTE, atts);
     }
 
 
@@ -1355,7 +1512,7 @@ public class JNDIOps
     {
         BasicAttributes atts = new BasicAttributes();
         atts.put(a);
-        modifyAttributes(dn, DirContext.REMOVE_ATTRIBUTE, atts);
+        modifyAttributes(dn, LdapContext.REMOVE_ATTRIBUTE, atts);
     }
 
     /**
@@ -1370,7 +1527,7 @@ public class JNDIOps
     public void deleteAttributes(String dn, Attributes a)
             throws NamingException
     {
-        modifyAttributes(dn, DirContext.REMOVE_ATTRIBUTE, a);
+        modifyAttributes(dn, LdapContext.REMOVE_ATTRIBUTE, a);
     }
 
     /**
@@ -1385,7 +1542,7 @@ public class JNDIOps
     {
         BasicAttributes atts = new BasicAttributes();
         atts.put(a);
-        modifyAttributes(dn, DirContext.REPLACE_ATTRIBUTE, atts);
+        modifyAttributes(dn, LdapContext.REPLACE_ATTRIBUTE, atts);
     }
 
     /**
@@ -1398,7 +1555,7 @@ public class JNDIOps
     public void updateAttributes(String dn, Attributes a)
             throws NamingException
     {
-        modifyAttributes(dn, DirContext.REPLACE_ATTRIBUTE, a);
+        modifyAttributes(dn, LdapContext.REPLACE_ATTRIBUTE, a);
     }
 
     /**
@@ -1413,7 +1570,7 @@ public class JNDIOps
     {
         BasicAttributes atts = new BasicAttributes();
         atts.put(a);
-        modifyAttributes(dn, DirContext.ADD_ATTRIBUTE, atts);
+        modifyAttributes(dn, LdapContext.ADD_ATTRIBUTE, atts);
     }
 
     /**
@@ -1426,7 +1583,7 @@ public class JNDIOps
     public void addAttributes(String dn, Attributes a)
             throws NamingException
     {
-        modifyAttributes(dn, DirContext.ADD_ATTRIBUTE, a);
+        modifyAttributes(dn, LdapContext.ADD_ATTRIBUTE, a);
     }
 
 
@@ -1449,38 +1606,6 @@ public class JNDIOps
 
         return rawSearchOneLevel(nameParser.parse(searchbase), "(objectclass=*)", 0, 0, new String[]{"1.1"});
     }
-
-    /**
-     * Method that calls the actual search on the jndi context.
-     *
-     *   @param searchbase the domain name (relative to initial context in ldap) to seach from.
-     *   @param filter the non-null filter to use for the search
-     *   @param limit the maximum number of results to return
-     *   @param timeout the maximum time to wait before abandoning the search
-     *   @param returnAttributes an array of strings containing the names of attributes to search. (null = all, empty array = none)
-     * @return
-     * @throws NamingException
-     */
-/*
-     private NamingEnumeration rawOneLevelSearch(String searchbase, String filter, int limit,
-                 int timeout, String[] returnAttributes ) throws NamingException
-     {
-         // specify search constraints to search one level
-         SearchControls constraints = new SearchControls();
-
-         constraints.setSearchScope(SearchControls.ONELEVEL_SCOPE);
-         constraints.setCountLimit(limit);
-         constraints.setTimeLimit(timeout);
-
-         constraints.setReturningAttributes(returnAttributes);
-
-         NamingEnumeration results = ctx.search(searchbase, filter, constraints);
-
-         return results;
-
-     }
-*/
-
 
 
     /**
@@ -1661,12 +1786,12 @@ public class JNDIOps
     }
 
 
-    public DirContext getContext()
+    public LdapContext getContext()
     {
         return ctx;
     }
 
-    public void setContext(DirContext ctx)
+    public void setContext(LdapContext ctx)
     {
         this.ctx = ctx;
 

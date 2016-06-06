@@ -51,6 +51,8 @@ public class AttributeValueCellEditor extends AbstractCellEditor
 
     int lastSelectedRow = 0;                    //TE: The last selected row - which is used to set the height back to normal (16).
 
+    public boolean enabled = true;
+
     public static final String BINARY_SYNTAX =              "1.3.6.1.4.1.1466.115.121.1.5";
     public static final String BOOLEAN_SYNTAX =             "1.3.6.1.4.1.1466.115.121.1.7";
     public static final String CERTIFICATE_SYNTAX =         "1.3.6.1.4.1.1466.115.121.1.8";
@@ -468,12 +470,20 @@ public class AttributeValueCellEditor extends AbstractCellEditor
         return super.stopCellEditing();
     }
 
+    public void setEnabled(boolean enable)
+    {
+        enabled = enable;
+    }
+
    /**
     *    Checks if the user has clicked sufficient times to make the cell
     *    editable.
     */
     public boolean isCellEditable(EventObject e)
     {
+        if (!enabled)
+            return false;
+
         boolean editable = true;
         if (e instanceof MouseEvent)
         {
@@ -511,12 +521,10 @@ public class AttributeValueCellEditor extends AbstractCellEditor
             Class c = null;
             if (myLoader == null)
             {
-                System.out.println("using default loader for "+className );
                 c = Class.forName(className);
             }
             else
             {
-                System.out.println("looking for: " + className.toLowerCase());
                 c = myLoader.loadClass(className.toLowerCase());
             }
             if (abstractbinaryeditor.class.isAssignableFrom(c))

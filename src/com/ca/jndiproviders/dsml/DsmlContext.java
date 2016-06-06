@@ -7,6 +7,10 @@ import com.ca.commons.cbutil.CBBase64EncodingException;
 
 import javax.naming.directory.*;
 import javax.naming.*;
+import javax.naming.ldap.Control;
+import javax.naming.ldap.ExtendedRequest;
+import javax.naming.ldap.ExtendedResponse;
+import javax.naming.ldap.LdapContext;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -47,7 +51,7 @@ import java.io.IOException;
 
 //TODO: makes heavy use of static stuff - may not be thread safe.
 
-public class DsmlContext implements DirContext
+public class DsmlContext implements LdapContext
 {
 
     // Formatting
@@ -387,7 +391,7 @@ public class DsmlContext implements DirContext
      * @throws	javax.naming.NamingException if a naming exception is encountered
      * @deprecated not yet implemented
      */
-    public DirContext getSchema(String name) throws NamingException
+    public LdapContext getSchema(String name) throws NamingException
     {
         throw new OperationNotSupportedException("DsmlContext does not support reading schema (yet)");
     }
@@ -399,13 +403,13 @@ public class DsmlContext implements DirContext
      *
      * @param name the name of the object whose object class
      *             definition is to be retrieved
-     * @return	the <tt>DirContext</tt> containing the named
+     * @return	the <tt>LdapContext</tt> containing the named
      * object's class definitions; never null
      * @throws	javax.naming.OperationNotSupportedException if schema not supported
      * @throws	javax.naming.NamingException if a naming exception is encountered
      * @deprecated not yet implemented
      */
-    public DirContext getSchemaClassDefinition(String name) throws NamingException
+    public LdapContext getSchemaClassDefinition(String name) throws NamingException
     {
         throw new OperationNotSupportedException("DsmlContext does not support reading schema (yet)");
     }
@@ -433,7 +437,7 @@ public class DsmlContext implements DirContext
      * @throws	javax.naming.NamingException if a naming exception is encountered
      * @deprecated not yet implemented
      */
-    public DirContext getSchema(Name name) throws NamingException
+    public LdapContext getSchema(Name name) throws NamingException
     {
         throw new OperationNotSupportedException("DsmlContext does not support reading schema (yet)");
     }
@@ -450,7 +454,7 @@ public class DsmlContext implements DirContext
      * rather than in the Java sense.
      * For example, if the named object is a directory object of
      * "Person" class, <tt>getSchemaClassDefinition()</tt> would return a
-     * <tt>DirContext</tt> representing the (directory's) object class
+     * <tt>LdapContext</tt> representing the (directory's) object class
      * definition of "Person".
      * <p/>
      * The information that can be retrieved from an object class definition
@@ -459,18 +463,18 @@ public class DsmlContext implements DirContext
      * Prior to JNDI 1.2, this method
      * returned a single schema object representing the class definition of
      * the named object.
-     * Since JNDI 1.2, this method returns a <tt>DirContext</tt> containing
+     * Since JNDI 1.2, this method returns a <tt>LdapContext</tt> containing
      * all of the named object's class definitions.
      *
      * @param name the name of the object whose object class
      *             definition is to be retrieved
-     * @return	the <tt>DirContext</tt> containing the named
+     * @return	the <tt>LdapContext</tt> containing the named
      * object's class definitions; never null
      * @throws	javax.naming.OperationNotSupportedException if schema not supported
      * @throws	javax.naming.NamingException if a naming exception is encountered
      * @deprecated not yet implemented
      */
-    public DirContext getSchemaClassDefinition(Name name) throws NamingException
+    public LdapContext getSchemaClassDefinition(Name name) throws NamingException
     {
         throw new OperationNotSupportedException("DsmlContext does not support reading schema (yet)");
     }
@@ -764,7 +768,7 @@ public class DsmlContext implements DirContext
      * Binds a name to an object, along with associated attributes.
      * If <tt>attrs</tt> is null, the resulting binding will have
      * the attributes associated with <tt>obj</tt> if <tt>obj</tt> is a
-     * <tt>DirContext</tt>, and no attributes otherwise.
+     * <tt>LdapContext</tt>, and no attributes otherwise.
      * If <tt>attrs</tt> is non-null, the resulting binding will have
      * <tt>attrs</tt> as its attributes; any attributes associated with
      * <tt>obj</tt> are ignored.
@@ -789,15 +793,15 @@ public class DsmlContext implements DirContext
     /**
      * Binds a name to an object, along with associated attributes,
      * overwriting any existing binding.
-     * If <tt>attrs</tt> is null and <tt>obj</tt> is a <tt>DirContext</tt>,
+     * If <tt>attrs</tt> is null and <tt>obj</tt> is a <tt>LdapContext</tt>,
      * the attributes from <tt>obj</tt> are used.
-     * If <tt>attrs</tt> is null and <tt>obj</tt> is not a <tt>DirContext</tt>,
+     * If <tt>attrs</tt> is null and <tt>obj</tt> is not a <tt>LdapContext</tt>,
      * any existing attributes associated with the object already bound
      * in the directory remain unchanged.
      * If <tt>attrs</tt> is non-null, any existing attributes associated with
      * the object already bound in the directory are removed and <tt>attrs</tt>
      * is associated with the named object.  If <tt>obj</tt> is a
-     * <tt>DirContext</tt> and <tt>attrs</tt> is non-null, the attributes
+     * <tt>LdapContext</tt> and <tt>attrs</tt> is non-null, the attributes
      * of <tt>obj</tt> are ignored.
      *
      * @param name  the name to bind; may not be empty
@@ -882,7 +886,7 @@ public class DsmlContext implements DirContext
      * contain all the mandatory attributes required for creation
      * @throws	javax.naming.NamingException if a naming exception is encountered
      */
-    public DirContext createSubcontext(String name, Attributes attrs) throws NamingException
+    public LdapContext createSubcontext(String name, Attributes attrs) throws NamingException
     {
         log.finest("createSubcontext (" + name.toString() + ")");
 // construct XML
@@ -931,7 +935,7 @@ public class DsmlContext implements DirContext
      * @throws	javax.naming.NamingException if a naming exception is encountered
      * @see javax.naming.Context#createSubcontext(javax.naming.Name)
      */
-    public DirContext createSubcontext(Name name, Attributes attrs) throws NamingException
+    public LdapContext createSubcontext(Name name, Attributes attrs) throws NamingException
     {
         return createSubcontext(name.toString(), attrs);
     }
@@ -992,7 +996,7 @@ public class DsmlContext implements DirContext
      * substring comparison) use the version of the <code>search</code>
      * method that takes a filter argument.
      * <p/>
-     * When changes are made to this <tt>DirContext</tt>,
+     * When changes are made to this <tt>LdapContext</tt>,
      * the effect on enumerations returned by prior calls to this method
      * is undefined.
      * <p/>
@@ -1336,7 +1340,7 @@ public class DsmlContext implements DirContext
      * <p/>
      * If a search filter with invalid variable substitutions is provided
      * to this method, the result is undefined.
-     * When changes are made to this DirContext,
+     * When changes are made to this LdapContext,
      * the effect on enumerations returned by prior calls to this method
      * is undefined.
      * <p/>
@@ -1681,8 +1685,6 @@ public class DsmlContext implements DirContext
      * @throws	javax.naming.NamingException if a naming exception is encountered
      * @see #bind(String, Object)
      * @see #rebind(javax.naming.Name, Object)
-     * @see javax.naming.directory.DirContext#bind(javax.naming.Name, Object,
-            *      javax.naming.directory.Attributes)
      * @deprecated java Object specific methods such as bind/unbind/lookup are not supported by DsmlContext
      */
     public void bind(Name name, Object obj) throws NamingException
@@ -1695,7 +1697,7 @@ public class DsmlContext implements DirContext
      * All intermediate contexts and the target context (that named by all
      * but terminal atomic component of the name) must already exist.
      * <p/>
-     * <p> If the object is a <tt>DirContext</tt>, any existing attributes
+     * <p> If the object is a <tt>LdapContext</tt>, any existing attributes
      * associated with the name are replaced with those of the object.
      * Otherwise, any existing attributes associated with the name remain
      * unchanged.
@@ -1706,9 +1708,6 @@ public class DsmlContext implements DirContext
      * @throws	javax.naming.NamingException if a naming exception is encountered
      * @see #rebind(String, Object)
      * @see #bind(javax.naming.Name, Object)
-     * @see javax.naming.directory.DirContext#rebind(javax.naming.Name, Object,
-            *      javax.naming.directory.Attributes)
-     * @see javax.naming.directory.DirContext
      * @deprecated java Object specific methods such as bind/unbind/lookup are not supported by DsmlContext
      */
     public void rebind(Name name, Object obj) throws NamingException
@@ -1815,7 +1814,6 @@ public class DsmlContext implements DirContext
      * mandatory attributes
      * @throws	javax.naming.NamingException if a naming exception is encountered
      * @see #createSubcontext(String)
-     * @see javax.naming.directory.DirContext#createSubcontext
      * @deprecated it is impossible to create a directory object without attributes  (RFC 2251 - sec 4.7)
      */
     public Context createSubcontext(Name name) throws NamingException
@@ -2277,7 +2275,15 @@ public class DsmlContext implements DirContext
 
             log.finest("----SENDING XML OVER WIRE-----\nURL: " + URL + "\nlength: " + rawBytes.length);
 
-            response = SoapClient.sendSoapMsg(URL, rawBytes, "#batchRequest");
+            String usr = null,pwd = null;
+
+            if (environment.get(Context.SECURITY_AUTHENTICATION) == "simple")
+            {
+                usr = (String) environment.get(Context.SECURITY_PRINCIPAL);       
+                pwd = (String) environment.get(Context.SECURITY_CREDENTIALS);
+            }
+
+            response = SoapClient.sendSoapMsg(URL, rawBytes, "#batchRequest", usr, pwd);
 
         }
         catch (UnsupportedEncodingException e) // should never happen.  really.
@@ -2839,6 +2845,41 @@ System.out.println("SENDING BINARY DATA; byte length: " + data.length + " encode
             dsmlFilter.append(padding).append("</dsml:substrings>\n");
 
         }
+    }
 // LDAP v3 Extensions not supported - your code here...
+                     
+    public ExtendedResponse extendedOperation(ExtendedRequest extendedRequest) throws NamingException
+    {
+        return null;  //To change body of implemented methods use File | Settings | File Templates.
+    }
+
+    public LdapContext newInstance(Control[] controls) throws NamingException
+    {
+        return null;  //To change body of implemented methods use File | Settings | File Templates.
+    }
+
+    public void reconnect(Control[] controls) throws NamingException
+    {
+        //To change body of implemented methods use File | Settings | File Templates.
+    }
+
+    public Control[] getConnectControls() throws NamingException
+    {
+        return new Control[0];  //To change body of implemented methods use File | Settings | File Templates.
+    }
+
+    public void setRequestControls(Control[] controls) throws NamingException
+    {
+        //To change body of implemented methods use File | Settings | File Templates.
+    }
+
+    public Control[] getRequestControls() throws NamingException
+    {
+        return new Control[0];  //To change body of implemented methods use File | Settings | File Templates.
+    }
+
+    public Control[] getResponseControls() throws NamingException
+    {
+        return new Control[0];  //To change body of implemented methods use File | Settings | File Templates.
     }
 }

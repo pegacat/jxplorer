@@ -2,6 +2,7 @@ package com.ca.directory.jxplorer.broker;
 
 import javax.naming.*;
 import javax.naming.directory.*;
+import javax.naming.ldap.LdapContext;
 
 //import com.ca.directory.jxplorer.tree.*;
 import com.ca.commons.naming.*;
@@ -479,7 +480,7 @@ public class SchemaDataBroker extends DataBroker
      *   Chains request to jndiBroker to satisfy broker interface
      */
      
-    public DirContext getDirContext() { return jndiBroker.getDirContext(); }
+    public LdapContext getLdapContext() throws NamingException { return jndiBroker.getLdapContext(); }
  
     /**
      *    Whether the schemaOps is modifiable - usually false.
@@ -499,6 +500,8 @@ public class SchemaDataBroker extends DataBroker
      */
      
     public SchemaOps getSchemaOps() { return schemaOps; }
-    
+
+    public String id() { return "SchemaDataBroker " + id;};
+
     
 }

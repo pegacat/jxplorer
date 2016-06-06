@@ -2,6 +2,8 @@ package com.ca.commons.cbutil;
 
 import java.io.*;
 import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * <p>A hack class for formatting.  The java Properties class is astonishingly broken in too many ways to
@@ -16,6 +18,8 @@ import java.util.*;
 public class CBProperties extends Properties
 {
     private static final String specialSaveChars = "=: \t\r\n\f#!";
+
+    private static Logger log = Logger.getLogger(CBProperties.class.getName());
 
     public CBProperties(Properties props)
     {
@@ -47,6 +51,7 @@ public class CBProperties extends Properties
          *   ... this swaps those around, replacing the 'my.property.comment' with '#my.property ='
          #  for pretty commenting.
          */
+                
         for (int i = 1; i < sortedKeys.size(); i++)
         {
             String key = (String) sortedKeys.get(i);
@@ -89,7 +94,7 @@ public class CBProperties extends Properties
 
             if (key.charAt(0) == '#') // write out comments nicely
             {
-                writeln(awriter, "");
+                writeln(awriter, ""); //???
                 writeln(awriter, key + "  " + val);
             }
             else
@@ -189,4 +194,67 @@ public class CBProperties extends Properties
     private static final char[] hexDigit = {
         '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'
     };
+
+
+    /*
+     *  Static Util Methods
+     */
+
+        /**
+     * Writes a java Properties list to a file.
+     *
+     * @param fileName the full path and file name of the properties file
+     *                 to read in.
+     */
+
+    public static void writePropertyFile(String fileName, Properties propertyList, String comments)
+    {
+        // do hack to get propertyList to print out in alphabetical order...
+
+        CBProperties orderedPropertyList = new CBProperties(propertyList);
+
+        try
+        {
+            File propertyFile = new File(fileName);
+
+            FileOutputStream out = new FileOutputStream(propertyFile);
+
+            orderedPropertyList.store(out, "Generated Property List " + fileName + "\n" + ((comments != null) ? comments : ""));
+        }
+        catch (Exception e)
+        {
+            log.log(Level.WARNING, "Can't write property list:\n" + fileName + "\n", e);
+        }
+    }
+
+        /**
+     * Reads a java Properties list from a file.
+     *
+     * @param fileName the full path and file name of the properties file
+     *                 to read in.
+     */
+
+    public static Properties readPropertyFile(String fileName)
+    {
+        Properties propertyList = new Properties();
+
+        try
+        {
+            File propertyFile = new File(fileName);
+            if (propertyFile == null || propertyFile.exists() == false)
+            {
+                log.warning("No property list:\n" + fileName);
+                return propertyList; // return empty properties list
+            }
+
+            FileInputStream in = new FileInputStream(propertyFile);
+            propertyList.load(in);
+            return propertyList;
+        }
+        catch (Exception e)
+        {
+            log.log(Level.WARNING, "Can't read property list:\n" + fileName + "\n", e);
+            return propertyList;
+        }
+    }
 }

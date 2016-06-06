@@ -1,5 +1,6 @@
 package com.ca.commons.cbutil;
 
+import java.io.File;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -188,15 +189,14 @@ public class CBClassLoader extends ClassLoader
 
     protected URL findResource(String name)
     {
-        log.finer("CLASSLOADER MAGIC: looking for: " + name);
         CBJarResource container = resourceLoader.getJarContainingResource(name);
-        log.finer("CLASSLOADER MAGIC: found container: " + ((container == null) ? "null" : container.getZipFileName()));
         if (container == null)
-            return null;
+        {
+            return findFileResource(name); // try for an unpacked file.
+        }
 
         String zipFile = container.getZipFileName();
         String url = "jar:file:" + zipFile + "!/" + name;
-        log.finer("CLASSLOADER MAGIC: constructed url: " + url);
 
         try
         {
@@ -207,6 +207,26 @@ public class CBClassLoader extends ClassLoader
             log.warning("Unable to construct url: " + url + "\n -> due to " + e);
             return null;
         }
+    }
+
+    /**
+     * ... currently I'm struggling to understand why JX sometimes finds the language/JX_xx_XX.properties files and
+     * sometimes doesn't.  This is an attempt to double check for resources *not* in a jar file, but in a JX sub-directory.
+     * @param name
+     * @return
+     */
+    protected URL findFileResource(String name)
+    {
+        try
+        {
+            File candidate = new File(name);
+            if (candidate.exists())
+            {
+                return candidate.toURI().toURL();
+            }
+        }
+        catch (Exception e) {}
+        return null;
     }
 
     public String toString()

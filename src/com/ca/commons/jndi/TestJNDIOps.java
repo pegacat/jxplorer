@@ -4,6 +4,7 @@ import com.ca.commons.naming.*;
 
 import javax.naming.*;
 import javax.naming.directory.*;
+import javax.naming.ldap.LdapContext;
 import java.io.*;
 
 
@@ -49,7 +50,7 @@ public class TestJNDIOps
      */
     //  static String version = "1.0(build"+BuildNumber.value +")";
 
-    BufferedReader in;
+    LdifStreamReader in;
 
     PrintStream out;
 
@@ -288,7 +289,18 @@ public class TestJNDIOps
         if (fileName != null)
             in = openFile(fileName);
         else
-            in = new BufferedReader(new InputStreamReader(System.in));
+        {
+            in = null;
+            try
+            {
+                in = new LdifStreamReader(new InputStreamReader(System.in));
+            }
+            catch (Exception e)
+            {
+                error("unable to open system input stream reader", e);
+                System.exit(-1);
+            }
+        }
     }
 
     /**
@@ -332,8 +344,8 @@ public class TestJNDIOps
             int versn = Integer.parseInt(version);
 
             ConnectionData cData = new ConnectionData(versn, url, user, password, tracing, null, null);
-            DirContext ctx = BasicOps.openContext(cData);
-            //DirContext ctx = BasicOps.openContext(versn, url, user, password, tracing, null, null);
+            LdapContext ctx = BasicOps.openContext(cData);
+            //LdapContext ctx = BasicOps.openContext(versn, url, user, password, tracing, null, null);
             if (ctx != null)
                 myOps = new DXOps(ctx);
 
@@ -355,13 +367,13 @@ public class TestJNDIOps
      * @return the Input Stream.
      */
 
-    public BufferedReader openFile(String fileName)
+    public LdifStreamReader openFile(String fileName)
     {
         try
         {
             File myFile = new File(fileName);
             ldifutil.setFileDir(myFile.getParent());
-            return new BufferedReader(new InputStreamReader(new FileInputStream(myFile)));
+            return new LdifStreamReader(new InputStreamReader(new FileInputStream(myFile)));
         }
         catch (Exception e)
         {
@@ -1248,7 +1260,7 @@ public class TestJNDIOps
 
         try
         {
-            myOps.copyTree(oldDN, newDN);
+            myOps.copyTree(oldDN, newDN, true);
         }
         catch (NamingException e2)
         {

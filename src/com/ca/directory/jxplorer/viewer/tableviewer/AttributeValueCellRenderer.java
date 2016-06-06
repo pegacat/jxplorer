@@ -33,36 +33,6 @@ public class AttributeValueCellRenderer extends DefaultTableCellRenderer
         boldBlueFont = normalFont.deriveFont(java.awt.Font.BOLD);
     }
 
-    /**
-     *  Intercepts byte array/binary attribute values, and substitutes the
-     *  string '(non string data)' for display to the user...
-     */
-     
-    protected void setValue(Object value)  // I wonder what the performance hit here is...
-    {
-        /* not actually used???
-        if (value instanceof AttributeValue)
-        {
-            String id = ((AttributeValue)value).id; 
-            if (id.equals("userPassword"))
-                System.out.println("bloop");
-
-            if (((AttributeValue)value).isBinary() && (((AttributeValue)value).isEmpty()==false))
-                value = CBIntText.get("(non string data)");
-            else
-            {
-                // truncate long strings for initial display
-                String stringVal = value.toString();
-                if (stringVal.length() > 100)
-                    value = truncateLongString(stringVal);
-                    
-                if (stringVal.substring(0,6).toLowerCase().startsWith("<html>"))
-                    value = " " + stringVal;
-            }                    
-        }
-        */
-        super.setValue(value);
-    }
     // is this really needed?
     public String truncateLongString(String truncateMe, int len)
     {
@@ -82,9 +52,9 @@ public class AttributeValueCellRenderer extends DefaultTableCellRenderer
         {
             AttributeValue attVal = (AttributeValue)value;
 
-            String id = attVal.getID();
-            if (id.equalsIgnoreCase("userPassword"))
-                System.out.println("pwd va: " + attVal.getStringValue());
+            //String id = attVal.getID();
+            //if (id.equalsIgnoreCase("telephoneNumber"))
+            //    System.out.println("ph: " + attVal.getStringValue());
 
             String attString = attVal.toString();
             if (attString.length() > 256)
@@ -96,12 +66,37 @@ public class AttributeValueCellRenderer extends DefaultTableCellRenderer
             {
                 c.setForeground(((isSelected)?Color.white:Color.blue));
                 c.setFont(boldFont);
-            }    
+                if (!isSelected)
+                {
+                    if ((row%2)==1)
+                        c.setBackground(new Color(249,249,249));
+                    else
+                        c.setBackground(Color.white);
+                }
+            }
+            else if (attVal.isEditable()==false)
+            {
+                c.setFont(boldFont);
+                c.setForeground(new Color(64,96,64));
+                //c.setForeground(Color.red);
+
+                if ((row%2)==1)
+                    c.setBackground(new Color(249,249,249));
+                else
+                    c.setBackground(Color.white);
+            }
             else
             {
                 c.setForeground(((isSelected)?Color.white:Color.black));
-                c.setFont(normalFont);    
-            }    
+                c.setFont(normalFont);
+                if (!isSelected)
+                {
+                    if ((row%2)==1)
+                        c.setBackground(new Color(249,249,249));
+                    else
+                        c.setBackground(Color.white);
+                }
+            }
             return c;                
             
         }

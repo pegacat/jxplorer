@@ -33,7 +33,7 @@ public class SearchModel
 	protected		ArrayList  	tempList = new ArrayList();
     protected       String      searchFilterConfig;                 //CB: the name of the property file to save to.
 
-	static final	String 		SEARCH_FILTER_FILENAME = "search_filters.txt";	//TE: the property file.
+	public static final	String 	SEARCH_FILTER_FILENAME = "search_filters.txt";	//TE: the property file.
 	static final 	String 		NAME = "JXFilter.";					//TE: the filter name prefix e.g. 'JXFilter.name'.\
 	static final 	String 		TEXTNAME = "JXTextFilter.";			//TE: the filter name prefix e.g. 'JXTextFilter.name'.
 
@@ -105,7 +105,7 @@ public class SearchModel
 	{
 		properties = new Properties();
 
-        searchFilterConfig = CBUtility.getPropertyConfigPath(SEARCH_FILTER_FILENAME);
+        searchFilterConfig = CBUtility.getPropertyConfigPath(JXplorer.APPLICATION_NAME, SEARCH_FILTER_FILENAME);
 
         if (new File(searchFilterConfig).exists()==false) { log.info("no search filter config file found at: " + searchFilterConfig); return;}
 
@@ -142,7 +142,7 @@ public class SearchModel
 	*	@param type one of JOINFILTER, ALLFILTERS, BUILDFILTER, TEXTFILTER, FULLNAMES.
 	*	@return the list of filter names.
 	*/
-	public ArrayList getFilterNames(int type)
+	public ArrayList<String> getFilterNames(int type)
 	{	
 		Enumeration list = getAllFilters();
 		ArrayList loadList = new ArrayList();
@@ -469,7 +469,16 @@ public class SearchModel
 			return properties.getProperty(key);
 		
 		return null;	
-	}			
+	}
+
+    /**
+     *  inverse of 'saveValue()' - gets the value for a particular key and name
+     */
+    public String getValue(String name, String key)
+
+    {
+        return getValue(name + "." + key);
+    }
 
    /**
     *	Checks if the property file contains the value.  If it does it gets the

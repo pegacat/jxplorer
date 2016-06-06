@@ -3,11 +3,8 @@ package com.ca.commons.naming;
 import com.ca.commons.cbutil.CBBase64;
 import com.ca.commons.cbutil.CBParse;
 
-import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
 import javax.naming.directory.Attribute;
-import javax.naming.directory.Attributes;
-import javax.naming.directory.BasicAttribute;
 import java.io.*;
 import java.util.Enumeration;
 import java.util.Hashtable;
@@ -35,7 +32,8 @@ public class LdifUtility
     // e.g. KEY: <base_dn>, KEY VALUE: "o=eTrust, cn=Users"
     private String filedir = null;
 
-    private String cr = System.getProperty("line.separator", "\n");
+    //public static String cr = System.getProperty("line.separator", "\n");
+    public static String cr = "\n";
 
     private final static Logger log = Logger.getLogger(LdifUtility.class.getName());
 
@@ -69,7 +67,7 @@ public class LdifUtility
     /**
      * Constructor
      *
-     * @param params  - hashtable with the list of string that will have to be suvstituted in the ldif file
+     * @param params  - hashtable with the list of strings that will have to be substituted in the ldif file
      * @param filedir - ldif file directory, used to find the input files specified in the ldif stream
      */
     public LdifUtility(Hashtable params, String filedir)
@@ -157,7 +155,7 @@ public class LdifUtility
      * @param attributeValue
      * @return encoded att val pair (may be multi-line for base64 or long text) - includes '\n' for valid text - returns empty string for invalid values.
      */
-    public String ldifEncode(String attributeID, Object attributeValue)
+    public static String ldifEncode(String attributeID, Object attributeValue)
     {
         StringBuffer ldifData = new StringBuffer();
         String val = ldifEncode(attributeValue, attributeID.length());
@@ -174,7 +172,7 @@ public class LdifUtility
      * (initial character sane, subsequent characters not null, CR or LF),
      * and returns the appropriate string, with appropriate ': ' or ':: '
      * prefix.  It also supports the draft 'Extended LDAP Data Interchange Foramt'
-     * handling of xml text that is identified by an initial '<?xml ' string.
+     * handling of xml text that is identified by an initial '&lt;?xml ' string.
      *
      * @param o      the object to be ldif encoded
      * @param offset The first line of the string may be offset by
@@ -185,7 +183,7 @@ public class LdifUtility
      */
 
 
-    public String ldifEncode(Object o, int offset)
+    public static String ldifEncode(Object o, int offset)
     {
         boolean base64Encode = false;
 
@@ -262,7 +260,7 @@ public class LdifUtility
      * @return base64 value of string.
      */
 
-    private String translateToLdifBase64(String s, int offset)
+    private static String translateToLdifBase64(String s, int offset)
     {
         try
         {
@@ -283,7 +281,7 @@ public class LdifUtility
      * @param s the string to translate
      * @return the translated string
      */
-    private String translateToLdifXML(String s)
+    private static String translateToLdifXML(String s)
     {
         StringBuffer xml = new StringBuffer(";transfer-rxer>:").append(cr).append(s);
 
@@ -309,26 +307,17 @@ public class LdifUtility
     /**
      * retrieves a single entry from the directory and writes it
      * out to an ldif file.  Note that ldif header 'version 1' must
-     * be written elsewhere...
+     * have already been written elsewhere...
      *
-     * @param dn                the ldap escaped dn of the entry being written
+     * @param entry             the entry being written
      * @param saveFile          the file to write the entry to
      * @param originalPrefix    an optional portion of the dn to update
      * @param replacementPrefix an optional replacement for a portion of the dn
-     * @param atts              the attributes of teh entry
      */
 
-    public void writeLdifEntry(String dn, FileWriter saveFile, String originalPrefix, String replacementPrefix, Attributes atts)
-//    public void writeLdifEntry(FileWriter saveFile, DXEntry entry)
+    public void writeLdifEntry(DXEntry entry, FileWriter saveFile, String originalPrefix, String replacementPrefix)
             throws NamingException, IOException
     {
-
-        if (atts == null)
-        {
-            log.info("no entry data available for " + dn + " - skipping (near line: " + lineNumber + ")");
-            return;
-        }
-
 
         /**
          *    Prefix replacement magic.  If we are moving the tree during
@@ -341,161 +330,48 @@ public class LdifUtility
          *         and replacement o=FreeFrogs,c=au, becomes cn=Fredo,o=FreeFrogs,c=au
          */
 
-
-        if ((originalPrefix != null) && (dn.endsWith(originalPrefix))) // which it jolly well should...
+        // see if we actually need to replace anything...
+        String dn = entry.getStringName();
+        if ((originalPrefix != null) && (dn.endsWith(originalPrefix)) && (originalPrefix.equals(replacementPrefix)==false))
         {
-            if (debug == true) System.out.println("original DN = '" + dn + "'");
+            if (debug) System.out.println("original DN = '" + dn + "'");
             dn = dn.substring(0, dn.length() - originalPrefix.length()) + replacementPrefix;
-            if (debug == true) System.out.println("after replacement DN = '" + dn + "'");
+            if (debug) System.out.println("after replacement DN = '" + dn + "'");
+            entry.setDN(new DN(dn));
         }
 
-        String ldifData = writeEntryToLdifString(dn, atts);
+
+        String ldifData = new LdifEntry(entry).toString();
 
 
         if (debug)
-            System.out.println(ldifData.toString());
+            System.out.println(ldifData);
         else
         {
-            saveFile.write(ldifData.toString());
+            saveFile.write(ldifData);
             saveFile.flush();
         }
-    }
-
-    public String writeEntryToLdifString(String DN, Attributes atts)
-            throws NamingException
-    {
-
-        if (DN == null || DN.length() == 0)
-        {
-            log.info("empty atts name - skipping");
-            return "";
-        }
-
-        StringBuffer ldifData = new StringBuffer(1024);
-
-        Attribute oc;        // we treat the object class attribute
-        oc = atts.get("oc"); // specially to ensure it is first after the DN.
-        if (oc != null)      // XXX do a name conversion...
-        {
-            /* java 1.5 code - maintaining java 1.4 compatibility...
-            Enumeration values = oc.getAll();
-            ArrayList<String> valueArray = new ArrayList<String>();
-            while (values.hasMoreElements())
-                valueArray.add(values.nextElement().toString());
-            oc = new DXAttribute("objectClass", valueArray.toArray());
-            */
-
-            String[] valueArray = new String[oc.size()];
-            for (int i = 0; i < oc.size(); i++)
-            {
-                valueArray[i] = oc.get(i).toString();
-            }
-
-            oc = new DXAttribute("objectClass", valueArray);
-            atts.remove("oc");
-            atts.put(oc);
-
-        }
-        else                 // (mind you its bloody hard to track down...!)
-            oc = atts.get("objectclass");  // so keep looking...
-
-        if (oc == null)
-            oc = atts.get("objectClass"); // this really bites.
-
-        if (oc == null)
-        {
-            if (DN.endsWith("cn=schema"))  // XXX el dirty hack to allow schema to be sorta written out...
-                oc = new BasicAttribute("oc", "schema");
-        }
-
-        if (oc == null)
-        {
-            log.info("unable to identify object class for " + DN + " - skipping atts" + "(" + lineNumber + ") in LDIF file: + " + fileName);
-            return "";
-        }
-
-        ldifData.append("DN" + ldifEncode(DN, 2) + "\n");
-
-        NamingEnumeration ocs = oc.getAll();
-        String ID = oc.getID();
-        while (ocs.hasMore())
-        {
-            ldifData.append(ldifEncode(ID, ocs.next()));
-        }
-
-
-        // write out the rest of the attributes (not object class)
-        NamingEnumeration allAtts = atts.getAll();
-        String attName;
-        Attribute currentAtt;
-        while (allAtts.hasMore())
-        {
-            currentAtt = (Attribute) allAtts.next();
-
-            if (currentAtt.size() > 0)    // only write out attributes that have values...
-            {
-
-                // XXX Binary handling dodgy - we don't really use them in GroupMind yet...
-
-                boolean binary = !(currentAtt.get() instanceof String);
-
-                attName = currentAtt.getID();
-
-                /*
-                *    Make sure we don't print out 'DN' or objectclass attributes again
-                */
-
-                if ((attName.equals("DN") == false) && (attName.equals(oc.getID()) == false))
-                {
-                    NamingEnumeration values = currentAtt.getAll();
-
-                    while (values.hasMore())
-                    {
-
-                        Object value = values.next();
-
-                        if (value != null)
-                        {
-//BY THE TIME IT GETS HERE THE UTF-8 IS HISTORY...
-                            if (debug)
-                            {
-                                System.out.println("value class = " + value.getClass().toString() + "   : " + value);
-                                System.out.println(attName + ": " + value.toString());
-                            }
-                            else
-                            {
-                                if (binary)
-                                    ldifData.append(ldifEncodeAsBinary(attName, value));
-                                else
-                                    ldifData.append(ldifEncode(attName, value));
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        ldifData.append("\n"); // end of atts is given by a double end of line...
-        return ldifData.toString();
     }
 
     /**
      * Parse an attribute: value line of an ldif file, and place
      * the attribute value pair in an DXDXEntry object.
      *
-     * @param attributeValueText a complete ldif text line (unwrapped) to parse
+     * @param attributeText a complete ldif text line (unwrapped) to parse
      * @param newEntry           the partially created DXDXEntry, which is modified by this
      *                           method.  - May have a null name on error
      * @throws NamingException if there is an error reading the ldif text
      */
 
 
-    public void ldifDecode(String attributeValueText, DXEntry newEntry)
+    public void ldifDecode(String attributeText, LdifEntry newEntry)
             throws NamingException
     {
+        if (attributeText.startsWith("-"))  // this is the separator for changetype:modify attribute operations... I don't think we actually need to handle it though?
+            return;
 
-
-        Object[] attributeValuePair = ldifDecodeAttribute(attributeValueText);
-        if (attributeValuePair == null)
+        Object[] attributeValuePair = ldifDecodeAttribute(attributeText);
+        if (attributeValuePair == null || attributeValuePair[1]==null) // skip empty / erroneous values.
             return;
 
         String attributeID = (String) attributeValuePair[0];
@@ -511,6 +387,30 @@ public class LdifUtility
                 log.severe("error reading ldif DXEntry: " + "(" + lineNumber + ") in LDIF file: + " + fileName + " value: " + value + " - skipping");
                 newEntry.setDN(null);
             }
+        }
+        else if ("changetype".equalsIgnoreCase(attributeID))
+        {
+            String designatedChangeType = value.toString();
+            for (LdifEntryType entryType: LdifEntryType.values())
+                if (designatedChangeType.equals(entryType.toString()))
+                {
+                    newEntry.setChangeType(entryType);
+                    return;
+                }
+
+            throw new NamingException("unknown change type in entry: " + newEntry.getStringName() + " changetype: " + designatedChangeType);
+        }
+        else if ("add".equalsIgnoreCase(attributeID))  // LDIF modify directive - this seeds the attribute, values will get filled in normally below
+        {
+            newEntry.put(new LdifModifyAttribute(value.toString(), LdifModifyType.add));
+        }
+        else if ("replace".equalsIgnoreCase(attributeID)) // LDIF modify directive - this seeds the attribute, values will get filled in normally below
+        {
+            newEntry.put(new LdifModifyAttribute(value.toString(), LdifModifyType.replace));
+        }
+        else if ("delete".equalsIgnoreCase(attributeID))  // LDIF modify directive - this seeds the attribute, optional values will get filled in normally below
+        {
+            newEntry.put(new LdifModifyAttribute(value.toString(), LdifModifyType.delete));
         }
         else if (attributeID != null)
         {
@@ -530,18 +430,14 @@ public class LdifUtility
     }
 
 
-    public Object[] ldifDecodeAttribute(String attributeValueText)
+    public Object[] ldifDecodeAttribute(String attributeText)
+            throws NamingException
     {
-        int breakpos = attributeValueText.indexOf(':');
+        int breakpos = attributeText.indexOf(':');
         if (breakpos < 0)
-        {
+            throw new NamingException("Error - no ':' separator found in attribute text");
 
-            log.warning("Error - illegal line in ldif file " + "(" + lineNumber + ") in LDIF file: + " + fileName + "\n" + attributeValueText);
-            if (true)
-                throw new RuntimeException("\"Error - illegal line in ldif file \" + \"(\" + lineNumber +\") in LDIF file: + \" + fileName + \"\\n\" + attributeValueText");
-            return null;
-        }
-        String attributeID = attributeValueText.substring(0, breakpos);
+        String attributeID = attributeText.substring(0, breakpos);
         Object value = null;
 
         int attLen = attributeID.length();
@@ -551,19 +447,19 @@ public class LdifUtility
 
         int startpos = 2;
 
-        if (attributeValueText.length() <= breakpos + 1)  // empty value
+        if (attributeText.length() <= breakpos + 1)  // empty value
         {
             value = "";
         }
-        else if (attributeValueText.charAt(breakpos + 1) == ':')  // check for base64 encoded isNonString
+        else if (attributeText.charAt(breakpos + 1) == ':')  // check for base64 encoded isNonString
         {
-            value = getBase64Value(attributeValueText, attLen + 3);  // may return string or byte array!
+            value = getBase64Value(attributeText, attLen + 3);  // may return string or byte array!
         }
         else
         {
-            if (attributeValueText.charAt(attLen + 1) != ' ') // again, may be a leading space, or may not...
+            if (attributeText.charAt(attLen + 1) != ' ') // again, may be a leading space, or may not...
                 startpos = 1;
-            value = attributeValueText.substring(attLen + startpos);
+            value = attributeText.substring(attLen + startpos);
 
             // expand the value parameters, including the urls
             value = expandValueParams(value);
@@ -585,20 +481,16 @@ public class LdifUtility
 
         String base64text = "";
 
-        //try
-        //{
         if (parseableLine.charAt(startpos) == ' ') // may be ::XXXX or :: XXXX -> so must adjust for possible space
             startpos++;
 
         base64text = parseableLine.substring(startpos);
 
-        //System.out.println("*\n *\n  *\n    base 64 text length = " + base64text.length() + "  *\n *\n*\n");
-
         rawBinaryData = CBBase64.stringToBinary(base64text);
 
         if (rawBinaryData == null)
             //throw new NullPointerException("Unable to parse base64text:\n" + base64text);
-            throw new NullPointerException("Null Pointer exception parsing line (" + lineNumber + ") in LDIF file: + " + fileName + "\n line:\n" + base64text);
+            throw new NullPointerException("Null Pointer exception parsing line (" + lineNumber + ") in LDIF file: + " + fileName + "\n line: " + base64text);
 
         // a bit dodgy - we try to guess whether the isNonString data is UTF-8, or is really isNonString...
         // we should probably do some schema checking here, but instead we'll try to make an educated
@@ -646,161 +538,60 @@ public class LdifUtility
 
     }
 
-    /**
-     *
-     */
-/*
-  obsolete
 
-    private Object getBase64Value(String parseableLine, int attLen, int startpos, String attribute)
-    {
-        byte[] rawBinaryData;
-
-        if (parseableLine.charAt(attLen + 2) == ' ') // may be ::XXXX or :: XXXX -> so must adjust for possible space
-            startpos = 3;
-
-        rawBinaryData = CBBase64.stringToBinary(parseableLine.substring(attribute.length() + startpos));
-
-        // a bit dodgy - we try to guess whether the isNonString data is UTF-8, or is really isNonString...
-        // we should probably do some schema checking here, but instead we'll try to make an educated
-        // guess...
-
-        // Create a short array to test for utf-8 ishness... (we don't want to test all of large text files)
-        byte[] testBytes;
-        if (rawBinaryData.length > 256)
-        {
-            testBytes = new byte[256];
-            System.arraycopy(rawBinaryData, 0, testBytes, 0, 256);
-        }
-        else
-            testBytes = rawBinaryData;
-
-        //
-        //    Make a (slightly ad-hoc) check to see if it is actually a utf-8 string *pretending* to by bytes...
-        //
-
-        if (Parse.isUTF8(testBytes))
-        {
-            try
-            {
-                return new String(rawBinaryData, "UTF-8");
-            }
-            catch (Exception e)  // as per String constructor doco, behaviour is 'unspecified' if the above fails...
-            {
-                // drop through to return the raw isNonString data instead...
-            }
-        }
-        return rawBinaryData;
-    }
- */
 
     /**
      * Read an DXEntry from LDIF text. Attribute/value pairs are read until
      * a blank line is encountered.
      *
-     * @param textReader a buffered Reader to read lines of ldif text from...
-     * @return the read DXEntry, as an DXEntry object - MAY HAVE A NULL DN ON ERROR
+     * @param textReader a buffered Reader and progress monitor to read lines of ldif text from...
+     * @return the read DXEntry, as an DXEntry object, or null when we've finished the file - MAY HAVE A NULL DN ON ERROR
      * @throws InterruptedIOException if the user hits cancel on the progress bar
      */
 
-    // TODO: add line number and file name debugging...
-    public DXEntry readLdifEntry(BufferedReader textReader)
+    public LdifEntry readLdifEntry(LdifStreamReader textReader)
             throws IOException, NamingException
     {
         try
         {
-            DXEntry DXEntry = new DXEntry();
+            LdifEntry ldifEntry = new LdifEntry();
 
-            // this is the 'look ahead' current line, read from the ldif file.
-            String line = "";
-
-            // this is the first line of the attribute, read from the ldif file.
-            String firstLine = "";
-
-            /*    This is a little tricky.  Because lines may be extended by line wrapping,
-             *    we need to look ahead a line until we're sure that we've finished any
-             *    possible wrapping, and only then (when we've already read the 'next' line)
-             *    can  we process the old line.
-             */
-
-            // WARNING - this code is a little messy - trying to make it quick since ldif load is slow :-/.
-
-            StringBuffer multiLineText = null; //don't use this unless we need it...
-
+            String line;
+            
             while ((line = textReader.readLine()) != null)
             {
-                lineNumber++; // error reporting info
-
-                if (line.length() > 0 && line.charAt(0) == ' ') // line wrap; normal
+                if (line.startsWith("version")) {}    // ignore
+                else if (line.startsWith("#"))  {}    // comment - ignore
+                else if (line.length()==0)            // end of current LDIF entry (there may be more)
                 {
-                    if (multiLineText == null)
-                        multiLineText = new StringBuffer(firstLine);
-
-
-                    if (line.charAt(1) == '>')  // hack for user-readible line wraps... non-standard, but allowable in groupmind application.
+                    return ldifEntry;                 // usual exit point for function
+                }
+                else
+                {
+                    try
                     {
-                        // allow single '>' characters to represent line feeds...
-                        if (line.length() == 2 && line.charAt(1) == '>')
-                            multiLineText.append("\n");
-                        else
-                            multiLineText.append("\n").append(line.substring(2));
+                        ldifDecode(line, ldifEntry);     // add the next attribute (or dn) to the entry
                     }
-                    else
-                        multiLineText.append(line.substring(1));
-                    //line = firstLine + line.substring(1);  // extend the value...
+                    catch (NamingException e)
+                    {
+                        log.warning("error in LDIF file line: " + textReader.currentLine);
+                    }
                 }
-                else if (line.length() > 0 && line.charAt(0) == '>') // line wrap; XML (as per draft xml/ldif standard) (not really supported; we're using normal line wrap above...)
-                {
-                    if (multiLineText == null)
-                        multiLineText = new StringBuffer(firstLine);
-
-                    multiLineText.append(line.substring(1)).append(cr);
-                    //line = firstLine + line.substring(1) + "\n";  // extend the value...
-                }
-                else if (firstLine.length() > 1 && firstLine.charAt(0) == '#')
-                {
-                    // comment... do nothing.
-                }
-                else if (firstLine.startsWith("version"))
-                {
-                    // initial 'version: x' header - ignore
-                }
-                else if (firstLine.length() > 2 || multiLineText != null)
-                {
-                    if (multiLineText != null)
-                        ldifDecode(multiLineText.toString(), DXEntry);
-                    else
-                        ldifDecode(firstLine, DXEntry);
-
-                    multiLineText = null;
-                }
-
-                if (line == null || line.equals(""))  // end of DXEntry...
-                {
-                    return DXEntry;
-                }
-
-                firstLine = line;
             }
 
-            if (DXEntry.getDN() != null && DXEntry.getDN().size() > 0)  // dn check is for unexpectedly truncated files
-            {
-                // unusual - end of file reached, and the file *doesn't* have
-                // a blank line at the end - hence a special case while we write
-                // the last DXEntry
-                if (firstLine != null && firstLine.trim().length() > 0)
-                    ldifDecode(firstLine, DXEntry);
+            if (line == null && ldifEntry.size()==0)  // return null when we've reached the end of the file and have no more entries.
+                return null;
 
-                return DXEntry;                    // should be last DXEntry
-            }
-
-            return null;  // finished reading everything...
+            return ldifEntry;  // finished reading file...
         }
         catch (IOException e)
         {
-            throw new IOException("Error reading LDIF File '" + fileName + "' line: " + lineNumber + "\n" + e.getMessage(), e);
+            throw new IOException("Error reading LDIF File '" + fileName + "' line: " + textReader.getLineNumber() + "\n" + e.getMessage(), e);
         }
     }
+
+    
+
 
     /**
      * This method expands the strings inside the ldif file

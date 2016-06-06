@@ -62,14 +62,9 @@ public class KeystorePrompt extends CBDialog implements ActionListener
         keystorePasswordLabel = new javax.swing.JLabel(CBIntText.get("Password")+":");
         passwordField = new javax.swing.JPasswordField();
         browseButton = new javax.swing.JButton();
-        //okButton = new javax.swing.JButton();
-        //cancelButton = new javax.swing.JButton();
 
         setDefaultCloseOperation(this.DO_NOTHING_ON_CLOSE);
 
-        //keystorePathLabel.setText(CBIntText.get("Keystore File:"));
-
-        //keystorePasswordLabel.setText(CBIntText.get("Password:"));
 
         browseButton.setText(CBIntText.get("Browse"));
         browseButton.addActionListener(this);
@@ -87,64 +82,7 @@ public class KeystorePrompt extends CBDialog implements ActionListener
          display.addGreedyWide(keystorePathField, 2);
          display.add(browseButton);
 
-         /* original code from Santthosh Babu Selvadurai - changed to internal JX classes for backwards compatibility to jdk 1.4
-        javax.swing. rootPanelLayout = new javax.swing.GroupLayout(rootPanel);
-        rootPanel.setLayout(rootPanelLayout);
-        rootPanelLayout.setHorizontalGroup(
-            rootPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(rootPanelLayout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(rootPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(rootPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                        .addGroup(rootPanelLayout.createSequentialGroup()
-                            .addComponent(keystorePasswordLabel)
-                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                            .addComponent(passwordField, javax.swing.GroupLayout.PREFERRED_SIZE, 171, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addGroup(rootPanelLayout.createSequentialGroup()
-                            .addComponent(keystorePathLabel)
-                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                            .addComponent(keystorePathField, javax.swing.GroupLayout.DEFAULT_SIZE, 170, Short.MAX_VALUE)))
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, rootPanelLayout.createSequentialGroup()
-                        .addComponent(okButton)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(cancelButton)
-                        .addGap(23, 23, 23)))
-                .addGap(6, 6, 6)
-                .addComponent(browseButton)
-                .addContainerGap())
-        );
-        rootPanelLayout.setVerticalGroup(
-            rootPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(rootPanelLayout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(rootPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(keystorePathLabel)
-                    .addComponent(keystorePathField, javax.swing.GroupLayout.PREFERRED_SIZE, 20, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(browseButton))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(rootPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(passwordField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(keystorePasswordLabel))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 17, Short.MAX_VALUE)
-                .addGroup(rootPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(okButton)
-                    .addComponent(cancelButton)))
-        );
-
-        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
-        getContentPane().setLayout(layout);
-        layout.setHorizontalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(rootPanel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-        );
-        layout.setVerticalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addComponent(rootPanel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addContainerGap())
-        );
-        pack();
-        */
+  
     }
 
      public String getKeystorePath()
@@ -172,8 +110,8 @@ public class KeystorePrompt extends CBDialog implements ActionListener
         }
         else if(browseButton == e.getSource())
         {
-            javax.swing.JFileChooser fc = new javax.swing.JFileChooser(CBIntText.get("Please select the keystore file!"));
-            fc.setDialogTitle(CBIntText.get("Smart Keytool") + ":" + CBIntText.get("Please select the keystore file!"));
+            javax.swing.JFileChooser fc = new javax.swing.JFileChooser(CBIntText.get("Please select keystore file"));
+            fc.setDialogTitle(CBIntText.get("Smart Keytool") + ":" + CBIntText.get("Please select keystore file"));
             int returnVal = fc.showOpenDialog(null);
 
             if (returnVal == javax.swing.JFileChooser.APPROVE_OPTION)

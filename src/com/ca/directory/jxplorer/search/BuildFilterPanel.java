@@ -53,7 +53,7 @@ public class BuildFilterPanel extends CBPanel
 	public BuildFilterPanel(JXplorerBrowser jx)
 	{   		
 		schema = jx.getSearchBroker().getSchemaOps();
- 		attrs = getAttributes();									//TE: get all attributes available.				
+ 		attrs = getAttributes();									//TE: get all attributes available.
 		browser = jx;
 		
 		notCheckBox = new JCheckBox(CBIntText.get("Not"));
@@ -573,7 +573,9 @@ public class BuildFilterPanel extends CBPanel
 
         try
         {
-            ArrayList attributeNames = schema.listEntryNames("schema=AttributeDefinition,cn=schema");
+
+            //ArrayList attributeNames = schema.listEntryNames("schema=AttributeDefinition,cn=schema");
+            ArrayList attributeNames = schema.getKnownAttributeNames();
             if(attributeNames==null)		//TE: check for no schema publishing i.e. LDAP V2.
                 return null;
 
@@ -581,6 +583,7 @@ public class BuildFilterPanel extends CBPanel
             Arrays.sort(temp, new CBUtility.IgnoreCaseStringComparator());
 
             return temp;
+
         }
         catch (NamingException e)
         {

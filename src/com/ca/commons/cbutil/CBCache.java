@@ -18,13 +18,14 @@ import java.util.logging.Logger;
  * temporary files according to their last modified date.
  *
  * @author Trudi.
+ * @author Chris - revised 2014 to use java temp directories, increase cache size.ds
  */
 
 public class CBCache
 {
     private static int counter = 0;               //TE: a counter that is used to but a unique number on the temp files.
-    private static int CACHEMAX = 100;            //TE: the maximum size the cache should ever reach before decreasing its size.
-    private static int CACHEMIN = 50;             //TE: the size the cache gets minimized to when decreaseing its size.
+    private static int CACHEMAX = 1000;            //TE: the maximum size the cache should ever reach before decreasing its size.
+    private static int CACHEMIN = 500;             //TE: the size the cache gets minimized to when decreaseing its size.
     private static File fileDir = null;            //TE: the directory that the temp files are stored.
     private static File audioFileDir = null;       //TE: the directory that the audio temp files are stored.
     private static String allFiles[];                //TE: an array to store the files within the temp directory.
@@ -53,8 +54,19 @@ public class CBCache
             return;
         }
 
-        fileDir = makeDir();
+        fileDir = makeTempDir(dirPath);
+        if (fileDir == null)
+        {
+            log.warning("Unable to create cache directory " + fileDir.toString() + " (permission problems?)");
+            return;
+        }
         allFiles = fileDir.list();
+        if (allFiles == null)
+        {
+            log.warning("Unable to read cache directory " + fileDir.toString() + " (permission problems?)");
+            return;
+        }
+
 
         currentDN = Integer.toString(currentDN.hashCode());
 
@@ -127,7 +139,18 @@ public class CBCache
         }
 
         audioFileDir = makeAudioDir();
+        if (audioFileDir == null)
+        {
+            log.warning("Unable to read cache directory " + audioFileDir.toString() + " (permission problems?)");
+            return;
+        }
+
         allAudioFiles = audioFileDir.list();
+        if (allAudioFiles == null)
+        {
+            log.warning("Unable to list cache directory " + audioFileDir.toString() + " (permission problems?)");
+            return;
+        }
 
         currentDN = Integer.toString(currentDN.hashCode());
 
@@ -255,6 +278,13 @@ public class CBCache
         else
             extension = ".xxx";
 
+
+        if (audioFileDir == null)
+        {
+            log.warning("no cache directory found for audio files - skipping");
+            return;
+        }
+
         File file = new File(audioFileDir, currentDN + counter + extension);
         counter++;
 
@@ -276,7 +306,7 @@ public class CBCache
      * This Comparator compares two Files by their lastModified() date.
      */
 
-    public static class FileComparator implements Comparator
+    public static class FileTimeComparator implements Comparator
     {
         /**
          * This Comparator compares two Files by their lastModified() date.
@@ -304,7 +334,7 @@ public class CBCache
 
     public static File[] sortFiles(File[] files)
     {
-        Arrays.sort(files, new FileComparator());
+        Arrays.sort(files, new FileTimeComparator());
         return files;
     }
 
@@ -343,6 +373,8 @@ public class CBCache
 
     public static void decreaseCacheSize()
     {
+        if (fileDir == null) return;
+
         File[] fileArray = fileDir.listFiles();
 
         fileArray = sortFiles(fileArray);    					//TE: sort the files according to there last modified date (oldest to newest).
@@ -359,7 +391,7 @@ public class CBCache
                     //    position i of the sorted array (sorted by last modified), minus the last 15 characters (to ensure that the
                     //    'digit+.extension' is cut off the temp name), then delete it!...phew
 
-                    File tempFile = new File(makeDir(), allFiles[x].toString());
+                    File tempFile = new File(makeTempDir(dirPath), allFiles[x].toString());
                     tempFile.delete();
                 }
             }
@@ -378,6 +410,8 @@ public class CBCache
 
     public static void decreaseAudioCacheSize()
     {
+        if (audioFileDir == null) return;
+
         File[] fileArray = audioFileDir.listFiles();
 
         fileArray = sortFiles(fileArray);    					//TE: sort the files according to there last modified date (oldest to newest).
@@ -408,15 +442,45 @@ public class CBCache
      * @return the directory.
      */
 
+    /*
     private static File makeDir()
     {
+
+        System.getProperty("java.io.tmpdir");
+
         File dir = new File(dirPath);
         dir.mkdir();
         dir.deleteOnExit();
 
         return dir;
     }
+    */
 
+    public static File makeTempDir(String dir)
+    {
+        final File temp;
+        try
+        {
+            temp = File.createTempFile(dir, Long.toString(System.nanoTime()));
+
+            if(!(temp.delete()))
+            {
+                throw new IOException("Could not delete temp file: " + temp.getAbsolutePath());
+            }
+
+            if(!(temp.mkdir()))
+            {
+                throw new IOException("Could not create temp directory: " + temp.getAbsolutePath());
+            }
+
+            return (temp);
+        }
+        catch (IOException e)
+        {
+            log.warning("Error creating temp directory: " + e.getMessage());
+            return null;
+        }
+    }
 
     /**
      * Creates the temporary audio directory, calling it 'temp/audio'.
@@ -426,23 +490,27 @@ public class CBCache
 
     private static File makeAudioDir()
     {
+        /*
         File dir = new File(dirPath + File.separator + "audio");
         dir.mkdir();
         dir.deleteOnExit();
 
         return dir;
+        */
+
+        return makeTempDir("audio");
     }
 
 
     /**
-     * Returns the absolute path of the temp directory.
+     * Returns the absolute path of the temp directory with a terminal separator.
      *
      * @return the path of the temp directroy.
      */
 
     public static String getDirPath()
     {
-        return makeDir().getAbsolutePath();
+        return (fileDir == null)?null:fileDir.getAbsolutePath() + File.separator;
     }
 
 
@@ -459,14 +527,21 @@ public class CBCache
 
 
     /**
-     * Returns the absolute path of the audio temp directory.
+     * Returns the absolute path of the audio temp directory with a terminal separator.
      *
      * @return the path of the temp directroy.
      */
 
     public static String getAudioDirPath()
     {
-        return makeAudioDir().getAbsolutePath();
+        //return makeAudioDir().getAbsolutePath();
+        if (audioFileDir == null)
+            audioFileDir = makeAudioDir();
+
+        if (audioFileDir != null)
+            return audioFileDir.getAbsolutePath() + File.separator;
+        else
+            return null;
     }
 
 
@@ -512,25 +587,31 @@ public class CBCache
     {
         currentDN = Integer.toString(currentDN.hashCode());
 
-        allFiles = makeDir().list();
-
-        for (int i = 0; i < allFiles.length; i++)
+        if (fileDir != null)
         {
-            if (allFiles[i].startsWith(currentDN.toString())) //&& allFiles[i].endsWith(extension))    //TE: check that the temp files are of the entry being modified.
+            allFiles = fileDir.list();
+
+            for (int i = 0; i < allFiles.length; i++)
             {
-                File tempFile = new File(fileDir, allFiles[i].toString());
-                tempFile.delete();
+                if (allFiles[i].startsWith(currentDN.toString())) //&& allFiles[i].endsWith(extension))    //TE: check that the temp files are of the entry being modified.
+                {
+                    File tempFile = new File(fileDir, allFiles[i].toString());
+                    tempFile.delete();
+                }
             }
         }
 
-        allAudioFiles = makeAudioDir().list();
-
-        for (int i = 0; i < allAudioFiles.length; i++)
+        if (allAudioFiles != null)
         {
-            if (allAudioFiles[i].startsWith(currentDN.toString())) //&& allFiles[i].endsWith(extension))    //TE: check that the temp files are of the entry being modified.
+            allAudioFiles = audioFileDir.list();
+
+            for (int i = 0; i < allAudioFiles.length; i++)
             {
-                File tempFile = new File(audioFileDir, allAudioFiles[i].toString());
-                tempFile.delete();
+                if (allAudioFiles[i].startsWith(currentDN.toString())) //&& allFiles[i].endsWith(extension))    //TE: check that the temp files are of the entry being modified.
+                {
+                    File tempFile = new File(audioFileDir, allAudioFiles[i].toString());
+                    tempFile.delete();
+                }
             }
         }
     }
@@ -538,29 +619,43 @@ public class CBCache
 
     /**
      * Cleans the cache of all temporary entries by deleting them.
+     *
      */
 
     public static void cleanCache()
     {
-        allFiles = makeDir().list();
+        if (fileDir == null)
+            return;
+
+        allFiles = fileDir.list();
 
         if (allFiles == null)
             return;
 
         for (int i = 0; i < allFiles.length; i++)
         {
-            File tempFile = new File(makeDir(), allFiles[i].toString());
+            File tempFile = new File(fileDir, allFiles[i].toString());
             tempFile.delete();
         }
 
-        allAudioFiles = makeAudioDir().list();
+        if (audioFileDir == null)
+            return;
 
-        for (int i = 0; i < allAudioFiles.length; i++)
+        allAudioFiles = audioFileDir.list();
+
+        if (allAudioFiles == null)
+            return;
+
+        if (allAudioFiles != null)
         {
-            File tempFile = new File(makeAudioDir(), allAudioFiles[i].toString());
-            tempFile.delete();
+            for (int i = 0; i < allAudioFiles.length; i++)
+            {
+                File tempFile = new File(makeAudioDir(), allAudioFiles[i].toString());
+                tempFile.delete();
+            }
         }
     }
+
 
 
     /**

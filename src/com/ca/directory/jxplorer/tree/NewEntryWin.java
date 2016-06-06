@@ -112,7 +112,7 @@ public class NewEntryWin extends CBDialog implements ActionListener, DataListene
      *    @param parent the usual parent GUI for swing look and feel propogation etc.
      */
 
-         
+    // used by tree to create new entry
     public NewEntryWin(DN pDN, DN cDN, DataBrokerQueryInterface dSource,
                             DataSink attDisplay, Frame parent)
     {
@@ -146,7 +146,7 @@ public class NewEntryWin extends CBDialog implements ActionListener, DataListene
      *               user to modify, and finally submit to the directory.
      *    @param parent the usual parent GUI for swing look and feel propogation etc.
      */
-         
+    //TODO: combine with constructor above
     public NewEntryWin(DN pDN, DN cDN, 
             DataBrokerQueryInterface dSource, Attributes defaultValues,
             String rdn, DataSink attDisplay, Frame parent)
@@ -229,7 +229,9 @@ public class NewEntryWin extends CBDialog implements ActionListener, DataListene
      *               user to modify, and finally submit to the directory.
      *    @param parent the usual parent GUI for swing look and feel propogation etc.
      */
-         
+    // called from change class
+   //TODO: combine with constructor below
+   /*
     public NewEntryWin(DataBrokerQueryInterface dSource, DN entryDN, Attributes defaultValues,
             DataSink attDisplay, Frame parent)
     {
@@ -261,7 +263,7 @@ public class NewEntryWin extends CBDialog implements ActionListener, DataListene
         
         registerMouseListeners();
     }
-	
+	*/
 	
 	
    /**
@@ -278,7 +280,8 @@ public class NewEntryWin extends CBDialog implements ActionListener, DataListene
 	*	@param virtualEntry flag representing if the entry is a virtual entry (should always
 	*			be true b/c currently this constructor will only be called under that condition).
 	*/
-	 	
+	// called from change class
+   /*
     public NewEntryWin(DataBrokerQueryInterface dSource, DN entryDN, DataSink attDisplay, Frame parent, boolean virtualEntry)
     {
         super(parent, CBIntText.get("Set Entry Object Classes"), HelpIDs.CLASS_CHANGE);
@@ -297,7 +300,7 @@ public class NewEntryWin extends CBDialog implements ActionListener, DataListene
 		setupObjectClassPanels(null);
 		registerMouseListeners();		
     }
-
+    */
 
 
     protected void setupObjectClassPanels(Attributes currentAtts)            
@@ -366,7 +369,7 @@ public class NewEntryWin extends CBDialog implements ActionListener, DataListene
 		 */
         try
         {
-            ArrayList allObjectClasses = dataSource.getSchemaOps().objectClasses();
+            ArrayList allObjectClasses = dataSource.getSchemaOps().getKnownObjectClasses();
 
             for (int i=0; i<allObjectClasses.size(); i++)
             {

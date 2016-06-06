@@ -147,14 +147,30 @@ public class ConnectionData
      */
     public Properties extraProperties;
 
+    /**
+     *  Optional 'user friendly' name for this set of connection data details, used to give the
+     * browser window a unique name.
+     */
+
+    public String templateName;
+
+    /**
+     * Allows for a 'read only' connection to be specified on connection.  The read only
+     * connection disables any directory changes.
+     */
+
+    public boolean readOnly = false;
 
     /**
      * Empty constructor - data fields are intended
      * to be set directly.
      */
 
+
+
     public ConnectionData()
     {
+
     }
 
     /**
@@ -199,6 +215,7 @@ public class ConnectionData
                           String caKeystoreType,
                           String clientKeystoreType,
                           boolean useGSSAPI,
+                          String templateName,
                           Properties extraProperties)
     {
         this.version = version;
@@ -219,6 +236,7 @@ public class ConnectionData
         this.sslTracing = tracing;  // XXX for the time being, BER tracing and SSL Tracing are entwined :-).
 
         this.useGSSAPI = useGSSAPI;
+        this.templateName = templateName;
         this.extraProperties = extraProperties;
     }
 
@@ -346,6 +364,11 @@ public class ConnectionData
         }
     }
 
+    public String getTemplateName()
+    {
+        return templateName;
+    }
+
     public String getURL()
     {
         return url;
@@ -409,22 +432,23 @@ public class ConnectionData
 
     public String toString()
     {
-        return new String("baseDN: " + baseDN +
+        return new String("baseDN: " + ((baseDN==null)?"null":baseDN) +
                 "\nversion: " + Integer.toString(version) +
-                "\nurl: " + url +
-                "\nuserDN: " + userDN +
-                "\nreferralType: " + referralType +
-                "\naliasType: " + aliasType +
+                "\nurl: " + ((url==null)?"null":url) +
+                "\nuserDN: " + ((userDN==null)?"null":userDN) +
+                "\npwd: " + ((pwd==null)?"null":"***") +
+                "\nreferralType: " + ((referralType==null)?"null":referralType) +
+                "\naliasType: " + ((aliasType==null)?"null":aliasType) +
                 "\nuseSSL: " + String.valueOf(useSSL) +
-                "\ncacerts: " + cacerts +
-                "\nclientcerts: " + clientcerts +
-                "\ncaKeystoreType: " + caKeystoreType +
-                "\nclientKeystoreType: " + clientKeystoreType +
-                "\ncaKeystorePwd; " + new String(caKeystorePwd) +
-                "\nclientKeystorePwd: " + new String(clientKeystorePwd) +
+                "\ncacerts: " + ((cacerts==null)?"null":cacerts) +
+                "\nclientcerts: " + ((clientcerts==null)?"null":clientcerts) +
+                "\ncaKeystoreType: " + ((caKeystoreType==null)?"null":caKeystoreType) +
+                "\nclientKeystoreType: " + ((clientKeystoreType==null)?"null":clientKeystoreType) +
+                "\ncaKeystorePwd; " + ((caKeystorePwd==null)?"null":new String(caKeystorePwd)) +
+                "\nclientKeystorePwd: " + ((clientKeystorePwd==null)?"null":new String(clientKeystorePwd)) +
                 "\ntracing: " + String.valueOf(tracing) +
-                "\nprotocol: " + protocol +
-                "\nsslSocketFactory: " + sslSocketFactory +
+                "\nprotocol: " + ((protocol==null)?"null":protocol) +
+                "\nsslSocketFactory: " + ((sslSocketFactory==null)?"null":sslSocketFactory) +
                 "\nuseGSSAPI: " + String.valueOf(useGSSAPI));
     }
 

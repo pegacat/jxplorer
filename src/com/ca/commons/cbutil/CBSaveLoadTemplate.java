@@ -8,7 +8,6 @@ import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Properties;
-import java.util.Vector;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -24,7 +23,7 @@ import java.util.logging.Logger;
  * can be automatically read back later.<p>
  * <p/>
  * At the moment it only handles the *swing* components: <br>
- * JTextField, CBJComboBox, JCheckBox, but it could easily be modified
+ * JTextField, CBJComboBox, JToggleButton (JCheckBox, JRadioButton), but it could easily be modified
  * (would need to change JContainer checks to Container).<p>
  * <p/>
  * It will iterate through sub-components, but since there is no
@@ -42,16 +41,14 @@ public class CBSaveLoadTemplate extends JPanel
     protected CBButton save, delete, makeDefault;
     protected CBJComboBox loadops;
 
-    //public String saveFileName;    // the name of the properties file
     public Properties templates;   // the properties object, read from the file
-//    String localDir;        // the local directory the properties file is stored in.
-    String configFile;             // the config file where we load and save stuff...
+    public String configFile;             // the config file where we load and save stuff...
 
     int numTemplates;       // the number of options saved in the properties file.
 
     private boolean saveFlag = false;	//TE: flag to show when the user has saved...used to stop the auto update of fields.
 
-    Vector illegalComponents = new Vector(); // components that are specifically not to be messed with.
+    //Vector illegalComponents = new Vector(); // components that are specifically not to be messed with.
 
     static final String NUMTEMPLATES = "number_of_templates";
     static final String TEMPLATENAME = "template_name";
@@ -62,9 +59,11 @@ public class CBSaveLoadTemplate extends JPanel
     /**
      * Each CBSaveLoadTemplate object must have a file name to
      * read and load data from...
+     * @param applicationName the name of the application (used to locate the config directory on some systems)
+     * @param fileName the name of the template
      */
 
-    public CBSaveLoadTemplate(String fileName)
+    public CBSaveLoadTemplate(String applicationName, String fileName)
     {
         save = new CBButton(CBIntText.get("Save"), CBIntText.get("Click here to save current settings."));
         makeDefault = new CBButton(CBIntText.get("Default"), CBIntText.get("Click here to make the current setting the default."));
@@ -72,7 +71,7 @@ public class CBSaveLoadTemplate extends JPanel
         loadops = new CBJComboBox();
         templates = new Properties();
 
-        configFile = parseFile(fileName);
+        configFile = parseConfigFile(applicationName, fileName);
 
         CBPanel main = new CBPanel();
 
@@ -174,11 +173,15 @@ public class CBSaveLoadTemplate extends JPanel
      *    parses a file and loads the data into a Properties object,
      *    and then into the loadops combo box.
      *    Returns the full path of the config file.
+     *
+     * @param applicationName the name of the application (used to find the config file on some systems)
+     * @param fileName the name of the actual config file
+     *
      */
 
-    protected String parseFile(String fileName)
+    protected String parseConfigFile(String applicationName, String fileName)
     {
-        String configFile = CBUtility.getPropertyConfigPath(fileName);
+        String configFile = CBUtility.getPropertyConfigPath(applicationName, fileName);
         if (configFile == null)
         {
             CBUtility.error(this, "Unable to read user home directory ", null);
@@ -223,6 +226,10 @@ public class CBSaveLoadTemplate extends JPanel
         return configFile;
     }
 
+    /**
+     * Returns the name of the currently selected template; does not trigger any other activity.
+     * @return the name of the current template, or an empty string if none.
+     */
     public String getCurrentTemplateName()
     {
         String currentTemplateName = (String) loadops.getSelectedItem();
@@ -230,6 +237,15 @@ public class CBSaveLoadTemplate extends JPanel
         return currentTemplateName;
     }
 
+    /**
+     * Sets the current template name, without actually loading that template or triggering any other activity.
+     * @param displayTemplateName the name of the template to display.
+     */
+    public void setCurrentTemplateName(String displayTemplateName)
+    {
+        if (displayTemplateName != null && !"".equals(displayTemplateName))
+            loadops.setSelectedItem(displayTemplateName);
+    }
     /**
      * saves a dialog windows state by working through all the
      * components held by the parent container, and if they are
@@ -278,7 +294,7 @@ public class CBSaveLoadTemplate extends JPanel
             loadops.addItem(templateName);
         }
 
-        CBUtility.writePropertyFile(configFile, templates, "");
+        saveToFile();
 
     }
 
@@ -333,9 +349,18 @@ public class CBSaveLoadTemplate extends JPanel
         }
         else
         {
-            String saveText = getComponentText(c);
+            if (c.getName()!=null)
+            {
+                saveComponentText(c, templateName + "." + c.getName());
+            }
+            else
+                saveComponentText(c, templateName + "." + componentNo);
+
+            /*
+            String saveText = getComponentTextToSave(c);
             if (saveText != null)
                 templates.setProperty(templateName + "." + componentNo, saveText);
+            */
         }
     }
 
@@ -350,35 +375,57 @@ public class CBSaveLoadTemplate extends JPanel
      * @param c the component to retrieve a text value for.
      * @return the text value of the component.
      */
-    public String getComponentText(Component c)
+    protected void saveComponentText(Component c, String templateKey)
     {
-        if (c == null) return null;  // don't get null components
+        if (c == null) return;  // don't get null components
 
-        if (illegalComponents.contains(c)) return null;  // don't get forbidden components.
+        //if (illegalComponents.contains(c)) return;  // don't get forbidden components.
+
+        String saveText = null;
 
         try
         {
-            if (c instanceof JPasswordField) // don't save passwords
-                return "";
+            if (c instanceof JPasswordField) // don't (usually) save passwords
+                saveText = getPasswordDataToSave(new String(((JPasswordField)c).getPassword()));
             else if (c instanceof JTextField)
-                return ((JTextField) c).getText();
+                saveText = ((JTextField) c).getText();
             else if (c instanceof JTextArea)
-                return ((JTextArea) c).getText();
-            else if (c instanceof TextField)
-                return ((TextField) c).getText();
+                saveText = ((JTextArea) c).getText();
             else if (c instanceof JToggleButton)
-                return String.valueOf(((JToggleButton) c).isSelected());
+                saveText =  String.valueOf(((JToggleButton) c).isSelected());
             else if (c instanceof CBJComboBox)
-                return ((CBJComboBox) c).getSelectedItem().toString();
-            else
-                return null;  // unknown component
+                saveText =  ((CBJComboBox) c).getSelectedItem().toString();
+            //else unknown component - ignore
+            if (saveText != null)
+            {
+                templates.setProperty(templateKey, saveText);
+            }
+
+
+
         }
         catch (Exception e)
         {
-            return null;
+            // do nothing
         } // possibility of uninitialised objects above...may cause problems.
     }
 
+    /**
+     * By default, we do not save passwords.  Future extensions may want to do some sort of
+     * crypto storeage thing...
+     *
+     * @param passwordToSave
+     * @return
+     */
+    protected String getPasswordDataToSave(String passwordToSave)
+    {
+        return null;
+    }
+
+    protected String getPasswordDataFromLoad(String savedPasswordData)
+    {
+        return "";
+    }
 
     /**
      * Takes a template name, and attempts to read all the (string)
@@ -395,6 +442,7 @@ public class CBSaveLoadTemplate extends JPanel
             CBUtility.error(this, CBIntText.get("No template selected!"), null);
             return;
         }
+
         loadTemplateName(templateName);
     }
 
@@ -412,6 +460,7 @@ public class CBSaveLoadTemplate extends JPanel
             log.warning("Unexpected error in CBSaveLoadTemplate.load() - no parent found");
             return;
         }    // should never happen
+        
         Component[] components = myContainer.getComponents();
 
         for (int i = 0; i < components.length; i++)
@@ -450,6 +499,12 @@ public class CBSaveLoadTemplate extends JPanel
         else
         {
             String text = (String) templates.get(templateName + "." + componentNo);  // often there won't be a value...
+
+            if (text == null && c.getName()!=null) // adding support for saving named components in human readable config files...
+            {
+                text = (String) templates.get(templateName + "." + c.getName());  // often there won't be a value...
+            }
+
             if (text != null)                               // ... if there is, load the data up!
             {
                 loadComponentText(c, text);
@@ -459,10 +514,12 @@ public class CBSaveLoadTemplate extends JPanel
 
     public void loadComponentText(Component c, String text)
     {
-        if (illegalComponents.contains(c)) return;  // don't load forbidden components.
+        //if (illegalComponents.contains(c)) return;  // don't load forbidden components.
 
         if (c instanceof JTextField)
             ((JTextField) c).setText(text);
+        if (c instanceof JPasswordField)
+            ((JPasswordField) c).setText(getPasswordDataFromLoad(text));
         else if (c instanceof JTextArea)
             ((JTextArea) c).setText(text);
         else if (c instanceof TextField)
@@ -470,9 +527,7 @@ public class CBSaveLoadTemplate extends JPanel
         else if (c instanceof JToggleButton)
             ((JToggleButton) c).setSelected("true".equalsIgnoreCase(text));
         else if (c instanceof CBJComboBox)
-        {
             ((CBJComboBox) c).setSelectedItem(text);
-        }
     }
 
     public void delete()
@@ -513,7 +568,7 @@ public class CBSaveLoadTemplate extends JPanel
                 break;
             }
         }
-        CBUtility.writePropertyFile(configFile, templates, null);
+        saveToFile();
     }
 
     public void deleteComponentInfo(Container myContainer, String templateName)
@@ -561,12 +616,18 @@ public class CBSaveLoadTemplate extends JPanel
     public void makeDefault()
     {
         templates.setProperty(DEFAULT, getCurrentTemplateName());
-        CBUtility.writePropertyFile(configFile, templates, "");
+        saveToFile();
     }
 
+    public void saveToFile()
+    {
+        CBUtility.writePropertyFile(configFile, templates, "");
+    }
+    /*
     public void addIllegalComponent(Component c)
     {
         illegalComponents.add(c);
     }
+    */
 
 }

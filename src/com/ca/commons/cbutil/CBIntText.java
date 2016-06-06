@@ -7,17 +7,21 @@ import java.util.logging.Logger;
 
 
 /**
- * This 'International Text' static class acts as a central source of all localised
+ * <p>This 'International Text' static class acts as a central source of all localised
  * strings.  If it cannot find a localised properties file, the
  * default (english) file is used.  If that file can not be found, the key used to
  * look up the translation is returned unchanged - hence it is useful if the keys
  * are meaningful in their own right (i.e. use 'File' rather than 'String 42' as
  * a key).<p>
  * <p/>
- * Currently the class is static to provide easy access to i18n text by
+ * <p>Currently the class is static to provide easy access to i18n text by
  * all classes and plugins, and because it is difficult to see how
  * supporting multiple different-locale languages would be helpful (note
- * that multiple languages can be supported simply by using unicode).
+ * that multiple languages can be supported simply by using unicode).</p>
+ *
+ * <p>WARNING: the perl scripts used in the JXplorer project to extract key words and create
+ * language files do not work well with strings that have escaped double quotes in them - use ''
+ * instead</p>
  */
 
 public class CBIntText
@@ -38,37 +42,39 @@ public class CBIntText
      
     private static boolean english = true;
 
+
     /**
      * This initialises the international text class.
      *
-     * @param bundleLocation the name of the i18n bundle (e.g. "language/JX_ja.properties").
+     * @param bundleLocation the name of the i18n bundle (e.g. "language/JX_ja.properties" = japanese).
+     * @param customLoader a custom loader that does utf-8 translation magic.
      */
-
-     /*  OBSOLETE - WE NO LONGER NEED THIS??
-     * @param customLoader   a custom class loader (may be null).  JX uses a custom loader
-     *                       that auto-detects unicode and utf-8 files for ease of configuration by
-     *                       non-expert users.
-     */
-
     public static void init(String bundleLocation, ClassLoader customLoader)
     {
-        locale = Locale.getDefault();
-
         Locale def = Locale.getDefault();
-
         log.info("Default Locale is: " + def.getDisplayName());
+        init(bundleLocation, customLoader, def);
+    }
+
+    /**
+     * Sets up the language localisation with a specific locale.
+     * @param bundleLocation
+     * @param customLoader
+     * @param newLocale
+     */
+    public static void init(String bundleLocation, ClassLoader customLoader, Locale newLocale)
+    {
+        locale = (newLocale!=null)?newLocale:Locale.getDefault();
 
         log.info("Using Locale: " + locale.getDisplayName() + " for " + locale.getDisplayCountry());
-        log.info("language, localized for default locale is: " + def.getDisplayLanguage(locale));
-        log.info("country name, localized for default locale: " + def.getDisplayCountry(locale));
-        log.info("Default language, localized for your locale is: " + locale.getDisplayLanguage(def));
-        log.info("Default country name, localized for your locale is: " + locale.getDisplayCountry(def));
+        log.info("Default language, localized for your locale is: " + locale.getDisplayLanguage(locale));
+        log.info("Default country name, localized for your locale is: " + locale.getDisplayCountry(locale));
 
         translations = new Hashtable(500);
 
         addBundle(bundleLocation, customLoader);
 
-        if (!def.getLanguage().equals("en"))
+        if (!locale.getLanguage().equals("en"))
             english = false;
 
         messageFormatter = new MessageFormat("");
@@ -149,7 +155,6 @@ public class CBIntText
 
     public static String get(String key)
     {
-
         if (key == null)       // sanity check that a valid key has been passed.
         {
             return "null key";

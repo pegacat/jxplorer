@@ -129,8 +129,7 @@ public class CBResourceBundle
         for (int i = names.size() - 1; i >= 0; i--)
         {
             URL url = loader.getResource(names.get(i).toString());   // XXX why getResource, not findResource???
-            System.out.println("SEARCHING FOR: " + names.get(i) + " : " + url);
-            
+
             if (loadData(url) == true)
                 return;                  // once a single file has been loaded, we're done.
         }
@@ -234,8 +233,9 @@ public class CBResourceBundle
              *    encoding methods.
              */
              
-            String text = CBUtility.readI18NByteArray(data);
+//            String text = CBUtility.readI18NByteArray(data);
             
+            String text = CBUtility.readUnicode(data);
             /*
              *    Load up the translations hashtable with the parsed data found
              *    in the string...
@@ -313,6 +313,9 @@ public class CBResourceBundle
     protected String unescape(String escapeMe)
     {
         int pos = 0;
+
+        escapeMe = escapeMe.replace("\\n", "\n"); // manually unescape line breaks.
+
         while ((pos = escapeMe.indexOf('\\', pos)) >= 0)
             escapeMe = escapeMe.substring(0, pos) + escapeMe.substring(pos + 1);
 

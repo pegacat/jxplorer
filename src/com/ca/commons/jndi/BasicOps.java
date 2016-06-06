@@ -4,6 +4,8 @@ import java.util.Properties;
 import java.util.Hashtable;
 import javax.naming.*;
 import javax.naming.directory.*;
+import javax.naming.ldap.InitialLdapContext;
+import javax.naming.ldap.LdapContext;
 import java.util.logging.*;
 
 
@@ -32,7 +34,7 @@ public class BasicOps extends JNDIOps
      * Initialise a Basic Operation object with a context.
      */
 
-    public BasicOps(DirContext c)
+    public BasicOps(LdapContext c)
             throws NamingException
     {
         super(c);
@@ -77,7 +79,7 @@ public class BasicOps extends JNDIOps
      * @param connectionData a data object contain all the connection details.
      */
 
-    public static DirContext openContext(ConnectionData connectionData)
+    public static LdapContext openContext(ConnectionData connectionData)
             throws NamingException
     {
         return openContext(connectionData.getJNDIEnvironment());
@@ -101,7 +103,7 @@ public class BasicOps extends JNDIOps
      * @deprecated use getInstance() instead
      */
 
-    public static DirContext openContext(int version, String host, int port, String user, char[] pwd,
+    public static LdapContext openContext(int version, String host, int port, String user, char[] pwd,
                                          boolean tracing, String referralType, String aliasHandling)
             throws NamingException
     {
@@ -120,7 +122,7 @@ public class BasicOps extends JNDIOps
      * @deprecated use getInstance() instead.
      */
 
-    public static DirContext openContext(String url)
+    public static LdapContext openContext(String url)
             throws NamingException
     {
         ConnectionData myData = new ConnectionData();
@@ -140,7 +142,8 @@ public class BasicOps extends JNDIOps
                 null,
                 null,
                 null,
-                false);
+                false,
+                null);
     }
 
 
@@ -153,7 +156,7 @@ public class BasicOps extends JNDIOps
      * @param pwd           the Manager User's password - (is null if user is not manager)
      */
 /*
-   public static DirContext openContext(int version, String url, String userDN,
+   public static LdapContext openContext(int version, String url, String userDN,
                                         char[] pwd, boolean tracing,
                                         String referralType, String aliasType,
                                         boolean useSSL, String cacerts, String clientcerts,
@@ -161,7 +164,7 @@ public class BasicOps extends JNDIOps
                                         String caKeystoreType, String clientKeystoreType )
 */
 
-    public static DirContext openContext(int version,
+    public static LdapContext openContext(int version,
                                          String url,
                                          String managerUserDN,
                                          char[] pwd)
@@ -181,7 +184,8 @@ public class BasicOps extends JNDIOps
                 null,
                 null,
                 null,
-                false);
+                false,
+                null);
     }
 
 
@@ -201,7 +205,7 @@ public class BasicOps extends JNDIOps
      * @deprecated use getInstance() instead
      */
 
-    public static DirContext openContext(int version, String url, String userDN, char[] pwd, boolean tracing, String referralType, String aliasHandling)
+    public static LdapContext openContext(int version, String url, String userDN, char[] pwd, boolean tracing, String referralType, String aliasHandling)
             throws NamingException
     {
         return openContext(version,
@@ -218,7 +222,8 @@ public class BasicOps extends JNDIOps
                 null,
                 null,
                 null,
-                false);
+                false,
+                null);
     }
      /**
      * This static ftn. can be used to open an initial context (which can then
@@ -243,7 +248,7 @@ public class BasicOps extends JNDIOps
       * @deprecated use longer version with 'useGSSAPI' option instead.
      */
 
-    public static DirContext openContext(int version,
+    public static LdapContext openContext(int version,
                                          String url,
                                          String userDN,
                                          char[] pwd,
@@ -273,7 +278,8 @@ public class BasicOps extends JNDIOps
                 clientKeystorePwd,
                 caKeystoreType,
                 clientKeystoreType,
-                false);
+                false,
+                null);
     }
 
     /**
@@ -296,10 +302,11 @@ public class BasicOps extends JNDIOps
      * @param caKeystoreType     the type of keystore file; e.g. 'JKS', or 'PKCS12'.
      * @param clientKeystoreType the type of keystore file; e.g. 'JKS', or 'PKCS12'.
      * @param useGSSAPI          use GSSAPI (usually with kerberos)
+     * @param templateName       optional user friendly name for this connection set, used by GUI windows
      * @return The created context.
      */
 
-    public static DirContext openContext(int version,
+    public static LdapContext openContext(int version,
                                          String url,
                                          String userDN,
                                          char[] pwd,
@@ -313,7 +320,8 @@ public class BasicOps extends JNDIOps
                                          char[] clientKeystorePwd,
                                          String caKeystoreType,
                                          String clientKeystoreType,
-                                         boolean useGSSAPI)
+                                         boolean useGSSAPI,
+                                         String templateName)
             throws NamingException
     {
         ConnectionData connectionData =
@@ -331,27 +339,27 @@ public class BasicOps extends JNDIOps
                         clientKeystorePwd,
                         caKeystoreType,
                         clientKeystoreType,
-                        useGSSAPI, null);
+                        useGSSAPI, templateName, null);
 
         return JNDIOps.openContext(connectionData.getJNDIEnvironment());
     }
 
 
     /**
-     * This is a raw interface to javax.naming.directory.InitialDirContext, that allows
+     * This is a raw interface to javax.naming.directory.InitialLdapContext, that allows
      * an arbitrary environment string to be passed through.  Often the other version
      * of openContext() above will prove more convenient.
      *
      * @param env a list of environment variables for the context
-     * @return a newly created DirContext.
+     * @return a newly created LdapContext.
      */
 
-    public static DirContext openContext(Properties env)
+    public static LdapContext openContext(Properties env)
             throws NamingException
     {
         log.fine("opening Directory Context to " + env.get(Context.PROVIDER_URL) + "\n using: " + env.get(Context.INITIAL_CONTEXT_FACTORY));
 
-        DirContext ctx = new InitialDirContext(env);
+        LdapContext ctx = new InitialLdapContext(env, null);
 
         log.fine("context successfully opened " + (ctx != null));
 
@@ -381,7 +389,7 @@ public class BasicOps extends JNDIOps
      * @deprecated - jndi's 'getSchema' may not always be available (e.g. not implemented in dsml).
      *             use 'getSchemaAttributes()' instead
      */
-
+/*
     public DirContext getSchema() throws NamingException
     {
         if (getContext() == null)
@@ -391,7 +399,7 @@ public class BasicOps extends JNDIOps
 
         return getContext().getSchema("");
     }
-
+*/
     /**
      * basically a wrapper for context.rename... changes the
      * distinguished name of an object, checks for error.

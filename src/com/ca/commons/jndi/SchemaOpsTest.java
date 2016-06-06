@@ -11,6 +11,7 @@ import junit.framework.*;
 
 import javax.naming.directory.*;
 import javax.naming.NamingException;
+import javax.naming.ldap.LdapContext;
 import java.util.*;
 
 public class SchemaOpsTest extends TestCase
@@ -163,7 +164,7 @@ public class SchemaOpsTest extends TestCase
         if (testWithDirectory)
         {
             System.out.println("running directory link tests");
-            DirContext ctx = null;
+            LdapContext ctx = null;
             try
             {
                 ConnectionData cdata = new ConnectionData();
@@ -260,7 +261,7 @@ public class SchemaOpsTest extends TestCase
     public void testObjectClasses()
         throws NamingException
     {
-        ArrayList list = virtualOps.objectClasses();
+        ArrayList list = virtualOps.getKnownObjectClasses();
         assertNotNull(list);
         assertTrue(list.size() == sortedObjectClassesNames.length);
         for (int i=0; i<list.size(); i++)

@@ -5,6 +5,7 @@ import junit.framework.Test;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
 
+import javax.naming.NamingException;
 import javax.naming.directory.Attribute;
 import javax.naming.directory.BasicAttribute;
 import java.io.BufferedReader;
@@ -109,6 +110,7 @@ public class LdifUtilityTest extends TestCase
     }
 
     public void testLdifDecoding()
+            throws NamingException
     {
         String attVal1 = "description: fnord";
         String attVal2 = "description: bloopy\nbloopy\nbloopy\n";
@@ -130,6 +132,7 @@ public class LdifUtilityTest extends TestCase
     }
 
     public void testLdifDecodingAsBinary()
+            throws NamingException
     {
         Object[] attValPair = utility.ldifDecodeAttribute("bloop:: IHNub3J0IA==\n");
         assertEquals("bloop", attValPair[0]);
@@ -166,8 +169,6 @@ public class LdifUtilityTest extends TestCase
 
         String encodedText = utility.ldifEncode("description", text);
 
-        encodedText = encodedText.replaceAll("\r","" );   // if we run this under OSX, it sticks apple \r\n line feeds in...
-
         assertEquals(base64text, encodedText);
 
         attValPair = utility.ldifDecodeAttribute(base64text);
@@ -183,20 +184,21 @@ public class LdifUtilityTest extends TestCase
       public void testLdifEncodeEntry2()
             throws Exception
     {
-        DXEntry bloop = new DXEntry(
+        DXEntry bloop = new DXEntry(new DN("cn=Admin,ou=users,o=groupmind,c=au"),
                         new Attribute[]{ new DXAttribute("oc", new String[] {"top", "person", "organisationalPerson"}),
-                                         new DXAttribute("groupmindGroup", new String[] {"cn=test2,cn=topics,o=groupmind,c=au","cn=test1,cn=topics,o=groupmind,c=au"})},
-                        new DN("cn=Admin,ou=users,o=groupmind,c=au"));
+                                         new DXAttribute("groupmindGroup", new String[] {"cn=test2,cn=topics,o=groupmind,c=au","cn=test1,cn=topics,o=groupmind,c=au"})}
+                        );
 
         String expectedLdif = "" +
-                "DN: cn=Admin,ou=users,o=groupmind,c=au\n" +
-                "objectClass: top\n" +
-                "objectClass: person\n" +
-                "objectClass: organisationalPerson\n" +
+                "dn: cn=Admin,ou=users,o=groupmind,c=au\n" +
+                "oc: top\n" +
+                "oc: person\n" +
+                "oc: organisationalPerson\n" +
                 "groupmindGroup: cn=test2,cn=topics,o=groupmind,c=au\n" +
                 "groupmindGroup: cn=test1,cn=topics,o=groupmind,c=au\n\n";
 
-        String ldifEntry = utility.writeEntryToLdifString(bloop.getDN().toString(), bloop.getAsNonNullAttributes());
+
+        String ldifEntry = new LdifEntry(bloop).toString();
 
         assertEquals(expectedLdif, ldifEntry);
     }
@@ -204,7 +206,7 @@ public class LdifUtilityTest extends TestCase
     public void testLdifEncodeEntry()
             throws Exception
     {
-        DXEntry bloop = new DXEntry(
+        DXEntry bloop = new DXEntry(new DN("cn=Admin,ou=users,o=groupmind,c=au"),
                         new Attribute[]{ new DXAttribute("oc", new String[] {"top", "person", "organisationalPerson"}),
                                          new BasicAttribute("cn", "Admin"),
                                          new BasicAttribute("userPassword", "{SHA}5en6G6MezRroT3XKqkdPOmY/BfQ="),
@@ -215,14 +217,14 @@ public class LdifUtilityTest extends TestCase
                                              new BasicAttribute("mail", "Admin@nowhere.com"),
                                          new DXAttribute("groupmindGroup", new String[] {"cn=test2,cn=topics,o=groupmind,c=au",
                                                                                             "cn=test1,cn=topics,o=groupmind,c=au"}),
-                                         new BasicAttribute("sn", "Mr Admin")},
-                new DN("cn=Admin,ou=users,o=groupmind,c=au"));
+                                         new BasicAttribute("sn", "Mr Admin")}
+                );
 
         String expectedLdif = "" +
-                "DN: cn=Admin,ou=users,o=groupmind,c=au\n" +
-                "objectClass: top\n" +
-                "objectClass: person\n" +
-                "objectClass: organisationalPerson\n" +
+                "dn: cn=Admin,ou=users,o=groupmind,c=au\n" +
+                "oc: top\n" +
+                "oc: person\n" +
+                "oc: organisationalPerson\n" +
                 "bloop:: IHNub3J0IA==\n" +
                 "cn: Admin\n" +
                 "groupmindGroup: cn=test2,cn=topics,o=groupmind,c=au\n" +
@@ -235,7 +237,8 @@ public class LdifUtilityTest extends TestCase
                 "userPassword: {SHA}5en6G6MezRroT3XKqkdPOmY/BfQ=\n" +
                 "\n";
 
-        String ldifEntry = utility.writeEntryToLdifString(bloop.getDN().toString(), bloop.getAsNonNullAttributes());
+
+        String ldifEntry = new LdifEntry(bloop).toString();
 
         assertEquals(expectedLdif, ldifEntry);
     }
@@ -290,7 +293,7 @@ public class LdifUtilityTest extends TestCase
                 " YXkuCgpsZXRzIHNlZSBpZiBwYXJhZ3JhcGhzIGFyZSB3b3JraW5nIG5vdyEKCkhhcHB5IFBhcmFncmFwaC4K\n\n\n";
 
        StringReader stringReader = new StringReader(ldifData);
-       BufferedReader reader = new BufferedReader(stringReader);
+       LdifStreamReader reader = new LdifStreamReader(stringReader);
 
        DXEntry entry1 = utility.readLdifEntry(reader);
 
@@ -306,6 +309,11 @@ public class LdifUtilityTest extends TestCase
         assertEquals("user", entry2.getString("groupmindRole"));
     }
 
+    /**
+     * This test the 'readable line feed hack' where we use the '>' character to make multi line text readable in
+     * an LDIF file.  (This is not standard LDIF!)
+     * @throws Exception
+     */
         public void testLdifDecodeEntry2()
             throws Exception
     {
@@ -329,43 +337,18 @@ public class LdifUtilityTest extends TestCase
                  "description: This blog is useful for testing formatting.\n" +
                  " > >\n" +
                  " >\n" +
-                 " > >\n" +
-                 " >\n" +
-                 " > >\n" +
                  " >alpha\n" +
-                 " > >\n" +
-                 " >\n" +
-                 " > >\n" +
-                 " >*beta\n" +
-                 " > >\n" +
-                 " >*gamma\n" +
-                 " > >\n" +
-                 " >delta\n" +
-                 " > >\n" +
-                 " >\n" +
                  "groupmindTimestamp: 1215037384717";
 
        StringReader stringReader = new StringReader(ldifData);
-       BufferedReader reader = new BufferedReader(stringReader);
+       LdifStreamReader reader = new LdifStreamReader(stringReader);
 
        DXEntry entry1 = utility.readLdifEntry(reader);
 
        String result =  "This blog is useful for testing formatting.\n" +
                  " >\n" +
                  "\n" +
-                 " >\n" +
-                 "\n" +
-                 " >\n" +
-                 "alpha\n" +
-                 " >\n" +
-                 "\n" +
-                 " >\n" +
-                 "*beta\n" +
-                 " >\n" +
-                 "*gamma\n" +
-                 " >\n" +
-                 "delta\n" +
-                 " >\n";
+                 "alpha";
 
        assertEquals("cn=Test Area,cn=blog,cn=Chris,cn=topics,o=groupmind,c=au", entry1.getDN().toString());
        assertEquals(result, entry1.getString("description"));

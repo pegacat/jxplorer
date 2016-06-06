@@ -15,6 +15,8 @@ package com.ca.jndiproviders.dsml;
  *
  */
 
+import com.ca.commons.cbutil.CBBase64;
+
 import java.io.*;
 import java.net.*;
 import java.util.logging.Logger;
@@ -73,10 +75,12 @@ public class SoapClient
      * @param SOAPUrl
      * @param b
      * @param SOAPAction
+     * @param username optional username for HTTPAuth Authorization: header
+     * @param pwd optional password for HTTPAuth Authorization: header
      * @return the response data
      * @throws IOException
      */
-    public static String sendSoapMsg(String SOAPUrl, byte[] b, String SOAPAction)
+    public static String sendSoapMsg(String SOAPUrl, byte[] b, String SOAPAction, String username, String pwd)
             throws IOException
     {
         log.finest("HTTP REQUEST SIZE " + b.length );
@@ -99,6 +103,15 @@ public class SoapClient
                 String.valueOf(b.length));
         httpConn.setRequestProperty("Cache-Control", "no-cache");
         httpConn.setRequestProperty("Pragma", "no-cache");
+
+        // if we have a username password, add an HTTP basic authorization header
+        if (username != null && pwd != null)
+        {
+            String authval = username + ":" + pwd;
+            String base64val = CBBase64.binaryToString(authval.getBytes("UTF-8"));
+            httpConn.setRequestProperty("Authorization", "Basic " + base64val);
+        }
+
         httpConn.setRequestMethod("POST");
         httpConn.setDoOutput(true);
         httpConn.setDoInput(true);

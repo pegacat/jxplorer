@@ -166,7 +166,7 @@ public class LdifExport extends CBDialog
 				int response = -1;
 				if (readFile.exists())	//TE: ask the user if they want to overwrite an existing file.
 				{
-					response = JOptionPane.showConfirmDialog(this, CBIntText.get("File ''{0}'' already exsists.  Do you want to replace it?", new String[] {readFile.toString()}),
+					response = JOptionPane.showConfirmDialog(this, CBIntText.get("File ''{0}'' already exists. Do you want to replace it?", new String[] {readFile.toString()}),
 	        							CBIntText.get("Overwrite Confirmation"), JOptionPane.YES_NO_OPTION );
 
 					if (response != JOptionPane.YES_OPTION)
@@ -243,21 +243,18 @@ public class LdifExport extends CBDialog
 
                     pbar = new CBpbar(LdifExport.this, CBIntText.get("Saving LDIF file"), CBIntText.get("Saving Data"));
 
-//XXX  SCHEMA-FIX; what's happening here?                  if (b instanceof SchemaDataBroker)
-//                        ((SchemaDataBroker)b).setRaw(true);
-
                     myFileWriter.write("version: 1\n");
 
                     DN oldRoot = new DN(rootDN.getText());    // the original DN
                     DN newRoot = new DN(newRootDN.getText()); // the replacement DN (may be identical!)
 
                     if (usingSearch)
-                    {
-                        Vector bloop = searchTree.getAllNodes(new DN(rootDN.getText()));
+                    {   // get the entries from the search tree directly; it will contain all the entries we want
+                        ArrayList<DN> bloop = searchTree.getAllNodes(new DN(rootDN.getText()));
                         saveLdifList(bloop, myFileWriter, oldRoot.toString(), newRoot.toString(), b);
                     }
                     else
-                    {
+                    {   // read the entries from the directory - we don't know if the tree has done a complete read.
                         saveLdifTree(oldRoot, myFileWriter, oldRoot.toString(), newRoot.toString(), b);
                     }
 
@@ -270,9 +267,6 @@ public class LdifExport extends CBDialog
                 {
                     setException(e);
                 }
-
-//XXX                if (b instanceof SchemaDataBroker)
-//                   ((SchemaDataBroker)b).setRaw(false);
 
 				if(pbar.isCanceled())	//TE: delete the file if the user cancels the export.
 					myFile.delete();
@@ -310,19 +304,22 @@ public class LdifExport extends CBDialog
 
         if (pbar.isCanceled()) return false;                    // user canceled
 
-        Attributes atts = null;
+        DXEntry entry = null;
 
         try
         {
             if (treeApex.isEmpty() == false)
             {
-                atts = broker.unthreadedReadEntry(treeApex, null);
+                entry = broker.unthreadedReadEntry(treeApex, null);
             }
 
-            if (atts != null)
-            {
-                DN escapeMe = new DN(treeApex);
-                ldifutil.writeLdifEntry(escapeMe.toString(), saveFile, origPrefix, newPrefix, atts);     // save the current dn...
+            if (entry != null)   // skip empty entries
+            {    // skip fake tree node entries.
+                if ((entry.contains(DXAttributes.STRUCTURAL_NODE)==false) && (entry.contains(DXAttributes.STRUCTURAL_NODE.toLowerCase())==false))
+                {
+                    DN escapeMe = new DN(treeApex);
+                    ldifutil.writeLdifEntry(entry, saveFile, origPrefix, newPrefix);     // save the current dn...
+                }
             }
             // need to get this as a DXNamingEnumeration to set progress bar...
             DXNamingEnumeration children = broker.unthreadedList(treeApex);
@@ -367,7 +364,7 @@ public class LdifExport extends CBDialog
      *    @param replacementPrefix another DN to replace the originalPrefix.
      */
 
-    public void saveLdifList(Vector dns, FileWriter saveFile, String originalPrefix, String replacementPrefix, DataBroker broker)
+    public void saveLdifList(ArrayList<DN> dns, FileWriter saveFile, String originalPrefix, String replacementPrefix, DataBroker broker)
     {
         if (replacementPrefix==null) originalPrefix = null;                        // sanity check.
         if ((originalPrefix!=null)&&(originalPrefix.equals(replacementPrefix)))   // sanity check.
@@ -380,12 +377,12 @@ public class LdifExport extends CBDialog
 
         for (int i=0; i<size; i++)
         {
-            DN dn = (DN)dns.elementAt(i);
+            DN dn = dns.get(i);
 
             try
             {
-                Attributes atts = broker.unthreadedReadEntry(dn, null);
-                ldifutil.writeLdifEntry(dn.toString(), saveFile, originalPrefix, replacementPrefix, atts);
+                DXEntry entry = broker.unthreadedReadEntry(dn, null);
+                ldifutil.writeLdifEntry(entry, saveFile, originalPrefix, replacementPrefix);
             }
             catch (NamingException e)
             {

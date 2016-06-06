@@ -75,7 +75,7 @@ public class generalizedtimeeditor extends CBDialog
     /**
      * List of months (first element is '--').
      */
-    private String months[] = {CBIntText.get("--"), CBIntText.get("January"), CBIntText.get("February"),
+    private String months[] = {"--", CBIntText.get("January"), CBIntText.get("February"),
                        CBIntText.get("March"), CBIntText.get("April"), CBIntText.get("May"),
                        CBIntText.get("June"), CBIntText.get("July"), CBIntText.get("August"),
                        CBIntText.get("September"), CBIntText.get("October"),

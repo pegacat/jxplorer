@@ -170,14 +170,6 @@ public class MainMenu extends JMenuBar
         setDisconnected();
     }
 
-/*    protected void processEvent(AWTEvent e)
-    {
-System.out.println(CBIntText.get("snaffled event ") + e.toString());
-        super.processEvent(e);
-
-    }
-*/
-
     protected void setupFileMenu(JMenu fileMenu)
     {
         // setup common menu listener
@@ -199,7 +191,7 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
                 else if (src == refreshTree)
                     browser.mrTree.collapse();
                 else if (src == newWindow)
-                    browser.parent.createNewWindow();
+                    browser.parent.createNewBrowser();
                 else if (src == closeWindow)
                     browser.closeWindow();
                 else if (src == exit)
@@ -252,7 +244,7 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
         if (getConnection == null)
         {
 			//TE: the new connection class extends CBOpenConWin...
-            getConnection = new JXOpenConWin(browser, browser.displayLabel,
+            getConnection = new JXOpenConWin(browser, browser.getDisplayLabel(),
 												JXConfig.getProperty("option.ssl.clientcerts"),
 												JXConfig.getProperty("option.ssl.cacerts"),
 												JXConfig.getProperty("option.ldap.referral"),
@@ -401,6 +393,8 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
                     importFile();
                 else if (item == viewOffline)
                     viewOffline();
+                //else if (item==ldifTest)
+                //     testImport();
 
                 browser.repaint();
             }
@@ -424,6 +418,7 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
         br.registerItem(br.LDIF, fullExport);
         br.registerItem(br.LDIF, subExport);
         br.registerItem(br.LDIF, importFile);
+        //br.registerItem(br.LDIF, viewOffline); // don't register view offline - it is never disabled...
     }
 
     public void ldifFullExport(SmartTree activeTree, boolean usingSearch)
@@ -451,12 +446,13 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
     public void importFile()
     {
         DataBrokerQueryInterface datamodifier;
-        if (browser.workOffline)
-            datamodifier = (DataBrokerQueryInterface) browser.offlineBroker;
+
+        if (browser.workOffline )
+            datamodifier = browser.offlineBroker;
         else
         {
             if (browser.getJndiBroker().isActive())
-                datamodifier = (DataBrokerQueryInterface) browser.getJndiBroker();
+                datamodifier = browser.getJndiBroker();
             else
             {
                 CBUtility.error(browser, "Error: Not Connected! (Did You Want to 'View Offline'?)");
@@ -464,7 +460,34 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
             }
         }
         LdifImport imp = new LdifImport(datamodifier, browser.mrTree, browser, null);
+
+        imp.selectAndImportFile();  // prompts user to select a file
     }
+
+    /*
+    public void testImport()
+    {
+        DataBrokerQueryInterface datamodifier;
+
+        if (browser.workOffline) // shouldn't be possible; should be disabled in UI when offline
+        {
+            datamodifier = browser.offlineBroker;
+        }
+        else
+        {
+            if (browser.getJndiBroker().isActive())
+                datamodifier = browser.getJndiBroker();
+            else
+            {
+                CBUtility.error(browser, "Error: Not Connected! (Did You Want to 'View Offline'?)");
+                return;
+            }
+        }
+        LdifImport imp = new LdifImport(datamodifier, browser.mrTree, browser, null);
+
+        imp.selectAndTestFile();  // prompts user to select a file
+    }
+    */
 
     public void viewOffline()
     {
@@ -473,9 +496,11 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
         browser.workOffline = true ;
         browser.offlineBroker.clear();
         browser.mrTree.registerDataSource(browser.offlineBroker);
-        browser.mrTree.setRoot(new DN(SmartTree.NODATA));
+        browser.mrTree.setRootDN(SmartTree.NODATA_DN);
 
         LdifImport imp = new LdifImport(browser.offlineBroker, browser.mrTree, browser, null);
+
+        imp.selectAndImportFile();  // prompts user to select a file
 
         browser.setTitle(CBIntText.get("JXplorer") +" - " + imp.getFileName());
 
@@ -484,11 +509,11 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
         // XXX problem... - CB
 
         ButtonRegister br = browser.getButtonRegister();
-        br.setItemEnabled(br.LDIF, true);
-        br.setItemEnabled(br.CUT, true);
-        br.setItemEnabled(br.COPY, true);
-        br.setItemEnabled(br.COPY_DN, true);
-        br.setItemEnabled(br.REFRESH, true);
+        br.setItemEnabled(ButtonRegister.LDIF, true);
+        br.setItemEnabled(ButtonRegister.CUT, true);
+        br.setItemEnabled(ButtonRegister.COPY, true);
+        br.setItemEnabled(ButtonRegister.COPY_DN, true);
+        br.setItemEnabled(ButtonRegister.REFRESH, true);
     }
 
 
@@ -555,7 +580,7 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
             new String[] {CBIntText.get("Delete Filter"),  "", CBIntText.get("Delete an existing filter."), "E", Theme.getInstance().getDirImages()+"delete.gif"} );
 
         attrList = setMenuItem(searchMenu, searchListener,
-            new String[] {CBIntText.get("Return Attribute Lists"),  "", CBIntText.get("Opens a dialog that lets you manage the attributes that you wish to be returned in a search."), "E", Theme.getInstance().getDirImages()+"return_attrs.gif"} );
+            new String[] {CBIntText.get("Return Attributes"),  "", CBIntText.get("Opens a dialog that lets you manage the attributes that you wish to be returned in a search."), "E", Theme.getInstance().getDirImages()+"return_attrs.gif"} );
 
         if(names.length > 0)
 		    setMenuItem(searchMenu, searchListener, new String[] {"-", "", "", "", ""} );
@@ -1085,20 +1110,24 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
                     if (browserSearchAliases.isSelected())
                     {
                         JXConfig.setProperty("option.ldap.browseAliasBehaviour", "finding");
-                        if (browser.getJndiBroker().getDirContext() != null)
+                        browser.getJndiBroker().addToEnvironment("java.naming.ldap.derefAliases", "finding");
+                        /*
+                        if (browser.getJndiBroker().getLdapContext() != null)
                         {
-                            browser.getJndiBroker().getDirContext().addToEnvironment("java.naming.ldap.derefAliases", "finding");
-                            //System.out.println("set to: " + jxplorer.jndiBroker.getDirContext().getEnvironment().get("java.naming.ldap.derefAliases"));
-                        }
+                            browser.getJndiBroker().getLdapContext().addToEnvironment("java.naming.ldap.derefAliases", "finding");
+]                        }
+                        */
                     }
                     else
                     {
                         JXConfig.setProperty("option.ldap.browseAliasBehaviour", "never");
-                        if (browser.getJndiBroker().getDirContext() != null)
+                        browser.getJndiBroker().addToEnvironment("java.naming.ldap.derefAliases", "never");
+                        /*
+                        if (browser.getJndiBroker().getLdapContext() != null)
                         {
-                            browser.getJndiBroker().getDirContext().addToEnvironment("java.naming.ldap.derefAliases", "never");
-                            //System.out.println("set to: " + jxplorer.jndiBroker.getDirContext().getEnvironment().get("java.naming.ldap.derefAliases"));
+                            browser.getJndiBroker().getLdapContext().addToEnvironment("java.naming.ldap.derefAliases", "never");
                         }
+                        */
                     }
                 }
                 catch (Exception e2) {}   // XXX probably never happen :-)
@@ -1248,7 +1277,7 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
         setMenuItem(helpMenu, helpListener, new String[] {"-", "", "", "", ""  } );  // separator
 
         helpAbout = setMenuItem(helpMenu, helpListener,
-            new String[] {CBIntText.get("About"),    "A", CBIntText.get("General information about JXplorer."), "E", Theme.getInstance().getDirImages()+"about.gif" } );
+            new String[] {CBIntText.get("About JXplorer"),    "A", CBIntText.get("General information about JXplorer."), "E", Theme.getInstance().getDirImages()+"about.gif" } );
 
 
 
@@ -1262,13 +1291,18 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
     {
         // Open source license...
         File licence = new File(System.getProperty("user.dir") + File.separator + "licence.txt");
-        if (licence.exists())
-        {
-            String textBody = JXConfig.version+"\n\nCopyright \u00a9 2005 CA. All rights reserved.";
 
-            try
-            {
+            String textBody = JXConfig.version+"\n\n";
+
+        try
+        {
+            if (licence.exists())
                 textBody = CBUtility.readTextFile(licence);
+        }
+        catch (IOException e)
+        {
+            log.severe("unable to read licence file - check 'licence.txt' for CA Open Source licence details");            
+        }
                 textBody = JXConfig.version + "\n" +
                            "\nWritten by: Chris Betts" +
                            "\n            Trudi Ersvaer\n" +
@@ -1277,8 +1311,6 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
                            "\n            Van Bui\n\n\n" +
                            textBody;
 
-            }
-            catch (IOException e) {} // should still be set to original CA text.
 
             CBAbout about = new CBAbout(browser, textBody, new ImageIcon(Theme.getInstance().getDirTemplates() + "JXAboutBottom.gif"),
                         new ImageIcon(Theme.getInstance().getDirTemplates() + "JXAboutTop.gif"), CBIntText.get("OK"), CBIntText.get("Close this window"), CBIntText.get("About JXplorer"));
@@ -1287,26 +1319,7 @@ System.out.println(CBIntText.get("snaffled event ") + e.toString());
             about.setResizable(true);
             CBUtility.center(about, browser);
             about.setVisible(true);
-        }
-        else
-        {
-            /* I don't think we can ship with the CA tau code?? - CB
-            // CA license...
-            File ca_licence = new File(System.getProperty("user.dir") + File.separator + "ca_license.txt");
-            String textBody = null;
-            try
-            {
-                textBody = CBUtility.readTextFile(ca_licence);
-            }
-            catch (IOException e)
-            {
-                e.printStackTrace();
-            }
 
-            AboutBox about = new AboutBox(jxplorer, "eTrust\u2122 Directory JXplorer", JXplorer.version, "", "", textBody, HelpIDs.CONTACT_SUPPORT);
-            about.setVisible(true);
-            */
-        }
     }
 
 
