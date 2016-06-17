@@ -10,14 +10,12 @@ Commercial version (reporting, csv import, excel export etc.) [JXworkbench](http
 ## Extended Commercial version ($10) 
 ### pre-packaged downloads with reporting extensions
 
-![JXWorkbench downloads](http://jxplorer.com/get_jxw.png)
-
-  [![JXWorkbench downloads](http://jxplorer.com/get_jxw.png)](http://jxworkbench.com/purchase/)
+  [![JXWorkbench downloads](http://jxplorer.org/get_jxw.png)](http://jxworkbench.com/purchase/)
 
 ## Standard Open Source version 
 ### pre-packaged download packages
 
-  [![JXPlorer downloads](http://jxplorer.com/get_jx.png)](http://jxplorer.org/downloads/users.html)
+  [![JXPlorer downloads](http://jxplorer.org/get_jx.png)](http://jxplorer.org/downloads/users.html)
 
 
 ## 3.3.1.2
