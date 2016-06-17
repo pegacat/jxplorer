@@ -4,15 +4,20 @@
 General Help and Info at the [JXplorer Project Page](http://jxplorer.org/).
 Commercial version (reporting, csv import, excel export etc.) [JXworkbench](http://jxworkbench.com/).
 
+
 # Download Links:
 
-## Extended Commercial version download packages with reporting extensions
+## Extended Commercial version ($10) 
+### pre-packaged downloads with reporting extensions
 
-  [![Image of JXWorkbench download link](http://jxplorer.com/get_jxw.png)](jxworkbench.com/purchase/)
+![JXWorkbench downloads](http://jxplorer.com/get_jxw.png)
 
-## Standard Open Source version download packages
+  [![JXWorkbench downloads](http://jxplorer.com/get_jxw.png)](http://jxworkbench.com/purchase/)
 
-  ![Image of JXPlorer download link](http://jxplorer.com/get_jx.png)](http://jxplorer.org/downloads/users.html)
+## Standard Open Source version 
+### pre-packaged download packages
+
+  [![JXPlorer downloads](http://jxplorer.com/get_jx.png)](http://jxplorer.org/downloads/users.html)
 
 
 ## 3.3.1.2
