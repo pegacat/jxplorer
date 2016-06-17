@@ -2,6 +2,7 @@
 ======================================
 
 General Help and Info at the [JXplorer Project Page](http://jxplorer.org/).
+
 Commercial version (reporting, csv import, excel export etc.) at [JXworkbench.com](http://jxworkbench.com/).
 
 
@@ -19,6 +20,7 @@ pre-packaged download packages
 
   [![JXPlorer downloads](http://jxplorer.org/get_jx.png)](http://jxplorer.org/downloads/users.html)
 
+(also available on a trial basis on github, under the [release](https://github.com/pegacat/jxplorer/releases) tab)
 
 ## 3.3.1.2
 
