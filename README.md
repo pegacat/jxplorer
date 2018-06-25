@@ -1,9 +1,25 @@
+# Commercial Version Update June 25 '18
+========================================
+
+Pricing and Security Tweak for https://jxworkbench.com - site is now https enabled, and individual licences are now $9.95.
+
+JXWorkbench is a commercial bundle of JXplorer; the base code remains open source, but it also includes:
+* An LDAP reporting engine
+* Import/Export of CSV files (including MS Excel format CSV)
+* RegExp Find and Replace for indexed and unindexed directories
+* Find and Replace with attribute substitution 
+* Perpetual licence
+* Enterprise licencing and support options
+
+... However JXPlorer is still available and open source, and is an excellent general purpose LDAP browser!   
+
+
 # JXplorer Version 3.3.1.2 Release Notes
 ======================================
 
 General Help and Info at the [JXplorer Project Page](http://jxplorer.org/).
 
-Commercial version (reporting, csv import, excel export etc.) at [JXworkbench.com](http://jxworkbench.com/).
+Commercial version (reporting, csv import, excel export etc.) at [JXworkbench.com](https://jxworkbench.com/).
 
 
 # Download Links:
@@ -12,7 +28,7 @@ Commercial version (reporting, csv import, excel export etc.) at [JXworkbench.co
 
 pre-packaged downloads with reporting extensions, csv file support, wildcard find and replace etc.
 
-  [![JXWorkbench downloads](http://jxplorer.org/get_jxw.png)](http://jxworkbench.com/JXWorkBench_Purchase.html)
+  [![JXWorkbench downloads](http://jxplorer.org/get_jxw.png)](https://jxworkbench.com/)
 
 ## Standard Open Source version 
 
