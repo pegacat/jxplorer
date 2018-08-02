@@ -1414,7 +1414,8 @@ public class CBUtility
         }
 
         // try default 'user home' location...
-        defaultConfigDirectory = System.getProperty("user.home") + File.separator + applicationName;
+        // under linux, this should be /home/user/.config/jxplorer
+        defaultConfigDirectory = System.getProperty("user.home") + File.separator + ".config" + File.separator + applicationName;
         if (checkAndCreateWorkingDirectory(defaultConfigDirectory))
             return defaultConfigDirectory;
 
@@ -1434,7 +1435,7 @@ public class CBUtility
      */
     public static String getPropertyConfigPath(String applicationName, String configFileName)
     {
-        String configDir = getConfigDirectory(applicationName) + configFileName;
+        String configDir = getConfigDirectory(applicationName) + File.separator + configFileName;
 
         log.fine("USING CONFIG DIR: " + configDir);
 

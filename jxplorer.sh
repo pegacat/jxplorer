@@ -15,20 +15,14 @@ else
     JAVA_LOC=java
 fi
 
-
-
 # Find directory of JRE
-${JAVA_LOC} -version  >/dev/null 2>&1
-if [ "$?" != "0" ] ; then
-    basename=`basename $0`
-    dirname=`dirname $0`
-    cd ${dirname}
-    dirname=`pwd`
+$JAVA_LOC -version  >/dev/null 2>&1
+if [ $? -ne 0 ] ; then
+    dirname=$(dirname $0)
+    cd $dirname
+    dirname=$(pwd)
     echo "Using new directory finding code"
-    OPTJX=${dirname}
-	#OPTJX=/opt/jxplorer
-
-	# $OPTJX MUST be the JXplorer install directory, or a link to it, and contain the JRE
+    OPTJX="$dirname"
 
 	if [ ! -d $OPTJX -o ! -h $OPTJX ] ; then
 		echo "Either java must be in the path, or"
@@ -37,34 +31,37 @@ if [ "$?" != "0" ] ; then
 	fi
 
 	cd $OPTJX
-        JAVAV=/opt/jxplorer/jre/bin/java
+        JAVAV="/opt/jxplorer/jre/bin/java"
 else
-        JAVAV=${JAVA_LOC}
+        JAVAV="$JAVA_LOC"
 fi
 
-JXOPTS=$JXOPTS" -Dfile.encoding=utf-8"
+JXOPTS+="-Dfile.encoding=utf-8"
 
 case $(uname) in
    Darwin*)  
-   JXOPTS=$JXOPTS "-Xdock:name=\"JXplorer\" -Dapple.laf.useScreenMenuBar=true"
+   JXOPTS+="$JXOPTS -Xdock:name=\"JXplorer\" -Dapple.laf.useScreenMenuBar=true"
    echo "runing OSX version";;
 esac
 
 echo "starting JXplorer..."
 
+DIRNAME=$(dirname $0)
 FAIL=0
 if [ "$1" = "console" ] ; then
-    echo  "$JAVAV $JXOPTS  -cp ".:jars/*:jasper/lib/*" com.ca.directory.jxplorer.JXplorer $2 $3 $4 $5 $6 $7 $8 $9"
-    $JAVAV $JXOPTS  -cp ".:jars/*:jasper/lib/*" com.ca.directory.jxplorer.JXplorer $2 $3 $4 $5 $6 $7 $8 $9
+    cd $DIRNAME
+    echo "$JAVAV $JXOPTS -cp .:jars/*:jasper/lib/* com.ca.directory.jxplorer.JXplorer $2 $3 $4 $5 $6 $7 $8 $9"
+    $JAVAV $JXOPTS -cp .:jars/*:jasper/lib/* com.ca.directory.jxplorer.JXplorer $2 $3 $4 $5 $6 $7 $8 $9
 
-    if [ "$?" != "0" ]; then
+    if [ $? -ne 0 ]; then
         FAIL=1
     fi
 else
+    cd $DIRNAME
     echo "Use \"jxplorer.sh console\" if you want logging to the console"
-    $JAVAV $JXOPTS -Xms2048m -cp ".:jars/*:jasper/lib/*" com.ca.directory.jxplorer.JXplorer $1 $2 $3 $4 $5 $6 $7 $8 $9>/dev/null 2>&1
+    $JAVAV $JXOPTS -Xms2048m -cp .:jars/*:jasper/lib/* com.ca.directory.jxplorer.JXplorer $1 $2 $3 $4 $5 $6 $7 $8 $9>/dev/null 2>&1
 
-    if [ "$?" != "0" ]; then
+    if [ $? -ne 0 ]; then
         FAIL=1
     fi
 fi

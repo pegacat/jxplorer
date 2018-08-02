@@ -643,7 +643,7 @@ public class JXplorer
         if (sourceFileName.endsWith(".default"))
             destinationFileName = sourceFileName.substring(0, sourceFileName.length() - 8);
 
-        File destinationFile = new File(JXConfig.getConfigDirectory() + destinationFileName);
+        File destinationFile = new File(JXConfig.getConfigDirectory() + File.separator + destinationFileName);
 
         if (!destinationFile.isDirectory() && destinationFile.exists())
             return;  // it's already there - nothing to do.
